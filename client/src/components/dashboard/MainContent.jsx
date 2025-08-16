@@ -22,7 +22,7 @@ export function MainContent() {
         return <SchedulesPage />;
       case "customersmessages":
         return <CustomerMessagesPage />;
-      case "profile":
+      case "profile-settings":
         return <ProfileSettingsPage />;
       case "customers":
         return <CustomersPage />;
