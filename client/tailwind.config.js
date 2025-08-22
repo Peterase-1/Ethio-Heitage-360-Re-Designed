@@ -1,8 +1,8 @@
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+export default {
   content: [
     "./index.html",
-    "./src/**/*.{js,jsx,ts,tsx}",
+    "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
@@ -39,6 +39,13 @@ module.exports = {
         },
         border: 'var(--border)',
         input: 'var(--input)',
+        ring: 'var(--ring)',
+      },
+      borderColor: {
+        DEFAULT: 'var(--border)',
+        border: 'var(--border)',
+      },
+      outlineColor: {
         ring: 'var(--ring)',
       },
       borderRadius: {

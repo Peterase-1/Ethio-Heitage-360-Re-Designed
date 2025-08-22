@@ -1,17 +1,80 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Search, Eye, Bot, Video, MapPin, BookOpen, Star, Users, Globe, Calendar, ArrowRight, Play, Sparkles, Shield, Award } from 'lucide-react';
 import heroBg from '../assets/hero-bg.jpg';
 import obeliskHero from '../assets/obelisk-hero.jpg';
 import artifacts from '../assets/artifacts.jpg';
 import architecture from '../assets/architecture.jpg';
 import culture from '../assets/culture.jpg';
-import lucybone from '../assets/Lucy-Bone.jpg'
-import Aitour from '../assets/Ai-tour.jpg'
+import lucybone from '../assets/Lucy-Bone.jpg';
+import Aitour from '../assets/Ai-tour.jpg';
 import museum from '../assets/museum.jpg';
 import virtualTour from '../assets/virtual-tour.jpg';
+import VirtualMuseumButton from '../components/virtual-museum/VirtualMuseumButton';
 
 const Home = () => {
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [stats, setStats] = useState({
+    artifacts: 500,
+    museums: 50,
+    sites: 25,
+    visitors: 10000
+  });
+
+  // Animate stats on component mount
+  useEffect(() => {
+    const animateStats = () => {
+      let progress = 0;
+      const targetStats = { artifacts: 500, museums: 50, sites: 25, visitors: 10000 };
+      const interval = setInterval(() => {
+        progress += 0.02;
+        if (progress >= 1) {
+          setStats(targetStats);
+          clearInterval(interval);
+        } else {
+          setStats({
+            artifacts: Math.floor(targetStats.artifacts * progress),
+            museums: Math.floor(targetStats.museums * progress),
+            sites: Math.floor(targetStats.sites * progress),
+            visitors: Math.floor(targetStats.visitors * progress)
+          });
+        }
+      }, 50);
+    };
+    
+    animateStats();
+  }, []);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/virtual-museum?search=${encodeURIComponent(searchQuery)}`);
+    }
+  };
+
+  const handleStartExploring = () => {
+    navigate('/virtual-museum');
+  };
+
+  const handleExploreVirtualMuseum = () => {
+    navigate('/virtual-museum');
+  };
+
+  const handleExploreTours = () => {
+    navigate('/tours');
+  };
+
+  const handleExploreMap = () => {
+    navigate('/map');
+  };
+
+  const handleReadArticle = (articleType) => {
+    // For now, navigate to virtual museum with a filter
+    // In a real app, these would go to specific article pages
+    navigate('/virtual-museum?category=' + articleType);
+  };
+
   return (
     <div className="min-h-screen">
       {/* Modern Hero Section */}
@@ -48,13 +111,22 @@ const Home = () => {
                 </p>
               </div>
 
-              {/* CTA Button */}
-              <div>
-                <button className="bg-primary text-primary-foreground px-8 py-4 rounded-2xl text-lg font-semibold hover:bg-primary/90 transition-colors flex items-center">
-                  <Play className="w-5 h-5 mr-2" />
-                  Start Exploring
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </button>
+              {/* CTA Buttons - Virtual Museum Prominently Featured */}
+              <div className="space-y-6">
+                
+                {/* Heritage Map - Secondary Feature */}
+                
+                {/* Additional Action Button */}
+                <div className="flex justify-center">
+                  <button 
+                    onClick={handleStartExploring}
+                    className="bg-muted text-muted-foreground px-6 py-3 rounded-xl font-medium hover:bg-muted/80 transition-colors flex items-center justify-center border border-border"
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Explore All Features
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -137,20 +209,132 @@ const Home = () => {
           <h2 className="text-3xl font-bold text-foreground mb-8">
             What would you like to explore today?
           </h2>
-          <div className="relative max-w-2xl mx-auto">
+          <form onSubmit={handleSearch} className="relative max-w-2xl mx-auto">
             <Search className="absolute left-6 top-1/2 transform -translate-y-1/2 text-muted-foreground h-6 w-6" />
             <input
               type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search artifacts, sites, museums, or cultural events..."
               className="w-full pl-16 pr-32 py-6 rounded-2xl text-lg bg-card border border-border focus:ring-4 focus:ring-primary/20 focus:border-primary transition-all duration-300 shadow-lg"
             />
-            <button className="absolute right-3 top-3 bg-primary text-primary-foreground px-8 py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors">
+            <button 
+              type="submit"
+              className="absolute right-3 top-3 bg-primary text-primary-foreground px-8 py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors"
+            >
               Explore
             </button>
-          </div>
+          </form>
         </div>
       </section>
 
+      {/* Education & Learning Section */}
+      <section className="py-20 bg-gradient-to-br from-accent/5 via-primary/5 to-secondary/5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center bg-accent/10 text-accent rounded-full px-4 py-2 mb-4">
+              <BookOpen className="w-4 h-4 mr-2" />
+              <span className="text-sm font-semibold">Ethiopian Heritage Education</span>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
+              Learn Ethiopia's Rich Heritage
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
+              Immerse yourself in interactive courses, expert-guided lessons, and comprehensive resources 
+              that bring thousands of years of Ethiopian history and culture to life.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link to="/learning">
+                <button className="bg-accent text-accent-foreground px-8 py-4 rounded-xl text-lg font-semibold hover:bg-accent/90 transition-colors flex items-center justify-center">
+                  <BookOpen className="w-5 h-5 mr-2" />
+                  Start Learning Today
+                </button>
+              </Link>
+              <Link to="/virtual-museum">
+                <button className="border-2 border-accent/30 text-foreground px-8 py-4 rounded-xl text-lg font-semibold hover:bg-accent/10 transition-colors flex items-center justify-center">
+                  <Eye className="w-5 h-5 mr-2" />
+                  Explore Virtual Museum
+                </button>
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+            {/* Interactive Courses */}
+            <div className="bg-card rounded-3xl p-8 border border-border hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
+              <div className="w-16 h-16 bg-accent/10 rounded-2xl flex items-center justify-center mb-6">
+                <Play className="w-8 h-8 text-accent" />
+              </div>
+              <h3 className="text-2xl font-bold text-card-foreground mb-4">Interactive Courses</h3>
+              <p className="text-muted-foreground mb-6 leading-relaxed">
+                Explore Ethiopian history, culture, and archaeology through engaging multimedia courses designed for all learning levels.
+              </p>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-accent">15+ Courses Available</span>
+                <Link to="/learning">
+                  <ArrowRight className="w-5 h-5 text-primary hover:text-primary/80 transition-colors" />
+                </Link>
+              </div>
+            </div>
+
+            {/* Expert Guidance */}
+            <div className="bg-card rounded-3xl p-8 border border-border hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
+              <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
+                <Users className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-2xl font-bold text-card-foreground mb-4">Expert Guidance</h3>
+              <p className="text-muted-foreground mb-6 leading-relaxed">
+                Learn from renowned archaeologists, historians, and cultural experts who share their knowledge and insights.
+              </p>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-primary">World-Class Educators</span>
+                <Link to="/learning">
+                  <ArrowRight className="w-5 h-5 text-primary hover:text-primary/80 transition-colors" />
+                </Link>
+              </div>
+            </div>
+
+            {/* Progress Tracking */}
+            <div className="bg-card rounded-3xl p-8 border border-border hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
+              <div className="w-16 h-16 bg-secondary/10 rounded-2xl flex items-center justify-center mb-6">
+                <Award className="w-8 h-8 text-secondary" />
+              </div>
+              <h3 className="text-2xl font-bold text-card-foreground mb-4">Progress Tracking</h3>
+              <p className="text-muted-foreground mb-6 leading-relaxed">
+                Track your learning journey, earn achievements, and showcase your knowledge of Ethiopian heritage and culture.
+              </p>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-secondary">Personalized Learning</span>
+                <Link to="/learning">
+                  <ArrowRight className="w-5 h-5 text-primary hover:text-primary/80 transition-colors" />
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Learning Statistics */}
+          <div className="bg-card/50 backdrop-blur-sm rounded-3xl p-8 border border-border">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
+            <div>
+              <div className="text-4xl font-bold text-accent mb-2">8,000+</div>
+              <div className="text-muted-foreground">Active Learners</div>
+            </div>
+            <div>
+              <div className="text-4xl font-bold text-primary mb-2">25+</div>
+              <div className="text-muted-foreground">Expert Courses</div>
+            </div>
+            <div>
+              <div className="text-4xl font-bold text-secondary mb-2">75+</div>
+              <div className="text-muted-foreground">Learning Resources</div>
+            </div>
+            <div>
+              <div className="text-4xl font-bold text-accent mb-2">98%</div>
+              <div className="text-muted-foreground">Satisfaction Rate</div>
+            </div>
+          </div>
+          </div>
+        </div>
+      </section>
       {/* Revolutionary Heritage Experience */}
       <section className="py-20 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -190,7 +374,10 @@ const Home = () => {
                   Experience artifacts and heritage sites in stunning 3D detail with virtual and augmented 
                   reality support. Walk through ancient temples and examine artifacts up close.
                 </p>
-                <button className="text-primary font-semibold hover:text-primary/80 transition-colors flex items-center group-hover:translate-x-2 transition-transform duration-300">
+                <button 
+                  onClick={handleExploreVirtualMuseum}
+                  className="text-primary font-semibold hover:text-primary/80 transition-colors flex items-center group-hover:translate-x-2 transition-transform duration-300"
+                >
                   Explore Feature
                   <ArrowRight className="ml-2 w-4 h-4" />
                 </button>
@@ -226,7 +413,10 @@ const Home = () => {
                   Get personalized guidance and detailed information about Ethiopian culture and history 
                   in multiple languages. Your intelligent companion for heritage exploration.
                 </p>
-                <button className="text-primary font-semibold hover:text-primary/80 transition-colors flex items-center group-hover:translate-x-2 transition-transform duration-300">
+                <button 
+                  onClick={handleExploreVirtualMuseum}
+                  className="text-primary font-semibold hover:text-primary/80 transition-colors flex items-center group-hover:translate-x-2 transition-transform duration-300"
+                >
                   Explore Feature
                   <ArrowRight className="ml-2 w-4 h-4" />
                 </button>
@@ -279,10 +469,10 @@ const Home = () => {
                 <p className="text-muted-foreground mb-4 leading-relaxed">
                   Explore Ethiopia's heritage sites on an interactive map with detailed information and virtual visits.
                 </p>
-                <Link to="/map" className="text-primary font-semibold hover:text-primary/80 transition-colors flex items-center group-hover:translate-x-2 transition-transform duration-300">
-                  Explore Heritage Map
+                <button className="text-primary font-semibold hover:text-primary/80 transition-colors flex items-center group-hover:translate-x-2 transition-transform duration-300">
+                  Explore Feature
                   <ArrowRight className="ml-2 w-4 h-4" />
-                </Link>
+                </button>
               </div>
             </div>
 
@@ -315,10 +505,12 @@ const Home = () => {
                 <p className="text-muted-foreground mb-4 leading-relaxed">
                   Comprehensive learning materials for students, educators, and researchers studying Ethiopian heritage.
                 </p>
-                <button className="text-primary font-semibold hover:text-primary/80 transition-colors flex items-center group-hover:translate-x-2 transition-transform duration-300">
-                  Explore Feature
-                  <ArrowRight className="ml-2 w-4 h-4" />
-                </button>
+                <Link to="/learning">
+                  <button className="text-primary font-semibold hover:text-primary/80 transition-colors flex items-center group-hover:translate-x-2 transition-transform duration-300">
+                    Start Learning
+                    <ArrowRight className="ml-2 w-4 h-4" />
+                  </button>
+                </Link>
               </div>
             </div>
           </div>

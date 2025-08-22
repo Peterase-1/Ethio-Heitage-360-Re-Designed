@@ -1,21 +1,20 @@
-
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import {
   Box, Button, Card, CardContent, CardMedia, Chip, Dialog, DialogActions,
   DialogContent, DialogTitle, Divider, Grid, IconButton, LinearProgress,
   MenuItem, Paper, Select, Table, TableBody, TableCell, TableContainer,
   TableHead, TablePagination, TableRow, TextField, Typography, useTheme,
-  Avatar, FormControl, InputLabel, Snackbar, Alert, Tooltip
+  Avatar, FormControl, InputLabel, Snackbar, Alert, Tooltip, CardHeader, List, ListItem, ListItemAvatar, ListItemText, Collapse
 } from '@mui/material';
 import {
   Search as SearchIcon, FilterList as FilterListIcon, CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon, Delete as DeleteIcon, Edit as EditIcon, Visibility as VisibilityIcon,
   Refresh as RefreshIcon, Image as ImageIcon, Category as CategoryIcon,
-  CalendarToday as CalendarIcon, Person as PersonIcon, Museum as MuseumIcon
+  CalendarToday as CalendarIcon, Person as PersonIcon, Museum as MuseumIcon, Close as CloseIcon
 } from '@mui/icons-material';
 
-const ArtifactApproval = ({ artifacts, onApprove, onReject, loading = false }) => {
+const ArtifactApproval = ({ artifacts, onApprove, onReject, loading = false, setArtifacts, enqueueSnackbar }) => {
   const theme = useTheme();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -475,54 +474,31 @@ const ArtifactApproval = ({ artifacts, onApprove, onReject, loading = false }) =
                       }
                     >
                       <ListItemAvatar>
-                        <Avatar sx={{ bgcolor: 'action.active' }}>
-                          {log.action === 'ARTIFACT_APPROVED' ? (
-                            <CheckCircleIcon color="success" />
-                          ) : log.action === 'ARTIFACT_REJECTED' ? (
-                            <CancelIcon color="error" />
-                          ) : log.action === 'ARTIFACT_FLAGGED' ? (
-                            <FlagIcon color="warning" />
-                          ) : (
-                            <InfoIcon />
-                          )}
+                        <Avatar sx={{ bgcolor: theme.palette.primary.main }}>
+                          {log.action.charAt(0)}
                         </Avatar>
                       </ListItemAvatar>
                       <ListItemText
                         primary={
-                          <>
-                            <Typography component="span" variant="subtitle2">
-                              {log.targetName}
-                            </Typography>
-                            <Chip 
-                              label={log.action.replace('ARTIFACT_', '').toLowerCase()}
-                              size="small"
-                              sx={{ ml: 1, height: 20, fontSize: '0.65rem' }}
-                              color={
-                                log.action === 'ARTIFACT_APPROVED' ? 'success' :
-                                log.action === 'ARTIFACT_REJECTED' ? 'error' :
-                                log.action === 'ARTIFACT_FLAGGED' ? 'warning' : 'default'
-                              }
-                              variant="outlined"
-                            />
-                          </>
+                          <Typography variant="subtitle1" component="span">
+                            {log.action}: {log.targetName}
+                          </Typography>
                         }
                         secondary={
-                          log.details?.reason || 
-                          (log.action === 'ARTIFACT_APPROVED' ? 'Artifact was approved' : 'No details')
+                          <Typography variant="body2" color="text.secondary">
+                            {log.details?.reason || 'No additional details'}
+                          </Typography>
                         }
-                        secondaryTypographyProps={{ variant: 'body2' }}
                       />
                     </ListItem>
-                    {index < auditLogs.length - 1 && <Divider component="li" />}
+                    {index < auditLogs.length - 1 && <Divider variant="inset" component="li" />}
                   </React.Fragment>
                 ))}
               </List>
             ) : (
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <Typography variant="body2" color="text.secondary">
-                  No audit logs available
-                </Typography>
-              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
+                No audit logs available.
+              </Typography>
             )}
           </Box>
         </Card>
@@ -531,585 +507,269 @@ const ArtifactApproval = ({ artifacts, onApprove, onReject, loading = false }) =
   );
 
   return (
-    <>
-      {renderFlagDialog()}
-      {renderBulkActionDialog()}
-      {renderAuditLogs()}
-      
-      <Card elevation={0}>
-        <Box sx={{ p: 2 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6">
-              Artifact Management
-              {filteredArtifacts.length > 0 && (
-                <Typography variant="body2" color="text.secondary" component="span" sx={{ ml: 1 }}>
-                  ({filteredArtifacts.length} artifacts)
-                </Typography>
-              )}
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button
-                variant="outlined"
-                startIcon={<RefreshIcon />}
-                onClick={() => window.location.reload()}
-                disabled={loading}
-              >
-                Refresh
-              </Button>
-              <Button
-                variant="outlined"
-                color="secondary"
-                startIcon={<FlagIcon />}
-                onClick={() => setShowAuditLogs(!showAuditLogs)}
-                disabled={loading}
-              >
-                {showAuditLogs ? 'Hide Logs' : 'View Logs'}
-              </Button>
-            </Box>
-          </Box>
-          
-          {/* Filters and Actions */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
-            {/* Search and Filters Row */}
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-              <TextField
-                size="small"
-                placeholder="Search artifacts..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                InputProps={{
-                  startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />,
-                }}
-                sx={{ minWidth: 250, flex: 1, maxWidth: 400 }}
-              />
-              
-              <FormControl variant="outlined" size="small" sx={{ minWidth: 200 }}>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  label="Status"
-                >
-                  {statusOptions.map((option) => (
-                    <MenuItem key={`status-${option.value}`} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              
-              <FormControl variant="outlined" size="small" sx={{ minWidth: 180 }}>
-                <InputLabel>Flag Status</InputLabel>
-                <Select
-                  value={filterFlagged}
-                  onChange={(e) => setFilterFlagged(e.target.value)}
-                  label="Flag Status"
-                >
-                  {flagFilterOptions.map((option) => (
-                    <MenuItem key={`flag-${option.value}`} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              
-              <Button
-                variant="outlined"
-                startIcon={<RefreshIcon />}
-                onClick={() => {
-                  setSearchQuery('');
-                  setFilterStatus('all');
-                  setFilterFlagged('all');
-                  setPage(0);
-                }}
-                sx={{ ml: 'auto' }}
-              >
-                Reset Filters
-              </Button>
-            </Box>
-            
-            {/* Bulk Actions Row */}
-            {selectedArtifacts.length > 0 && (
-              <Box sx={{ 
-                display: 'flex', 
-                gap: 2, 
-                alignItems: 'center',
-                p: 1,
-                bgcolor: 'action.hover',
-                borderRadius: 1
-              }}>
-                <Typography variant="subtitle2" sx={{ ml: 1 }}>
-                  {selectedArtifacts.length} selected
-                </Typography>
-                <Button
-                  size="small"
-                  variant="contained"
-                  color="success"
-                  startIcon={<CheckCircleIcon />}
-                  onClick={() => {
-                    setBulkAction('approve');
-                    setBulkDialogOpen(true);
-                  }}
-                >
-                  Approve
-                </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color="error"
-                  startIcon={<CancelIcon />}
-                  onClick={() => {
-                    setBulkAction('reject');
-                    setBulkDialogOpen(true);
-                  }}
-                >
-                  Reject
-                </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color="warning"
-                  startIcon={<FlagIcon />}
-                  onClick={() => {
-                    setBulkAction('flag');
-                    setBulkDialogOpen(true);
-                  }}
-                >
-                  Flag
-                </Button>
-                <Button
-                  size="small"
-                  color="inherit"
-                  onClick={() => setSelectedArtifacts([])}
-                  sx={{ ml: 'auto' }}
-                >
-                  Clear Selection
-                </Button>
-              </Box>
-            )}
-          </Box>
-
-          {loading ? (
-            <LinearProgress />
-          ) : (
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        indeterminate={
-                          selectedArtifacts.length > 0 && 
-                          selectedArtifacts.length < filteredArtifacts.length
-                        }
-                        checked={
-                          filteredArtifacts.length > 0 && 
-                          selectedArtifacts.length === filteredArtifacts.length
-                        }
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedArtifacts(filteredArtifacts.map(art => art.id));
-                          } else {
-                            setSelectedArtifacts([]);
-                          }
-                        }}
-                        inputProps={{ 'aria-label': 'select all artifacts' }}
-                      />
-                    </TableCell>
-                    <TableCell>Artifact</TableCell>
-                    <TableCell>Description</TableCell>
-                    <TableCell>Submitted By</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Date</TableCell>
-                    <TableCell align="right">Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {paginatedArtifacts.length > 0 ? (
-                    paginatedArtifacts.map((artifact) => {
-                      const isSelected = selectedArtifacts.includes(artifact.id);
-                      return (
-                        <TableRow 
-                          key={artifact.id} 
-                          hover 
-                          selected={isSelected}
-                          onClick={(e) => {
-                            // Don't trigger selection if clicking on a button or link
-                            if (e.target.closest('button, a, [role="button"]')) return;
-                            
-                            setSelectedArtifacts(prev => 
-                              prev.includes(artifact.id)
-                                ? prev.filter(id => id !== artifact.id)
-                                : [...prev, artifact.id]
-                            );
-                          }}
-                          sx={{ 
-                            cursor: 'pointer',
-                            bgcolor: artifact.flagged ? 'rgba(245, 0, 87, 0.04)' : 'inherit',
-                            '&:hover': {
-                              bgcolor: artifact.flagged 
-                                ? 'rgba(245, 0, 87, 0.08)' 
-                                : 'action.hover'
-                            }
-                          }}
-                        >
-                          <TableCell padding="checkbox" onClick={(e) => e.stopPropagation()}>
-                            <Checkbox
-                              checked={isSelected}
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                setSelectedArtifacts(prev => 
-                                  prev.includes(artifact.id)
-                                    ? prev.filter(id => id !== artifact.id)
-                                    : [...prev, artifact.id]
-                                );
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              <Box sx={{ position: 'relative', mr: 2 }}>
-                                {artifact.images?.[0] ? (
-                                  <Box 
-                                    component="img"
-                                    src={artifact.images[0]}
-                                    alt={artifact.name}
-                                    sx={{ 
-                                      width: 50, 
-                                      height: 50, 
-                                      objectFit: 'cover', 
-                                      borderRadius: 1,
-                                      opacity: artifact.status === 'rejected' ? 0.5 : 1,
-                                      filter: artifact.status === 'rejected' ? 'grayscale(80%)' : 'none'
-                                    }}
-                                  />
-                                ) : (
-                                  <Box sx={{ 
-                                    width: 50, 
-                                    height: 50, 
-                                    bgcolor: 'action.hover', 
-                                    borderRadius: 1, 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    justifyContent: 'center' 
-                                  }}>
-                                    <ImageIcon color="disabled" />
-                                  </Box>
-                                )}
-                                {artifact.flagged && (
-                                  <Box 
-                                    sx={{
-                                      position: 'absolute',
-                                      top: -8,
-                                      right: -8,
-                                      bgcolor: 'warning.main',
-                                      color: 'warning.contrastText',
-                                      borderRadius: '50%',
-                                      width: 20,
-                                      height: 20,
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      boxShadow: 1
-                                    }}
-                                  >
-                                    <FlagIcon sx={{ fontSize: 14 }} />
-                                  </Box>
-                                )}
-                              </Box>
-                              <Box>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <Typography variant="subtitle2">
-                                    {artifact.name}
-                                  </Typography>
-                                  {artifact.flagged && (
-                                    <Tooltip title="Flagged for review">
-                                      <Chip 
-                                        size="small" 
-                                        label="Flagged" 
-                                        color="warning" 
-                                        variant="outlined"
-                                        sx={{ height: 20, fontSize: '0.7rem' }}
-                                      />
-                                    </Tooltip>
-                                  )}
-                                </Box>
-                                {artifact.flagReason && (
-                                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                                    {artifact.flagReason}
-                                  </Typography>
-                                )}
-                              </Box>
-                            </Box>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" noWrap sx={{ maxWidth: 300 }}>
-                              {artifact.description || 'No description'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              <Avatar src={artifact.submitterAvatar} sx={{ width: 30, height: 30, mr: 1 }}>
-                                <PersonIcon fontSize="small" />
-                              </Avatar>
-                              <Typography variant="body2">
-                                {artifact.submittedBy || 'Unknown'}
-                              </Typography>
-                            </Box>
-                          </TableCell>
-                          <TableCell>
-                            <Chip 
-                              label={artifact.status || 'pending'}
-                              color={getStatusColor(artifact.status || 'pending')}
-                              size="small"
-                              variant="outlined"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            {new Date(artifact.createdAt).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" color="text.secondary">
-                              {new Date(artifact.createdAt).toLocaleDateString()}
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                              <Tooltip title="Preview">
-                                <IconButton 
-                                  size="small" 
-                                  color="primary" 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handlePreview(artifact);
-                                  }}
-                                >
-                                  <VisibilityIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Approve">
-                                <IconButton 
-                                  size="small" 
-                                  color="success" 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleApprove(artifact.id);
-                                  }}
-                                  disabled={artifact.status === 'approved'}
-                                >
-                                  <CheckCircleIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Reject">
-                                <IconButton 
-                                  size="small" 
-                                  color="error" 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleReject(artifact.id);
-                                  }}
-                                  disabled={artifact.status === 'rejected'}
-                                >
-                                  <CancelIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title={artifact.flagged ? 'View Flag Details' : 'Flag for Review'}>
-                                <IconButton
-                                  size="small"
-                                  color={artifact.flagged ? 'warning' : 'default'}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedArtifact(artifact);
-                                    setFlagDialogOpen(true);
-                                  }}
-                                >
-                                  <FlagIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
-                        <ImageIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
-                        <Typography>No artifacts found</Typography>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-              <TablePagination
-                rowsPerPageOptions={[5, 10, 25]}
-                component="div"
-                count={filteredArtifacts.length}
-                rowsPerPage={rowsPerPage}
-                page={page}
-                onPageChange={handleChangePage}
-                onRowsPerPageChange={handleChangeRowsPerPage}
-              />
-            </TableContainer>
-          )}
+    <Paper sx={{ p: 3, mb: 3 }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h5" component="h2" fontWeight="bold">
+          Artifact Approval Queue
+        </Typography>
+        <Box>
+          <Tooltip title="Refresh Data">
+            <IconButton onClick={() => onRefresh && onRefresh()} disabled={loading}>
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="View Audit Logs">
+            <IconButton onClick={() => setShowAuditLogs(!showAuditLogs)}>
+              <VisibilityIcon />
+            </IconButton>
+          </Tooltip>
         </Box>
-      </Card>
+      </Box>
+
+      {renderAuditLogs()}
+
+      <Divider sx={{ my: 2 }} />
+
+      <Box display="flex" gap={2} mb={2} flexWrap="wrap">
+        <TextField
+          label="Search Artifacts"
+          variant="outlined"
+          size="small"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          InputProps={{
+            startAdornment: <SearchIcon sx={{ mr: 1 }} />,
+          }}
+        />
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel>Status</InputLabel>
+          <Select
+            value={filterStatus}
+            label="Status"
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
+            {statusOptions.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel>Flagged</InputLabel>
+          <Select
+            value={filterFlagged}
+            label="Flagged"
+            onChange={(e) => setFilterFlagged(e.target.value)}
+          >
+            {flagFilterOptions.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
+
+      {loading ? (
+        <LinearProgress sx={{ my: 2 }} />
+      ) : filteredArtifacts.length === 0 ? (
+        <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
+          No artifacts found matching your criteria.
+        </Typography>
+      ) : (
+        <TableContainer component={Paper} sx={{ mt: 2 }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell padding="checkbox">
+                  {/* Checkbox for bulk selection */}
+                </TableCell>
+                <TableCell>Image</TableCell>
+                <TableCell>Name</TableCell>
+                <TableCell>Submitted By</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Flagged</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {paginatedArtifacts.map((artifact) => (
+                <TableRow key={artifact.id}>
+                  <TableCell padding="checkbox">
+                    {/* Checkbox for individual selection */}
+                  </TableCell>
+                  <TableCell>
+                    <CardMedia
+                      component="img"
+                      sx={{ width: 60, height: 60, borderRadius: 1, objectFit: 'cover' }}
+                      image={artifact.imageUrl || 'https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=60&h=60&fit=crop&crop=center'}
+                      alt={artifact.name}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="subtitle2">{artifact.name}</Typography>
+                    <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: 200 }}>
+                      {artifact.description}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>{artifact.submittedBy}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={artifact.status}
+                      color={getStatusColor(artifact.status)}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    {artifact.flagged ? (
+                      <Tooltip title={`Reason: ${artifact.flagReason || 'N/A'}\nCategory: ${flagCategories.find(c => c.value === artifact.flagCategory)?.label || 'N/A'}`}>
+                        <Chip label="Yes" color="warning" size="small" icon={<InfoOutlined fontSize="small" />} />
+                      </Tooltip>
+                    ) : (
+                      <Chip label="No" color="success" size="small" />
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      <Tooltip title="View Details">
+                        <IconButton size="small" onClick={() => handleViewArtifact(artifact)}>
+                          <VisibilityIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      {artifact.status === 'pending' && (
+                        <>
+                          <Tooltip title="Approve">
+                            <IconButton size="small" color="success" onClick={() => handleApprove(artifact.id)}>
+                              <CheckCircleIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Reject">
+                            <IconButton size="small" color="error" onClick={() => {
+                              setSelectedArtifact(artifact);
+                              setRejectDialogOpen(true);
+                            }}>
+                              <CancelIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </>
+                      )}
+                      {!artifact.flagged && (
+                        <Tooltip title="Flag for Review">
+                          <IconButton size="small" color="warning" onClick={() => {
+                            setSelectedArtifact(artifact);
+                            setFlagDialogOpen(true);
+                          }}>
+                            <FilterListIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      {artifact.flagged && (
+                        <Tooltip title="View Flag Details">
+                          <IconButton size="small" onClick={() => {
+                            setSelectedArtifact(artifact);
+                            setFlagDialogOpen(true);
+                          }}>
+                            <InfoOutlined fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25]}
+            component="div"
+            count={filteredArtifacts.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
+        </TableContainer>
+      )}
 
       {/* View Artifact Dialog */}
       <Dialog open={viewDialogOpen} onClose={() => setViewDialogOpen(false)} maxWidth="md" fullWidth>
-        {selectedArtifact && (
-          <>
-            <DialogTitle>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                {selectedArtifact.name}
-                <Chip 
-                  label={selectedArtifact.status}
-                  color={getStatusColor(selectedArtifact.status)}
-                  size="small"
-                  sx={{ ml: 2 }}
+        <DialogTitle>{selectedArtifact?.name}</DialogTitle>
+        <DialogContent dividers>
+          {selectedArtifact && (
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <CardMedia
+                  component="img"
+                  image={selectedArtifact.imageUrl || 'https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=400&h=300&fit=crop&crop=center'}
+                  alt={selectedArtifact.name}
+                  sx={{ width: '100%', height: 'auto', borderRadius: 1 }}
                 />
-              </Box>
-            </DialogTitle>
-            <DialogContent dividers>
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  {selectedArtifact.images?.[0] ? (
-                    <Box sx={{ width: '100%', height: 300, position: 'relative' }}>
-                      <Box
-                        component="img"
-                        src={selectedArtifact.images[0]}
-                        alt={selectedArtifact.name}
-                        sx={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                      />
-                    </Box>
-                  ) : (
-                    <Box sx={{ 
-                      width: '100%', 
-                      height: 300, 
-                      bgcolor: 'action.hover',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: 1
-                    }}>
-                      <ImageIcon sx={{ fontSize: 64, color: 'text.disabled' }} />
-                    </Box>
-                  )}
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="h6" gutterBottom>Details</Typography>
-                  <Divider sx={{ mb: 2 }} />
-                  
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" color="text.secondary">Description</Typography>
-                    <Typography paragraph>{selectedArtifact.description || 'No description'}</Typography>
-                  </Box>
-                  
-                  <Grid container spacing={2}>
-                    <Grid item xs={6}>
-                      <Typography variant="subtitle2" color="text.secondary">Submitted By</Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                        <Avatar src={selectedArtifact.submitterAvatar} sx={{ width: 32, height: 32, mr: 1 }}>
-                          <PersonIcon />
-                        </Avatar>
-                        <Typography>{selectedArtifact.submittedBy || 'Unknown'}</Typography>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="subtitle2" color="text.secondary">Date</Typography>
-                      <Typography>{new Date(selectedArtifact.createdAt).toLocaleDateString()}</Typography>
-                    </Grid>
-                    {selectedArtifact.category && (
-                      <Grid item xs={6}>
-                        <Typography variant="subtitle2" color="text.secondary">Category</Typography>
-                        <Typography>{selectedArtifact.category}</Typography>
-                      </Grid>
-                    )}
-                    {selectedArtifact.museum && (
-                      <Grid item xs={6}>
-                        <Typography variant="subtitle2" color="text.secondary">Museum</Typography>
-                        <Typography>{selectedArtifact.museum}</Typography>
-                      </Grid>
-                    )}
-                  </Grid>
-                </Grid>
               </Grid>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setViewDialogOpen(false)}>Close</Button>
-              {selectedArtifact.status === 'pending' && (
-                <>
-                  <Button 
-                    color="error"
-                    onClick={() => {
-                      setViewDialogOpen(false);
-                      setRejectDialogOpen(true);
-                    }}
-                  >
-                    Reject
-                  </Button>
-                  <Button 
-                    variant="contained" 
-                    color="primary"
-                    onClick={() => handleApprove(selectedArtifact.id)}
-                  >
-                    Approve
-                  </Button>
-                </>
-              )}
-            </DialogActions>
-          </>
-        )}
+              <Grid item xs={12} md={6}>
+                <Typography variant="h6" gutterBottom>Details</Typography>
+                <Typography variant="body1"><strong>Description:</strong> {selectedArtifact.description}</Typography>
+                <Typography variant="body1"><strong>Submitted By:</strong> {selectedArtifact.submittedBy}</Typography>
+                <Typography variant="body1"><strong>Status:</strong> <Chip label={selectedArtifact.status} color={getStatusColor(selectedArtifact.status)} size="small" /></Typography>
+                {selectedArtifact.flagged && (
+                  <Typography variant="body1"><strong>Flagged:</strong> Yes (Reason: {selectedArtifact.flagReason || 'N/A'})</Typography>
+                )}
+                <Typography variant="body1"><strong>Date Submitted:</strong> {new Date(selectedArtifact.createdAt).toLocaleDateString()}</Typography>
+                <Typography variant="body1"><strong>Tags:</strong> {selectedArtifact.tags?.join(', ') || 'N/A'}</Typography>
+                {/* Add more details as needed */}
+              </Grid>
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setViewDialogOpen(false)}>Close</Button>
+          {selectedArtifact?.status === 'pending' && (
+            <Button onClick={() => handleApprove(selectedArtifact.id)} color="success" variant="contained">
+              Approve
+            </Button>
+          )}
+          {selectedArtifact?.status === 'pending' && (
+            <Button onClick={() => setRejectDialogOpen(true)} color="error" variant="contained">
+              Reject
+            </Button>
+          )}
+        </DialogActions>
       </Dialog>
 
-      {/* Reject Dialog */}
-      <Dialog open={rejectDialogOpen} onClose={() => setRejectDialogOpen(false)}>
-        <DialogTitle>Reject Artifact</DialogTitle>
+      {/* Reject Artifact Dialog */}
+      <Dialog open={rejectDialogOpen} onClose={() => setRejectDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Reject Artifact: {selectedArtifact?.name}</DialogTitle>
         <DialogContent>
-          <Typography gutterBottom>
-            Are you sure you want to reject this artifact? Please provide a reason.
-          </Typography>
           <TextField
             autoFocus
             margin="dense"
-            label="Reason for rejection"
+            label="Reason for Rejection"
+            type="text"
             fullWidth
             multiline
             rows={4}
-            variant="outlined"
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
+            helperText="Please provide a clear reason for rejecting this artifact."
           />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setRejectDialogOpen(false)}>Cancel</Button>
-          <Button 
-            onClick={handleReject} 
-            color="error"
-            variant="contained"
-            disabled={!rejectReason.trim()}
-          >
+          <Button onClick={handleReject} color="error" variant="contained">
             Reject
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
-        <Alert 
-          onClose={() => setSnackbar({ ...snackbar, open: false })} 
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
+      {renderFlagDialog()}
+      {renderBulkActionDialog()}
+
+      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </>
+    </Paper>
   );
 };
 

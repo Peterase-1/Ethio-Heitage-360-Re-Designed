@@ -1,278 +1,364 @@
-import { useState, useEffect, createContext, useContext, useCallback } from 'react';
-import { useRouter } from 'next/router';
-import axios from 'axios';
+import { useState, useEffect, createContext, useContext, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
+import api from '../utils/api'
 
-// Create auth context
-const AuthContext = createContext();
-
-// Role definitions
-const ROLES = {
-  SUPER_ADMIN: 'super_admin',
-  MUSEUM_ADMIN: 'museum_admin',
-  CURATOR: 'curator',
-  RESEARCHER: 'researcher',
-  VISITOR: 'visitor',
-};
-
-// Role hierarchy for permission checking
-const ROLE_HIERARCHY = {
-  [ROLES.SUPER_ADMIN]: 100,
-  [ROLES.MUSEUM_ADMIN]: 80,
-  [ROLES.CURATOR]: 60,
-  [ROLES.RESEARCHER]: 40,
-  [ROLES.VISITOR]: 20,
-};
-
-// Protected routes configuration
-const protectedRoutes = {
-  [ROLES.SUPER_ADMIN]: [
-    '/admin-dashboard',
-    '/user-management',
-    '/system-settings',
-    '/reports',
-  ],
-  [ROLES.MUSEUM_ADMIN]: [
-    '/museum-dashboard',
-    '/artifacts',
-    '/exhibitions',
-    '/reports',
-  ],
-  [ROLES.CURATOR]: [
-    '/curator-dashboard',
-    '/artifacts',
-    '/collections',
-  ],
-  [ROLES.RESEARCHER]: [
-    '/research-dashboard',
-    '/artifacts',
-    '/research-papers',
-  ],
-  [ROLES.VISITOR]: [
-    '/',
-    '/artifacts',
-    '/exhibitions',
-  ],
-};
+const AuthContext = createContext()
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [token, setToken] = useState(null);
-  const router = useRouter();
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [sessionExpired, setSessionExpired] = useState(false)
+  const navigate = useNavigate()
 
-  // Initialize auth state from localStorage
-  useEffect(() => {
-    const initializeAuth = async () => {
+  // Session validation function
+  const validateSession = useCallback(async () => {
+    const token = localStorage.getItem('token')
+    const refreshToken = localStorage.getItem('refreshToken')
+    
+    if (!token) {
+      setUser(null)
+      return false
+    }
+
+    try {
+      // Check token expiration with better error handling
+      if (!token || typeof token !== 'string' || token.split('.').length !== 3) {
+        console.warn('Invalid token format');
+        return false;
+      }
+      
+      const tokenParts = token.split('.');
+      let tokenPayload;
+      
       try {
-        const storedToken = localStorage.getItem('authToken');
-        const storedUser = localStorage.getItem('authUser');
+        // Add padding if necessary for base64 decoding
+        let base64Payload = tokenParts[1];
+        while (base64Payload.length % 4) {
+          base64Payload += '=';
+        }
+        tokenPayload = JSON.parse(atob(base64Payload));
+      } catch (parseError) {
+        console.error('Failed to parse JWT token:', parseError);
+        // Clear invalid token
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        return false;
+      }
+      
+      const now = Math.floor(Date.now() / 1000)
+      const timeUntilExpiry = tokenPayload.exp - now
+
+      // If token expires in less than 10 minutes, try to refresh
+      if (timeUntilExpiry < 600 && refreshToken) {
+        try {
+          const response = await api.refreshToken(refreshToken)
+          localStorage.setItem('token', response.token)
+          if (response.refreshToken) {
+            localStorage.setItem('refreshToken', response.refreshToken)
+          }
+          if (response.user) {
+            setUser(response.user)
+            localStorage.setItem('user', JSON.stringify(response.user))
+          }
+          return true
+        } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError)
+          // Clear invalid tokens
+          localStorage.removeItem('token')
+          localStorage.removeItem('refreshToken')
+          localStorage.removeItem('user')
+          setUser(null)
+          setSessionExpired(true)
+          return false
+        }
+      }
+
+      return true
+    } catch (error) {
+      console.error('Session validation error:', error)
+      return false
+    }
+  }, [])
+
+  useEffect(() => {
+    // Clean up any corrupted localStorage data
+    const cleanupCorruptedData = () => {
+      try {
+        const token = localStorage.getItem('token');
+        const user = localStorage.getItem('user');
         
-        if (storedToken && storedUser) {
-          // Verify token with backend
-          const response = await axios.get('/api/auth/verify-token', {
-            headers: { Authorization: `Bearer ${storedToken}` }
-          });
-          
-          if (response.data.valid) {
-            setToken(storedToken);
-            setUser(JSON.parse(storedUser));
-            setIsAuthenticated(true);
-            axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
-          } else {
-            // Token is invalid, clear storage
-            logout();
+        // Check if user data is valid JSON
+        if (user) {
+          try {
+            JSON.parse(user);
+          } catch (e) {
+            console.warn('Corrupted user data detected, clearing...');
+            localStorage.removeItem('user');
           }
         }
+        
+        // Check if token is valid format
+        if (token && (typeof token !== 'string' || token.split('.').length !== 3)) {
+          console.warn('Corrupted token detected, clearing...');
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('user');
+        }
       } catch (error) {
-        console.error('Auth initialization error:', error);
-        logout();
-      } finally {
-        setIsLoading(false);
+        console.error('Error during localStorage cleanup:', error);
       }
     };
+    
+    const initializeAuth = async () => {
+      // Clean up corrupted data first
+      cleanupCorruptedData();
+      
+      const token = localStorage.getItem('token')
+      if (token) {
+        try {
+          // Validate session first
+          const isValidSession = await validateSession()
+          
+          if (isValidSession) {
+            // Try to get user from localStorage first
+            const cachedUser = localStorage.getItem('user')
+            if (cachedUser) {
+              try {
+                const parsedUser = JSON.parse(cachedUser)
+                setUser(parsedUser)
+              } catch (e) {
+                console.warn('Invalid cached user data')
+                localStorage.removeItem('user')
+              }
+            }
 
-    initializeAuth();
-  }, []);
+            // Fetch fresh user data if not cached or refresh user data periodically
+            if (!cachedUser) {
+              const userData = await api.getCurrentUser()
+              if (userData && userData.user) {
+                setUser(userData.user)
+                localStorage.setItem('user', JSON.stringify(userData.user))
+              } else {
+                console.warn('No user data received from API')
+                clearAuthData()
+              }
+            }
+          } else {
+            clearAuthData()
+          }
+        } catch (error) {
+          console.error('Failed to initialize auth:', error)
+          clearAuthData()
+        }
+      } else {
+        setUser(null)
+      }
+      setLoading(false)
+    }
 
-  // Login function
-  const login = async (email, password) => {
+    const clearAuthData = () => {
+      localStorage.removeItem('token')
+      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('user')
+      localStorage.removeItem('lastLogin')
+      setUser(null)
+    }
+
+    initializeAuth()
+
+    // Set up periodic session validation (every 5 minutes)
+    const sessionCheckInterval = setInterval(validateSession, 5 * 60 * 1000)
+
+    return () => {
+      clearInterval(sessionCheckInterval)
+    }
+  }, [validateSession])
+
+  const login = async (credentials) => {
     try {
-      setIsLoading(true);
-      const response = await axios.post('/api/auth/login', { email, password });
+      console.log('🔄 LOGIN: Starting login process')
+      console.log('📧 LOGIN: Credentials:', { email: credentials.email, password: '[HIDDEN]' })
       
-      const { token, user } = response.data;
+      const response = await api.login(credentials)
+      console.log('✅ LOGIN: Backend response received:', {
+        success: response?.success,
+        hasToken: !!response?.token,
+        hasUser: !!response?.user,
+        userRole: response?.user?.role,
+        userName: response?.user?.name || response?.user?.firstName
+      })
       
-      // Store token and user in localStorage
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('authUser', JSON.stringify(user));
+      const { token, refreshToken, user } = response
       
-      // Set auth state
-      setToken(token);
-      setUser(user);
-      setIsAuthenticated(true);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      // Store tokens and user data
+      localStorage.setItem('token', token)
+      localStorage.setItem('user', JSON.stringify(user))
+      localStorage.setItem('lastLogin', new Date().toISOString())
       
-      // Redirect based on role
-      redirectBasedOnRole(user.role);
+      if (refreshToken) {
+        localStorage.setItem('refreshToken', refreshToken)
+        console.log('🔑 LOGIN: Refresh token saved')
+      }
       
-      return { success: true };
+      setUser(user)
+      setSessionExpired(false)
+      console.log('👤 LOGIN: User state updated, role:', user.role)
+      
+      // Check if there's a redirect URL stored
+      const redirectUrl = sessionStorage.getItem('redirectAfterLogin')
+      if (redirectUrl) {
+        console.log('🔗 LOGIN: Found redirect URL:', redirectUrl)
+        sessionStorage.removeItem('redirectAfterLogin')
+        navigate(redirectUrl)
+        return { success: true }
+      }
+      
+      // Default redirect based on role (matching frontend routing expectations)
+      console.log('🔀 LOGIN: Determining redirect for role:', user.role, 'type:', typeof user.role)
+      switch (user.role) {
+        case 'superAdmin':  // Backend returns 'superAdmin'
+        case 'super_admin': // Support both variations
+          console.log('🚀 LOGIN: Redirecting to super-admin dashboard')
+          navigate('/super-admin')
+          break
+        case 'admin':
+          console.log('🚀 LOGIN: Redirecting to admin dashboard')
+          navigate('/admin')
+          break
+        case 'museumAdmin':  // Backend returns 'museumAdmin'
+        case 'museum_admin': // Support both variations
+        case 'museum':       // Support museum role
+          console.log('🚀 LOGIN: Redirecting to museum dashboard')
+          navigate('/museum-dashboard')
+          break
+        case 'organizer':
+          console.log('🚀 LOGIN: Redirecting to organizer dashboard')
+          navigate('/organizer-dashboard')
+          break
+        case 'user':    // Backend returns 'user' for visitors
+        case 'visitor': // Support visitor alias
+        default:
+          console.log('🚀 LOGIN: Redirecting to visitor dashboard (default case)')
+          navigate('/visitor-dashboard')
+      }
+      
+      console.log('✅ LOGIN: Process completed successfully')
+      return { success: true }
     } catch (error) {
-      console.error('Login error:', error);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Login failed. Please try again.' 
-      };
+      console.error('❌ LOGIN: Login failed:', error)
+      return { success: false, message: error.message }
+    }
+  }
+
+  const register = async (userData) => {
+    try {
+      console.log('🔄 REGISTRATION: Starting registration process')
+      console.log('📝 Registration data being sent:', {
+        ...userData,
+        password: '[HIDDEN]'
+      })
+      
+      // Use the role selected by the user during registration
+      const response = await api.register(userData)
+      console.log('✅ REGISTRATION: Backend response received:', {
+        success: response?.success,
+        hasToken: !!response?.token,
+        hasUser: !!response?.user,
+        userRole: response?.user?.role,
+        userName: response?.user?.name || response?.user?.firstName
+      })
+      
+      const { token, refreshToken, user } = response
+      
+      localStorage.setItem('token', token)
+      localStorage.setItem('user', JSON.stringify(user))
+      localStorage.setItem('lastLogin', new Date().toISOString())
+      
+      if (refreshToken) {
+        localStorage.setItem('refreshToken', refreshToken)
+        console.log('🔑 REGISTRATION: Refresh token saved')
+      }
+      
+      setUser(user)
+      console.log('👤 REGISTRATION: User state updated, role:', user.role)
+      
+      // Redirect to appropriate dashboard (matching frontend routing expectations)
+      console.log('🔀 REGISTRATION: Determining redirect for role:', user.role)
+      switch (user.role) {
+        case 'superAdmin':  // Backend returns 'superAdmin'
+        case 'super_admin': // Support both variations
+          console.log('🚀 REGISTRATION: Redirecting to super-admin dashboard')
+          navigate('/super-admin')
+          break
+        case 'admin':
+          console.log('🚀 REGISTRATION: Redirecting to admin dashboard')
+          navigate('/admin')
+          break
+        case 'museumAdmin':  // Backend returns 'museumAdmin'
+        case 'museum_admin': // Support both variations
+        case 'museum':       // Support museum role
+          console.log('🚀 REGISTRATION: Redirecting to museum dashboard')
+          navigate('/museum-dashboard')
+          break
+        case 'organizer':
+          console.log('🚀 REGISTRATION: Redirecting to organizer dashboard')
+          navigate('/organizer-dashboard')
+          break
+        case 'user':    // Backend returns 'user' for visitors
+        case 'visitor': // Support visitor alias
+        default:
+          console.log('🚀 REGISTRATION: Redirecting to visitor dashboard')
+          navigate('/visitor-dashboard')
+      }
+      
+      console.log('✅ REGISTRATION: Process completed successfully')
+      return { success: true }
+    } catch (error) {
+      console.error('❌ REGISTRATION: Registration failed:', error)
+      return { success: false, message: error.message }
+    }
+  }
+
+  const logout = async () => {
+    try {
+      await api.logout()
+    } catch (error) {
+      console.error('Logout error:', error)
     } finally {
-      setIsLoading(false);
+      // Clear all authentication data
+      localStorage.removeItem('token')
+      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('user')
+      localStorage.removeItem('lastLogin')
+      setUser(null)
+      setSessionExpired(false)
+      navigate('/auth')
     }
-  };
+  }
 
-  // Logout function
-  const logout = useCallback(() => {
-    // Clear auth state
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('authUser');
-    delete axios.defaults.headers.common['Authorization'];
-    
-    setUser(null);
-    setToken(null);
-    setIsAuthenticated(false);
-    
-    // Redirect to login page
-    router.push('/login');
-  }, [router]);
-
-  // Redirect user based on their role
-  const redirectBasedOnRole = (role) => {
-    const defaultRoutes = {
-      [ROLES.SUPER_ADMIN]: '/admin-dashboard',
-      [ROLES.MUSEUM_ADMIN]: '/museum-dashboard',
-      [ROLES.CURATOR]: '/curator-dashboard',
-      [ROLES.RESEARCHER]: '/research-dashboard',
-      [ROLES.VISITOR]: '/',
-    };
-    
-    router.push(defaultRoutes[role] || '/');
-  };
-
-  // Check if user has required role
-  const hasRole = (requiredRole) => {
-    if (!user || !user.role) return false;
-    
-    // Super admin has access to everything
-    if (user.role === ROLES.SUPER_ADMIN) return true;
-    
-    // Check role hierarchy
-    return ROLE_HIERARCHY[user.role] >= (ROLE_HIERARCHY[requiredRole] || 0);
-  };
-
-  // Check if user has any of the required roles
-  const hasAnyRole = (roles = []) => {
-    if (!user || !user.role) return false;
-    return roles.some(role => hasRole(role));
-  };
-
-  // Check if user has permission to access a route
-  const hasRoutePermission = (path) => {
-    if (!user || !user.role) return false;
-    
-    // Super admin has access to all routes
-    if (user.role === ROLES.SUPER_ADMIN) return true;
-    
-    // Check if the path is in the user's allowed routes
-    const userRoutes = protectedRoutes[user.role] || [];
-    return userRoutes.some(route => path.startsWith(route));
-  };
-
-  // Check if current user is the owner of a resource
-  const isOwner = (resourceUserId) => {
-    if (!user || !user.id) return false;
-    return user.id === resourceUserId;
-  };
-
-  // Update user data
-  const updateUser = (userData) => {
-    setUser(prev => ({
-      ...prev,
-      ...userData
-    }));
-    localStorage.setItem('authUser', JSON.stringify(userData));
-  };
-
-  // Refresh user data from the server
-  const refreshUser = async () => {
-    try {
-      const response = await axios.get('/api/auth/me');
-      updateUser(response.data.user);
-      return response.data.user;
-    } catch (error) {
-      console.error('Failed to refresh user data:', error);
-      logout();
-    }
-  };
-
-  // Context value
   const value = {
     user,
-    isAuthenticated,
-    isLoading,
-    token,
+    loading,
     login,
+    register,
     logout,
-    hasRole,
-    hasAnyRole,
-    hasRoutePermission,
-    isOwner,
-    updateUser,
-    refreshUser,
-    ROLES,
-  };
+    validateSession,
+    sessionExpired,
+    isAuthenticated: !!user && !sessionExpired,
+  }
 
   return (
     <AuthContext.Provider value={value}>
-      {!isLoading && children}
+      {children}
     </AuthContext.Provider>
-  );
-};
+  )
+}
 
-// Custom hook to use the auth context
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+  const context = useContext(AuthContext)
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider')
   }
-  return context;
-};
-
-// Higher-Order Component for protecting routes
-export const withAuth = (WrappedComponent, options = {}) => {
-  const { requiredRole, redirectTo = '/login' } = options;
-  
-  return (props) => {
-    const { isAuthenticated, hasRole, isLoading, user, router } = useAuth();
-    
-    useEffect(() => {
-      if (!isLoading) {
-        // Redirect if not authenticated
-        if (!isAuthenticated) {
-          router.push(redirectTo);
-          return;
-        }
-        
-        // Check role if required
-        if (requiredRole && !hasRole(requiredRole)) {
-          router.push('/unauthorized');
-        }
-      }
-    }, [isAuthenticated, isLoading, hasRole, requiredRole, router]);
-    
-    if (isLoading || !isAuthenticated || (requiredRole && !hasRole(requiredRole))) {
-      return <div>Loading...</div>; // Or a loading spinner
-    }
-    
-    return <WrappedComponent {...props} user={user} />;
-  };
-};
-
-export default useAuth;
+  return context
+}

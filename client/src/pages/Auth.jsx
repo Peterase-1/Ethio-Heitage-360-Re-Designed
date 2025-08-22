@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, User, Shield, Users, MapPin, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 import Logo from '../components/common/Logo';
 import heroBg from '../assets/hero-bg.jpg';
 
@@ -7,6 +8,7 @@ const Auth = ({ darkMode, toggleDarkMode }) => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -17,6 +19,7 @@ const Auth = ({ darkMode, toggleDarkMode }) => {
     rememberMe: false
   });
   const [errors, setErrors] = useState({});
+  const { login, register } = useAuth();
 
   const userRoles = [
     {
@@ -94,12 +97,46 @@ const Auth = ({ darkMode, toggleDarkMode }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validateForm()) {
-      // Handle form submission
-      console.log('Form submitted:', formData);
-      // Here you would typically send the data to your backend
+    if (!validateForm()) return;
+
+    setLoading(true);
+    setErrors({});
+
+    try {
+      if (isSignUp) {
+        // Prepare signup data
+        const signupData = {
+          name: formData.fullName,
+          email: formData.email,
+          password: formData.password,
+          role: formData.role
+        };
+        
+        const result = await register(signupData);
+        
+        if (!result.success) {
+          setErrors({ general: result.message || 'Registration failed. Please try again.' });
+        }
+      } else {
+        // Prepare login data
+        const loginData = {
+          email: formData.email,
+          password: formData.password
+        };
+        
+        const result = await login(loginData);
+        
+        if (!result.success) {
+          setErrors({ general: result.message || 'Login failed. Please check your credentials.' });
+        }
+      }
+    } catch (error) {
+      console.error('Authentication error:', error);
+      setErrors({ general: 'Something went wrong. Please try again.' });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -130,7 +167,7 @@ const Auth = ({ darkMode, toggleDarkMode }) => {
                 <Logo showText={false} className="w-12 h-12" />
               </div>
               <span className="text-2xl font-bold">
-                EthioHeritage<span className="text-yellow-400">360</span>
+EthioHeritage<span className="text-primary">360</span>
               </span>
             </div>
             
@@ -147,19 +184,19 @@ const Auth = ({ darkMode, toggleDarkMode }) => {
 
           <div className="space-y-4">
             <div className="flex items-center">
-              <CheckCircle className="w-5 h-5 text-green-400 mr-3" />
+              <CheckCircle className="w-5 h-5 text-primary mr-3" />
               <span>Explore 500+ digitized artifacts</span>
             </div>
             <div className="flex items-center">
-              <CheckCircle className="w-5 h-5 text-green-400 mr-3" />
+              <CheckCircle className="w-5 h-5 text-primary mr-3" />
               <span>Join live virtual tours</span>
             </div>
             <div className="flex items-center">
-              <CheckCircle className="w-5 h-5 text-green-400 mr-3" />
+              <CheckCircle className="w-5 h-5 text-primary mr-3" />
               <span>Learn with AI guidance</span>
             </div>
             <div className="flex items-center">
-              <CheckCircle className="w-5 h-5 text-green-400 mr-3" />
+              <CheckCircle className="w-5 h-5 text-primary mr-3" />
               <span>Access multilingual content</span>
             </div>
           </div>
@@ -197,6 +234,16 @@ const Auth = ({ darkMode, toggleDarkMode }) => {
               }
             </p>
           </div>
+
+          {/* General Error Message */}
+          {errors.general && (
+            <div className="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive">
+              <div className="flex items-center">
+                <AlertCircle className="w-5 h-5 mr-2" />
+                <span>{errors.general}</span>
+              </div>
+            </div>
+          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -409,9 +456,17 @@ const Auth = ({ darkMode, toggleDarkMode }) => {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-primary text-primary-foreground py-3 px-4 rounded-xl font-semibold hover:bg-primary/90 transition-colors focus:ring-2 focus:ring-primary/20"
+              disabled={loading}
+              className="w-full bg-primary text-primary-foreground py-3 px-4 rounded-xl font-semibold hover:bg-primary/90 transition-colors focus:ring-2 focus:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
-              {isSignUp ? 'Create Account' : 'Sign In'}
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  {isSignUp ? 'Creating Account...' : 'Signing In...'}
+                </>
+              ) : (
+                isSignUp ? 'Create Account' : 'Sign In'
+              )}
             </button>
 
             {/* Social Login */}

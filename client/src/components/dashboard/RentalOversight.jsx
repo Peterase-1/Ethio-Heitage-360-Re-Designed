@@ -149,7 +149,7 @@ const RentalOversight = ({ onRefresh, loading = false }) => {
   };
 
   const formatDate = (date) => new Date(date).toLocaleDateString('en-US');
-  const formatCurrency = (amount) => `$${amount.toLocaleString()}`;
+  const formatCurrency = (amount) => `ETB ${amount.toLocaleString()}`;
 
   return (
     <Card elevation={0}>

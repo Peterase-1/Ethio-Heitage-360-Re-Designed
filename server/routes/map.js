@@ -1,14 +1,35 @@
 const express = require('express');
 const router = express.Router();
-const mapController = require('../controllers/map');
+const {
+  getHeritageSites,
+  getHeritageSite,
+  getNearbyHeritageSites,
+  getSiteFilters,
+  searchHeritageSites
+} = require('../controllers/map');
 
-// GET /api/map/sites - Get all heritage sites
-router.get('/sites', mapController.getAllSites);
+// Heritage sites routes
+router.get('/heritage-sites', getHeritageSites);
+router.get('/heritage-sites/search', searchHeritageSites);
+router.get('/heritage-sites/nearby', getNearbyHeritageSites);
+router.get('/heritage-sites/filters', getSiteFilters);
+router.get('/heritage-sites/:id', getHeritageSite);
 
-// GET /api/map/sites/:id - Get site details
-router.get('/sites/:id', mapController.getSiteById);
-
-// GET /api/map/filters - Get filter options
-router.get('/filters', mapController.getFilters);
+// Legacy routes for backward compatibility
+router.get('/museums', getHeritageSites); // Museums are included in heritage sites
+router.get('/', (req, res) => {
+  res.json({ 
+    message: 'Ethiopian Heritage Map API',
+    version: '1.0.0',
+    endpoints: {
+      'heritage-sites': '/api/map/heritage-sites',
+      'search': '/api/map/heritage-sites/search?query=lalibela',
+      'nearby': '/api/map/heritage-sites/nearby?lat=12&lng=39&radius=50',
+      'filters': '/api/map/heritage-sites/filters',
+      'single-site': '/api/map/heritage-sites/:id'
+    }
+  });
+});
 
 module.exports = router;
+

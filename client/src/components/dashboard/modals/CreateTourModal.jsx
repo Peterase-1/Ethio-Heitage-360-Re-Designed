@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, MapPin, Clock, Users, DollarSign, Upload, Image as ImageIcon } from "lucide-react";
 import {
   Dialog,
@@ -12,6 +12,8 @@ import { Textarea } from "../../ui/textarea";
 import { Label } from "../../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { useDashboard } from "../../../context/DashboardContext";
+import tourService from "../../../services/tourService";
+import tourWebSocket from "../../../services/tourWebSocket";
 import { toast } from "sonner";
 
 export function CreateTourModal() {
@@ -33,6 +35,16 @@ export function CreateTourModal() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Initialize WebSocket connection when modal opens
+  useEffect(() => {
+    if (showCreateTourModal) {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      if (token && !tourWebSocket.isConnected()) {
+        tourWebSocket.connect(token);
+      }
+    }
+  }, [showCreateTourModal]);
+
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
@@ -53,7 +65,7 @@ export function CreateTourModal() {
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      createTourPackage({
+      const tourData = {
         title: formData.title,
         description: formData.description,
         location: formData.location,
@@ -64,10 +76,59 @@ export function CreateTourModal() {
         difficulty: formData.difficulty,
         category: formData.category,
         images: formData.imageUrl ? [formData.imageUrl] : formData.images.filter(img => img),
-        status: 'active'
-      });
+        imageUrl: formData.imageUrl,
+        status: 'published', // Set to published so it appears on live tours page immediately
+        type: formData.category?.toLowerCase()?.includes('cultural') ? 'cultural' :
+              formData.category?.toLowerCase()?.includes('historical') ? 'historical' :
+              formData.category?.toLowerCase()?.includes('archaeological') ? 'archaeological' :
+              formData.category?.toLowerCase()?.includes('religious') ? 'religious' :
+              formData.category?.toLowerCase()?.includes('adventure') ? 'adventure' : 'cultural',
+        groupSize: {
+          min: 1,
+          max: parseInt(formData.maxGuests) || 10
+        },
+        pricing: {
+          adult: parseFloat(formData.price) || 0,
+          currency: 'USD'
+        },
+        media: {
+          images: formData.imageUrl ? [{
+            url: formData.imageUrl,
+            isPrimary: true
+          }] : []
+        },
+        schedule: [{
+          startDate: new Date(),
+          endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+          availableSpots: parseInt(formData.maxGuests) || 10,
+          bookedSpots: 0
+        }]
+      };
 
-      toast.success("Tour package created successfully!");
+      // Use tourService directly to create the tour with correct API endpoint
+      const createdTour = await tourService.createTour(tourData);
+
+      // Broadcast the new tour via WebSocket if connected
+      if (tourWebSocket.isConnected()) {
+        const tourForBroadcast = {
+          ...tourData,
+          id: createdTour?.id || Date.now().toString(),
+          _id: createdTour?._id || Date.now().toString(),
+          organizer: createdTour?.organizer || 'current-user',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          totalBookings: 0,
+          rating: {
+            average: 0,
+            count: 0
+          }
+        };
+        
+        tourWebSocket.notifyTourCreation(tourForBroadcast);
+        console.log('Tour creation broadcasted via WebSocket:', tourForBroadcast.title);
+      }
+
+      toast.success("Tour package created successfully and is now live!");
       setShowCreateTourModal(false);
 
       setFormData({
@@ -85,6 +146,7 @@ export function CreateTourModal() {
       });
 
     } catch (error) {
+      console.error('Failed to create tour package:', error);
       toast.error("Failed to create tour package");
     } finally {
       setIsSubmitting(false);

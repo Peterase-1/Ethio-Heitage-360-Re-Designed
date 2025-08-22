@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   Card, 
@@ -103,7 +103,27 @@ const AnalyticsCard = ({
 }) => {
   const theme = useTheme();
   const [isLoading, setIsLoading] = useState(loading);
-  const IconComponent = iconMap[icon] || icon;
+  // Determine how to render the icon:
+  // - If a React element is passed (e.g., <Heart />), use it as-is
+  // - If a string key is passed (e.g., 'users'), map to a Material icon
+  // - If a component is passed, render it
+  const resolvedIcon = React.useMemo(() => {
+    if (React.isValidElement(icon)) {
+      return icon;
+    }
+    const IconComponent = iconMap[icon] || icon;
+    if (typeof IconComponent === 'string') {
+      return (
+        <SvgIcon color={color}>
+          {IconComponent}
+        </SvgIcon>
+      );
+    }
+    if (IconComponent) {
+      return <IconComponent />;
+    }
+    return null;
+  }, [icon, color]);
 
   useEffect(() => {
     setIsLoading(loading);
@@ -125,13 +145,7 @@ const AnalyticsCard = ({
       <CardContent>
         <Box display="flex" justifyContent="space-between" alignItems="flex-start">
           <IconWrapper color={color}>
-            {typeof IconComponent === 'string' ? (
-              <SvgIcon component="span" color={color}>
-                {IconComponent}
-              </SvgIcon>
-            ) : (
-              <IconComponent />
-            )}
+            {resolvedIcon}
           </IconWrapper>
           <Box display="flex" gap={1}>
             {onRefresh && (

@@ -1,2 +1,17 @@
-/* Light theme styles */
-body { background: white; color: black; }
+/* Light Theme */
+:root {
+  --background-color: #f7fafc;
+  --text-color: #2d3748;
+  --primary-color: #f6ad55;
+  --secondary-color: #edf2f7;
+  --card-background: #ffffff;
+  --border-color: #e2e8f0;
+}
+
+body {
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+/* Add more light theme specific styles here */
+/* e.g., button colors, input fields, etc. */

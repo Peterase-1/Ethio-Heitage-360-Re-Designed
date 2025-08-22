@@ -1,0 +1,958 @@
+Abdurazakm: react-dom_client.js?v=76b0bd16:17995 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+QuickActions.jsx:17 Create Tour button clicked
+QuickActions.jsx:18 Current showCreateTourModal state: ƒ dispatchSetState(fiber, queue, action) {
+        var args = arguments;
+        "function" === typeof args[3] && console.error(
+          "State updates from the useState() and useReducer() Hooks don'…
+QuickActions.jsx:20 After setting showCreateTourModal to true
+CreateTourModal.jsx:103 Uncaught TypeError: Cannot destructure property 'showCreateTourModal' of 'useDashboard(...)' as it is null.
+    at CreateTourModal (CreateTourModal.jsx:103:11)
+    at Object.react_stack_bottom_frame (react-dom_client.js?v=76b0bd16:17424:20)
+    at renderWithHooks (react-dom_client.js?v=76b0bd16:4206:24)
+    at updateFunctionComponent (react-dom_client.js?v=76b0bd16:6619:21)
+    at beginWork (react-dom_client.js?v=76b0bd16:7654:20)
+    at runWithFiberInDEV (react-dom_client.js?v=76b0bd16:1485:72)
+    at performUnitOfWork (react-dom_client.js?v=76b0bd16:10868:98)
+    at workLoopSync (react-dom_client.js?v=76b0bd16:10728:43)
+    at renderRootSync (react-dom_client.js?v=76b0bd16:10711:13)
+    at performWorkOnRoot (react-dom_client.js?v=76b0bd16:10359:46)
+react-dom_client.js?v=76b0bd16:6229 An error occurred in the <CreateTourModal> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+defaultOnUncaughtError @ react-dom_client.js?v=76b0bd16:6229
+
+
+GitHub Copilot: The error:
+
+```
+Cannot destructure property 'showCreateTourModal' of 'useDashboard(...)' as it is null.
+```
+
+means that `useDashboard()` is returning `null` inside `CreateTourModal`. This usually happens if `CreateTourModal` is rendered outside of the `DashboardContext.Provider`.
+
+**How to fix:**
+
+Make sure your `DashboardLayout` (which renders the modals) is wrapped in the `DashboardContext.Provider` **higher up in your component tree** (likely in your `App.jsx` or a similar root component).
+
+**Example fix:**
+
+````jsx
+// ...existing code...
+import { DashboardProvider } from "./context/DashboardContext";
+
+function App() {
+  return (
+    <DashboardProvider>
+      {/* ...your routes/components... */}
+      <DashboardLayout />
+    </DashboardProvider>
+  );
+}
+// ...existing code...
+````
+
+**Summary:**  
+Wrap your dashboard (and any component using `useDashboard`) with the `DashboardProvider`. This will ensure `useDashboard()` never returns `null` and your modals will work.
+
+Abdurazakm: check my entier projects
+
+GitHub Copilot: I'm sorry, I can't answer that question with what I currently know about your workspace.
+
+Abdurazakm: i want to add add event functionality can you help me with that
+
+GitHub Copilot: Certainly! Here’s a simple way to add an “Add Event” functionality to your `SchedulesPage`.  
+**Assumption:** You want a modal or form to pop up when the user clicks “Add Event”, allowing them to enter event details and add it to your bookings.
+
+### 1. Add State for Modal Visibility
+
+Add a state to control the visibility of the Add Event modal:
+
+````jsx
+// ...existing code...
+const [showAddEventModal, setShowAddEventModal] = useState(false);
+// ...existing code...
+````
+
+### 2. Update the Add Event Button
+
+Change the `handleAddEvent` to open the modal:
+
+````jsx
+const handleAddEvent = () => {
+  setShowAddEventModal(true);
+};
+````
+
+### 3. Create a Simple Add Event Modal
+
+Add this component inside your file (or create a new file and import it):
+
+````jsx
+function AddEventModal({ open, onClose, onAdd }) {
+  const [form, setForm] = useState({
+    tourDate: "",
+    guests: 1,
+    tourPackageId: "",
+    totalAmount: 0,
+  });
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onAdd(form);
+    onClose();
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+      <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow space-y-4 w-96">
+        <h2 className="text-lg font-semibold mb-2">Add New Event</h2>
+        <div>
+          <label className="block text-sm mb-1">Date</label>
+          <input
+            type="date"
+            name="tourDate"
+            value={form.tourDate}
+            onChange={handleChange}
+            className="border rounded px-2 py-1 w-full"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Guests</label>
+          <input
+            type="number"
+            name="guests"
+            value={form.guests}
+            min={1}
+            onChange={handleChange}
+            className="border rounded px-2 py-1 w-full"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Tour Package</label>
+          <select
+            name="tourPackageId"
+            value={form.tourPackageId}
+            onChange={handleChange}
+            className="border rounded px-2 py-1 w-full"
+            required
+          >
+            <option value="">Select a package</option>
+            {tourPackages.map(pkg => (
+              <option key={pkg.id} value={pkg.id}>{pkg.title}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Total Amount</label>
+          <input
+            type="number"
+            name="totalAmount"
+            value={form.totalAmount}
+            min={0}
+            onChange={handleChange}
+            className="border rounded px-2 py-1 w-full"
+            required
+          />
+        </div>
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="px-3 py-1 border rounded">Cancel</button>
+          <button type="submit" className="px-3 py-1 bg-green-600 text-white rounded">Add</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+````
+
+### 4. Add Handler to Add Event
+
+Add a function to handle adding the event.  
+If you want to update the context, you’ll need to add a method in your DashboardContext.  
+For demo, let’s just show a toast:
+
+````jsx
+const handleAddEventSubmit = (eventData) => {
+  // TODO: Add logic to update bookings (via context or API)
+  toast.success("Event added!");
+};
+````
+
+### 5. Render the Modal
+
+At the bottom of your component’s JSX, add:
+
+````jsx
+<AddEventModal
+  open={showAddEventModal}
+  onClose={() => setShowAddEventModal(false)}
+  onAdd={handleAddEventSubmit}
+/>
+````
+
+### 6. Pass tourPackages to Modal
+
+Update the modal definition to accept `tourPackages` as a prop and pass it in:
+
+````jsx
+<AddEventModal
+  open={showAddEventModal}
+  onClose={() => setShowAddEventModal(false)}
+  onAdd={handleAddEventSubmit}
+  tourPackages={tourPackages}
+/>
+````
+
+And update the modal signature:
+
+````jsx
+function AddEventModal({ open, onClose, onAdd, tourPackages }) {
+  // ...existing code...
+}
+````
+
+---
+
+**Summary:**  
+This will show a modal to add an event.  
+For a real app, you should update your bookings state/context or make an API call in `handleAddEventSubmit`.
+
+Let me know if you want the context logic as well!
+
+Abdurazakm: give full function just i put at the place
+
+GitHub Copilot: Certainly! Here’s a **full AddEventModal component** you can copy-paste into your file (preferably above your `SchedulesPage` function).  
+This modal will let users add a new event.  
+You’ll need to pass `open`, `onClose`, `onAdd`, and `tourPackages` props as shown below.
+
+````jsx
+// Add this above your SchedulesPage component
+
+import { useState } from "react";
+import { Button } from "../ui/button";
+
+function AddEventModal({ open, onClose, onAdd, tourPackages }) {
+  const [form, setForm] = useState({
+    tourDate: "",
+    guests: 1,
+    tourPackageId: "",
+    totalAmount: 0,
+  });
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onAdd(form);
+    setForm({
+      tourDate: "",
+      guests: 1,
+      tourPackageId: "",
+      totalAmount: 0,
+    });
+    onClose();
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+      <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow space-y-4 w-96">
+        <h2 className="text-lg font-semibold mb-2">Add New Event</h2>
+        <div>
+          <label className="block text-sm mb-1">Date</label>
+          <input
+            type="date"
+            name="tourDate"
+            value={form.tourDate}
+            onChange={handleChange}
+            className="border rounded px-2 py-1 w-full"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Guests</label>
+          <input
+            type="number"
+            name="guests"
+            value={form.guests}
+            min={1}
+            onChange={handleChange}
+            className="border rounded px-2 py-1 w-full"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Tour Package</label>
+          <select
+            name="tourPackageId"
+            value={form.tourPackageId}
+            onChange={handleChange}
+            className="border rounded px-2 py-1 w-full"
+            required
+          >
+            <option value="">Select a package</option>
+            {tourPackages.map(pkg => (
+              <option key={pkg.id} value={pkg.id}>{pkg.title}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm mb-1">Total Amount</label>
+          <input
+            type="number"
+            name="totalAmount"
+            value={form.totalAmount}
+            min={0}
+            onChange={handleChange}
+            className="border rounded px-2 py-1 w-full"
+            required
+          />
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="submit">Add</Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+````
+
+**How to use in your SchedulesPage:**
+
+1. Add state for modal visibility:
+   ````jsx
+   const [showAddEventModal, setShowAddEventModal] = useState(false);
+   ````
+
+2. Update your `handleAddEvent`:
+   ````jsx
+   const handleAddEvent = () => setShowAddEventModal(true);
+   ````
+
+3. Add a handler to receive the new event (replace with your logic to actually add the event):
+   ````jsx
+   const handleAddEventSubmit = (eventData) => {
+     // TODO: Add logic to update bookings (context or API)
+     toast.success("Event added!");
+   };
+   ````
+
+4. Render the modal at the bottom of your JSX:
+   ````jsx
+   <AddEventModal
+     open={showAddEventModal}
+     onClose={() => setShowAddEventModal(false)}
+     onAdd={handleAddEventSubmit}
+     tourPackages={tourPackages}
+   />
+   ````
+
+Let me know if you want the code for updating your bookings context or API as well!
+
+Abdurazakm: yeah
+
+GitHub Copilot: Your implementation is almost complete!  
+You already have the `AddEventModal` and the modal opens and closes correctly.  
+However, **the new event is not actually added to your bookings**—it only shows a toast.
+
+To make the "Add Event" functionality work, you need to update your bookings state.  
+If your bookings come from context (`useDashboard()`), you should add an `addBooking` function to your DashboardContext and use it here.
+
+---
+
+### 1. Update DashboardContext
+
+Add an `addBooking` function to your context and provider.  
+Here’s a simple example:
+
+````jsx
+// ...existing code...
+const [bookings, setBookings] = useState(initialBookings);
+
+const addBooking = (newBooking) => {
+  setBookings(prev => [
+    ...prev,
+    {
+      ...newBooking,
+      id: Date.now().toString(), // or use uuid
+      status: "confirmed", // or "pending"
+    },
+  ]);
+};
+
+// ...existing code...
+return (
+  <DashboardContext.Provider value={{
+    bookings,
+    tourPackages,
+    addBooking,
+    // ...other values
+  }}>
+    {children}
+  </DashboardContext.Provider>
+);
+// ...existing code...
+````
+
+---
+
+### 2. Use `addBooking` in SchedulesPage
+
+Update your `SchedulesPage` to use `addBooking`:
+
+````jsx
+// ...existing code...
+const { bookings, tourPackages, addBooking } = useDashboard();
+// ...existing code...
+
+const handleEventAdd = (eventData) => {
+  addBooking(eventData);
+  toast.success("Event added!");
+};
+// ...existing code...
+````
+
+---
+
+### 3. You’re Done!
+
+Now, when you add an event, it will appear in your calendar and upcoming tours.
+
+---
+
+**Summary:**  
+- Add an `addBooking` function to your DashboardContext.
+- Use it in `SchedulesPage` to actually add the event.
+
+Let me know if you want the full code for the context file!
+
+Abdurazakm: those are my project file so i want to build backend with node js and database mongodb now what should i do 
+
+GitHub Copilot: Great! You already have a full-featured React frontend.  
+To build a backend with **Node.js** and **MongoDB**, follow these steps:
+
+---
+
+## 1. Initialize Your Backend Project
+
+Open your terminal and run:
+```sh
+mkdir server
+cd server
+npm init -y
+```
+
+---
+
+## 2. Install Dependencies
+
+```sh
+npm install express mongoose cors dotenv
+npm install nodemon --save-dev
+```
+
+- `express`: Web framework
+- `mongoose`: MongoDB ODM
+- `cors`: Enable CORS for your frontend
+- `dotenv`: Manage environment variables
+- `nodemon`: Auto-restart server on changes (dev only)
+
+---
+
+## 3. Create Basic Server Structure
+
+**Directory structure:**
+```
+server/
+  |-- models/
+  |-- routes/
+  |-- controllers/
+  |-- .env
+  |-- server.js
+```
+
+---
+
+## 4. Setup Express Server
+
+````js
+require('dotenv').config();
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+
+const app = express();
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('MongoDB connected'))
+  .catch(err => console.error(err));
+
+// Example route
+app.get('/', (req, res) => {
+  res.send('API is running');
+});
+
+// TODO: Add your routes here
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+````
+
+---
+
+## 5. Create Your Models
+
+For example, a **TourPackage** model:
+
+````js
+const mongoose = require('mongoose');
+
+const TourPackageSchema = new mongoose.Schema({
+  title: String,
+  description: String,
+  location: String,
+  region: String,
+  duration: String,
+  price: Number,
+  maxGuests: Number,
+  images: [String],
+  difficulty: String,
+  category: String,
+  status: String,
+  createdAt: Date,
+  updatedAt: Date
+});
+
+module.exports = mongoose.model('TourPackage', TourPackageSchema);
+````
+
+Do similar for **Booking**, **User**, etc.
+
+---
+
+## 6. Create Routes and Controllers
+
+Example for tour packages:
+
+````js
+const express = require('express');
+const router = express.Router();
+const TourPackage = require('../models/TourPackage');
+
+// Get all tour packages
+router.get('/', async (req, res) => {
+  const tours = await TourPackage.find();
+  res.json(tours);
+});
+
+// Create a new tour package
+router.post('/', async (req, res) => {
+  const tour = new TourPackage(req.body);
+  await tour.save();
+  res.status(201).json(tour);
+});
+
+// ...add more routes as needed
+
+module.exports = router;
+````
+
+Then in `server.js`:
+````js
+// ...existing code...
+const tourPackagesRoutes = require('./routes/tourPackages');
+app.use('/api/tour-packages', tourPackagesRoutes);
+// ...existing code...
+````
+
+---
+
+## 7. Add Environment Variables
+
+Create a .env file in your server folder:
+```
+MONGO_URI=mongodb://localhost:27017/yourdbname
+PORT=5000
+```
+
+---
+
+## 8. Run Your Server
+
+Add this to your package.json scripts:
+```json
+"scripts": {
+  "start": "node server.js",
+  "dev": "nodemon server.js"
+}
+```
+Then run:
+```sh
+npm run dev
+```
+
+---
+
+## 9. Connect Your React Frontend
+
+- Update your frontend API calls to use `http://localhost:5000/api/...`
+- Replace sample data with real API requests (using `fetch` or `axios`).
+
+---
+
+## 10. Expand as Needed
+
+- Add authentication (JWT, etc.)
+- Add more models/routes (Bookings, Users, Messages)
+- Deploy to cloud (Render, Heroku, Vercel, etc.)
+
+---
+
+**Let me know if you want a full example for a specific model or route!**
+
+Similar code found with 1 license type
+
+Abdurazakm: can you give all full functional database with sample data full make it full functional and explaine the step
+
+GitHub Copilot: Absolutely! Here’s how you can **build a full Node.js + MongoDB backend** for your project, including sample data and all the main models (TourPackage, Booking, Message, Notification, User).  
+This will let your React frontend fetch and update real data from MongoDB.
+
+---
+
+## 1. **Project Structure**
+
+```
+server/
+  models/
+    Booking.js
+    TourPackage.js
+    Message.js
+    Notification.js
+    User.js
+  routes/
+    bookings.js
+    tourPackages.js
+    messages.js
+    notifications.js
+    users.js
+  controllers/
+    bookingsController.js
+    tourPackagesController.js
+    messagesController.js
+    notificationsController.js
+    usersController.js
+  sampleData/
+    seed.js
+  .env
+  server.js
+  package.json
+```
+
+---
+
+## 2. **Install Dependencies**
+
+```sh
+npm init -y
+npm install express mongoose cors dotenv
+npm install nodemon --save-dev
+```
+
+---
+
+## 3. **Setup .env**
+
+Create a .env file in server:
+
+```
+MONGO_URI=mongodb://localhost:27017/heritage360
+PORT=5000
+```
+
+---
+
+## 4. **Create Mongoose Models**
+
+**TourPackage.js**
+````js
+const mongoose = require('mongoose');
+
+const TourPackageSchema = new mongoose.Schema({
+  title: String,
+  description: String,
+  location: String,
+  region: String,
+  duration: String,
+  price: Number,
+  maxGuests: Number,
+  images: [String],
+  difficulty: String,
+  category: String,
+  status: String,
+  createdAt: Date,
+  updatedAt: Date
+});
+
+module.exports = mongoose.model('TourPackage', TourPackageSchema);
+````
+
+**Booking.js**
+````js
+const mongoose = require('mongoose');
+
+const BookingSchema = new mongoose.Schema({
+  tourPackageId: { type: mongoose.Schema.Types.ObjectId, ref: 'TourPackage' },
+  customerName: String,
+  customerEmail: String,
+  guests: Number,
+  tourDate: Date,
+  status: String,
+  totalAmount: Number,
+  specialRequests: String,
+  createdAt: Date
+});
+
+module.exports = mongoose.model('Booking', BookingSchema);
+````
+
+**Message.js**
+````js
+const mongoose = require('mongoose');
+
+const MessageSchema = new mongoose.Schema({
+  customerName: String,
+  customerEmail: String,
+  subject: String,
+  message: String,
+  status: String,
+  createdAt: Date,
+  relatedBookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' }
+});
+
+module.exports = mongoose.model('Message', MessageSchema);
+````
+
+**Notification.js**
+````js
+const mongoose = require('mongoose');
+
+const NotificationSchema = new mongoose.Schema({
+  title: String,
+  message: String,
+  type: String,
+  read: Boolean,
+  createdAt: Date
+});
+
+module.exports = mongoose.model('Notification', NotificationSchema);
+````
+
+**User.js**
+````js
+const mongoose = require('mongoose');
+
+const UserSchema = new mongoose.Schema({
+  name: String,
+  email: String,
+  avatar: String,
+  role: String
+});
+
+module.exports = mongoose.model('User', UserSchema);
+````
+
+---
+
+## 5. **Create Express Routes**
+
+**Example: Tour Packages**
+
+````js
+const express = require('express');
+const router = express.Router();
+const TourPackage = require('../models/TourPackage');
+
+// Get all tour packages
+router.get('/', async (req, res) => {
+  const tours = await TourPackage.find();
+  res.json(tours);
+});
+
+// Create a new tour package
+router.post('/', async (req, res) => {
+  const tour = new TourPackage({ ...req.body, createdAt: new Date(), updatedAt: new Date() });
+  await tour.save();
+  res.status(201).json(tour);
+});
+
+// ...add update, delete as needed
+
+module.exports = router;
+````
+
+**Repeat similar for bookings, messages, notifications, users.**
+
+---
+
+## 6. **Sample Data Seeder**
+
+**seed.js**
+````js
+require('dotenv').config();
+const mongoose = require('mongoose');
+const TourPackage = require('../models/TourPackage');
+const Booking = require('../models/Booking');
+const Message = require('../models/Message');
+const Notification = require('../models/Notification');
+const User = require('../models/User');
+
+const sampleTourPackages = [
+  {
+    title: 'Lalibela Rock Churches Tour',
+    description: 'Explore the magnificent rock-hewn churches of Lalibela...',
+    location: 'Lalibela, Amhara',
+    region: 'Amhara',
+    duration: '3 days',
+    price: 450,
+    maxGuests: 12,
+    images: ['https://i.postimg.cc/XYfd9Rhq/lalibela-churchofstgeorgesideview.jpg'],
+    difficulty: 'moderate',
+    category: 'Religious & Historical',
+    status: 'active',
+    createdAt: new Date('2024-12-01'),
+    updatedAt: new Date('2024-12-15')
+  },
+  // ...add more tours as in your sampleData.js
+];
+
+const sampleUser = {
+  name: 'Abebe Mekuria',
+  email: 'abebe.mekuria@ethioheritage360.com',
+  avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face',
+  role: 'tour_organizer'
+};
+
+async function seed() {
+  await mongoose.connect(process.env.MONGO_URI);
+
+  await TourPackage.deleteMany();
+  await Booking.deleteMany();
+  await Message.deleteMany();
+  await Notification.deleteMany();
+  await User.deleteMany();
+
+  const user = await User.create(sampleUser);
+  const tours = await TourPackage.insertMany(sampleTourPackages);
+
+  // Example: create a booking for the first tour
+  await Booking.create({
+    tourPackageId: tours[0]._id,
+    customerName: 'Sarah Johnson',
+    customerEmail: 'sarah.johnson@email.com',
+    guests: 4,
+    tourDate: new Date('2025-01-15'),
+    status: 'confirmed',
+    totalAmount: 1800,
+    specialRequests: 'Vegetarian meals required',
+    createdAt: new Date('2024-12-20T10:30:00Z')
+  });
+
+  // ...add more bookings, messages, notifications as in your sampleData.js
+
+  console.log('Database seeded!');
+  process.exit();
+}
+
+seed();
+````
+
+**Run the seeder:**
+```sh
+node sampleData/seed.js
+```
+
+---
+
+## 7. **Setup Express Server**
+
+````js
+require('dotenv').config();
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// Import routes
+const tourPackagesRoutes = require('./routes/tourPackages');
+// ...import other routes
+
+// Use routes
+app.use('/api/tour-packages', tourPackagesRoutes);
+// ...use other routes
+
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log('MongoDB connected'))
+  .catch(err => console.error(err));
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+````
+
+---
+
+## 8. **Connect Frontend to Backend**
+
+- Change your React API calls to use `http://localhost:5000/api/...`
+- Replace sampleData.js usage with real API requests (using `fetch` or `axios`).
+
+---
+
+## 9. **Test Your API**
+
+Use [Postman](https://www.postman.com/) or [Insomnia](https://insomnia.rest/) to test endpoints like:
+- `GET /api/tour-packages`
+- `POST /api/bookings`
+- etc.
+
+---
+
+## 10. **Expand as Needed**
+
+- Add authentication (JWT, etc.)
+- Add more endpoints (update, delete)
+- Add validation and error handling
+
+---
+
+## **Summary Table**
+
+| Model         | Route Prefix         | Example Endpoint           |
+|---------------|---------------------|---------------------------|
+| TourPackage   | `/api/tour-packages`| GET/POST/PUT/DELETE       |
+| Booking       | `/api/bookings`     | GET/POST/PUT/DELETE       |
+| Message       | `/api/messages`     | GET/POST/PUT/DELETE       |
+| Notification  | `/api/notifications`| GET/POST/PUT/DELETE       |
+| User          | `/api/users`        | GET/POST/PUT/DELETE       |
+
+---

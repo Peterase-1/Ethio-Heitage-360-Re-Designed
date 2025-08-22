@@ -1,69 +1,349 @@
-import { BrowserRouter as Router, Link, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { DashboardProvider } from "./context/DashboardContext";
-import { Toaster } from "./components/ui/sonner";
-import { Button } from "./components/ui/button";
-import { Users, LayoutDashboard } from "lucide-react";
-import "./styles/global.css";
-import AppRoutes from "./routes/AppRoutes";
+import { useState, useEffect } from 'react'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import './utils/i18n' // Initialize i18n
+import Navbar from './components/common/Navbar'
+import Footer from './components/common/Footer'
+import Home from './pages/Home'
+import Auth from './pages/Auth'
+import ContactUs from './pages/ContactUs'
+import Map from './pages/Map'
+import Tours from './pages/Tours'
+import VirtualMuseum from './pages/VirtualMuseum'
+import ArtifactDetail from './pages/ArtifactDetail'
+import AdminDashboard from './pages/AdminDashboard'
+import SuperAdminDashboard from './pages/SuperAdminDashboard'
+import MuseumDashboard from './pages/MuseumDashboard'
+import OrganizerDashboard from './pages/OrganizerDashboard'
+import VisitorDashboard from './pages/VisitorDashboard'
+import UserTourPage from './components/pages/UserTourPage'
+import UserProfile from './pages/UserProfile'
+import Learning from './pages/Learning'
+import CourseDetail from './pages/CourseDetail'
+import AdminSupport from './pages/AdminSupport';
+import Support from './pages/Support';
+import StudyGuides from './pages/StudyGuides'
+// Visitor specific pages
+import VisitorVirtualMuseum from './pages/visitor/VirtualMuseum'
+import ProfileSettings from './pages/visitor/ProfileSettings'
+// Museum Admin components
+import MuseumProfile from './components/museum/MuseumProfile'
+import ArtifactManagement from './components/museum/ArtifactManagement'
+import VirtualMuseumManagement from './components/museum/VirtualMuseumManagement'
+import StaffManagement from './components/museum/StaffManagement'
+import EventManagement from './components/museum/EventManagement'
+import RentalManagement from './components/museum/RentalManagement'
+import MuseumAnalytics from './components/museum/MuseumAnalytics'
+import MuseumNotifications from './components/museum/MuseumNotifications'
+import MuseumCommunications from './components/museum/MuseumCommunications'
+import MuseumSettings from './components/museum/MuseumSettings'
+import RoleBasedRoute from './components/auth/RoleBasedRoute'
+import { useAuth } from './hooks/useAuth'
+import './styles/global.css'
+import {DashboardProvider } from './context/DashboardContext'
 
-function ViewToggle() {
-  const location = useLocation();
+function App() {
+  const [darkMode, setDarkMode] = useState(false)
+  const { user, loading } = useAuth()
 
-  return (
-    <div className="fixed top-16 right-4 z-50 flex gap-2 animate-fadeInDown">
-      <Link to="/organizer">
-        <Button
-          variant={location.pathname === "/organizer" ? "default" : "outline"}
-          className={`${
-            location.pathname === "/organizer"
-              ? "bg-green-600 hover:bg-green-700"
-              : "border-green-300 text-green-700 hover:bg-green-50"
-          }`}
-        >
-          <LayoutDashboard className="w-4 h-4 mr-2" />
-          Organizer
-        </Button>
-      </Link>
-      <Link to="/customer">
-        <Button
-          variant={location.pathname === "/customer" ? "default" : "outline"}
-          className={`${
-            location.pathname === "/customer"
-              ? "bg-green-600 hover:bg-green-700"
-              : "border-green-300 text-green-700 hover:bg-green-50"
-          }`}
-        >
-          <Users className="w-4 h-4 mr-2" />
-          Customer
-        </Button>
-      </Link>
-    </div>
-  );
-}
-
-export default function App() {
-  const [darkMode, setDarkMode] = useState(false);
-
-  const toggleDarkMode = () => setDarkMode(!darkMode);
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode)
+  }
 
   useEffect(() => {
     if (darkMode) {
-      document.documentElement.classList.add("dark");
+      document.documentElement.classList.add('dark')
     } else {
-      document.documentElement.classList.remove("dark");
+      document.documentElement.classList.remove('dark')
     }
-  }, [darkMode]);
+  }, [darkMode])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
+  // Enhanced protected route that redirects based on role
+  const ProtectedRoute = ({ children, allowedRoles }) => {
+    if (!user) {
+      return <Navigate to="/auth" replace />
+    }
+    
+    if (allowedRoles) {
+      // Check if user role is allowed (support both backend and frontend role names)
+      const hasAccess = allowedRoles.some(allowedRole => {
+        // Direct match
+        if (allowedRole === user.role) return true;
+        
+        // Handle backend to frontend role mapping
+        const roleMap = {
+          'superAdmin': ['super_admin', 'superAdmin'],
+          'museumAdmin': ['museum_admin', 'museumAdmin', 'museum'],
+          'user': ['visitor', 'user'],
+          // Reverse mapping for frontend to backend
+          'super_admin': ['superAdmin', 'super_admin'],
+          'museum_admin': ['museumAdmin', 'museum_admin', 'museum'],
+          'museum': ['museumAdmin', 'museum_admin', 'museum'],
+          'visitor': ['user', 'visitor']
+        };
+        
+        const mappedRoles = roleMap[allowedRole] || [];
+        return mappedRoles.includes(user.role);
+      });
+      
+      if (!hasAccess) {
+        // Redirect to appropriate dashboard based on user role (using backend role names)
+        const redirectRoutes = {
+          superAdmin: '/super-admin',       // Backend uses 'superAdmin'
+          admin: '/admin',
+          museumAdmin: '/museum-dashboard', // Backend uses 'museumAdmin'
+          organizer: '/organizer-dashboard',
+          user: '/visitor-dashboard'        // Backend uses 'user' for visitors
+        }
+        
+        const redirectTo = redirectRoutes[user.role] || '/'
+        return <Navigate to={redirectTo} replace />
+      }
+    }
+    
+    return children
+  }
 
   return (
-    <Router>
-      <DashboardProvider>
-        <div className={`min-h-screen ${darkMode ? "dark" : ""}`}>
-          <ViewToggle />
-          <AppRoutes darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-          <Toaster position="top-right" />
-        </div>
+    <div className={`min-h-screen ${darkMode ? 'dark' : ''}`}>
+            <DashboardProvider>
+
+      <Routes>
+          <Route path="/" element={
+            <>
+              <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+              <Home />
+              <Footer />
+            </>
+          } />
+          <Route path="/auth" element={<Auth darkMode={darkMode} toggleDarkMode={toggleDarkMode} />} />
+          <Route path="/contact" element={
+            <>
+              <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+              <ContactUs />
+              <Footer />
+            </>
+          } />
+          <Route path="/map" element={
+            <>
+              <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+              <Map />
+              <Footer />
+            </>
+          } />
+          <Route path="/tours" element={
+            <>
+              <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+             <UserTourPage />
+              <Footer />
+            </>
+          } />
+          <Route path="/virtual-museum" element={
+            <>
+              <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+              <VirtualMuseum />
+              <Footer />
+            </>
+          } />
+          <Route path="/learning" element={
+            <>
+              <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+              <Learning />
+              <Footer />
+            </>
+          } />
+          <Route path="/education" element={
+            <>
+              <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+              <Learning />
+              <Footer />
+            </>
+          } />
+          <Route path="/artifact/:id" element={
+            <>
+              <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+              <ArtifactDetail />
+              <Footer />
+            </>
+          } />
+          
+          {/* Protected Routes */}
+          <Route path="/admin" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminDashboard darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+            </ProtectedRoute>
+          } />
+          <Route path="/super-admin" element={
+            <ProtectedRoute allowedRoles={['superAdmin', 'admin']}>
+              <SuperAdminDashboard darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+            </ProtectedRoute>
+          } />
+          <Route path="/museum-dashboard" element={
+            <ProtectedRoute allowedRoles={['museumAdmin']}>
+              <MuseumDashboard darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+            </ProtectedRoute>
+          } />
+          
+          {/* Museum Admin Routes */}
+          <Route path="/museum-dashboard/profile/*" element={
+            <ProtectedRoute allowedRoles={['museumAdmin']}>
+              <MuseumProfile />
+            </ProtectedRoute>
+          } />
+          <Route path="/museum-dashboard/artifacts/*" element={
+            <ProtectedRoute allowedRoles={['museumAdmin']}>
+              <ArtifactManagement />
+            </ProtectedRoute>
+          } />
+          <Route path="/museum-dashboard/virtual-museum/*" element={
+            <ProtectedRoute allowedRoles={['museumAdmin']}>
+              <VirtualMuseumManagement />
+            </ProtectedRoute>
+          } />
+          <Route path="/museum-dashboard/staff/*" element={
+            <ProtectedRoute allowedRoles={['museumAdmin']}>
+              <StaffManagement />
+            </ProtectedRoute>
+          } />
+          <Route path="/museum-dashboard/events/*" element={
+            <ProtectedRoute allowedRoles={['museumAdmin']}>
+              <EventManagement />
+            </ProtectedRoute>
+          } />
+          <Route path="/museum-dashboard/rentals/*" element={
+            <ProtectedRoute allowedRoles={['museumAdmin']}>
+              <RentalManagement />
+            </ProtectedRoute>
+          } />
+          <Route path="/museum-dashboard/analytics/*" element={
+            <ProtectedRoute allowedRoles={['museumAdmin']}>
+              <MuseumAnalytics />
+            </ProtectedRoute>
+          } />
+          <Route path="/museum-dashboard/notifications" element={
+            <ProtectedRoute allowedRoles={['museumAdmin']}>
+              <MuseumNotifications />
+            </ProtectedRoute>
+          } />
+          <Route path="/museum-dashboard/communications/*" element={
+            <ProtectedRoute allowedRoles={['museumAdmin']}>
+              <MuseumCommunications />
+            </ProtectedRoute>
+          } />
+          <Route path="/museum-dashboard/settings/*" element={
+            <ProtectedRoute allowedRoles={['museumAdmin']}>
+              <MuseumSettings />
+            </ProtectedRoute>
+          } />
+          <Route path="/organizer-dashboard" element={
+            <ProtectedRoute allowedRoles={['organizer']}>
+              <OrganizerDashboard darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+            </ProtectedRoute>
+          } />
+          <Route path="/visitor-dashboard" element={
+            <ProtectedRoute allowedRoles={['user']}>
+              <VisitorDashboard darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+            </ProtectedRoute>
+          } />
+          
+          {/* Visitor-specific routes */}
+          <Route path="/visitor/virtual-museum" element={
+            <RoleBasedRoute allowedRoles={['user']}>
+              <VisitorVirtualMuseum />
+            </RoleBasedRoute>
+          } />
+          <Route path="/visitor/virtual-museum/*" element={
+            <RoleBasedRoute allowedRoles={['user']}>
+              <VisitorVirtualMuseum />
+            </RoleBasedRoute>
+          } />
+          <Route path="/visitor/profile" element={
+            <RoleBasedRoute allowedRoles={['user']}>
+              <ProfileSettings />
+            </RoleBasedRoute>
+          } />
+          <Route path="/visitor/preferences" element={
+            <RoleBasedRoute allowedRoles={['user']}>
+              <ProfileSettings />
+            </RoleBasedRoute>
+          } />
+          <Route path="/visitor/events" element={
+            <RoleBasedRoute allowedRoles={['user']}>
+              <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold mb-4">Events & Exhibitions</h2>
+                  <p className="text-gray-600">Coming soon! Browse upcoming events and exhibitions.</p>
+                </div>
+              </div>
+            </RoleBasedRoute>
+          } />
+          <Route path="/visitor/favorites" element={
+            <RoleBasedRoute allowedRoles={['user']}>
+              <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold mb-4">My Favorites</h2>
+                  <p className="text-gray-600">Coming soon! Manage your favorite artifacts and museums.</p>
+                </div>
+              </div>
+            </RoleBasedRoute>
+          } />
+          <Route path="/visitor/recent" element={
+            <RoleBasedRoute allowedRoles={['user']}>
+              <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold mb-4">Recently Viewed</h2>
+                  <p className="text-gray-600">Coming soon! View your browsing history.</p>
+                </div>
+              </div>
+            </RoleBasedRoute>
+          } />
+          <Route path="/visitor/heritage-sites" element={
+            <RoleBasedRoute allowedRoles={['user']}>
+              <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold mb-4">Heritage Sites</h2>
+                  <p className="text-gray-600">Coming soon! Explore Ethiopian heritage locations.</p>
+                </div>
+              </div>
+            </RoleBasedRoute>
+          } />
+          
+          {/* New Educational Routes */}
+          <Route path="/course/:courseId" element={
+            <CourseDetail darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+          } />
+          <Route path="/support" element={
+            <Support darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+          } />
+          <Route path="/study-guides" element={
+            <StudyGuides darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+          } />
+          <Route path="/admin-support" element={
+            <ProtectedRoute allowedRoles={['admin', 'superAdmin']}>
+              <AdminSupport darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <>
+                <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+                <UserProfile />
+                <Footer />
+              </>
+            </ProtectedRoute>
+          } />
+      </Routes>
       </DashboardProvider>
-    </Router>
-  );
+    </div>
+  )
 }
+
+export default App

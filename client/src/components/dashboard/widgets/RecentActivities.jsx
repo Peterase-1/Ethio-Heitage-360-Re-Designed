@@ -45,10 +45,10 @@ export function RecentActivities() {
           return (
             <div key={activity.id}>
               <div
-                className="flex items-start gap-4 cursor-pointer hover:bg-gray-50 p-2 rounded-lg -m-2"
+                className="flex items-start gap-4 cursor-pointer hover:bg-stone-50 p-2 rounded-lg -m-2"
                 onClick={() => handleActivityClick(activity)}
               >
-                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <div className="w-10 h-10 rounded-full bg-stone-100 flex items-center justify-center flex-shrink-0">
                   <ActivityIcon className="w-5 h-5 text-gray-600" />
                 </div>
 
@@ -100,7 +100,7 @@ export function RecentActivities() {
         <div className="pt-2">
           <button
             onClick={handleViewAllActivities}
-            className="text-sm text-green-600 hover:text-green-700 font-medium"
+            className="text-sm text-yellow-700 hover:text-yellow-800 font-medium"
           >
             View all activities →
           </button>

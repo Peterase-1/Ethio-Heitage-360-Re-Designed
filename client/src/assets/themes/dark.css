@@ -1,2 +1,17 @@
-/* Dark theme styles */
-body { background: black; color: white; }
+/* Dark Theme */
+:root {
+  --background-color: #1a202c;
+  --text-color: #e2e8f0;
+  --primary-color: #f6ad55;
+  --secondary-color: #4a5568;
+  --card-background: #2d3748;
+  --border-color: #4a5568;
+}
+
+body {
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+/* Add more dark theme specific styles here */
+/* e.g., button colors, input fields, etc. */

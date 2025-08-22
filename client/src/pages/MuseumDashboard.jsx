@@ -1,23 +1,20 @@
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
-import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+import MuseumAdminSidebar from '../components/dashboard/MuseumAdminSidebar';
 import {
-  Box, Typography, Tabs, Tab, Container, Grid, Paper,
+  Box, Typography, Container, Grid, Paper,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Button, IconButton, Chip, Avatar, TextField, Dialog, DialogTitle,
-  DialogContent, DialogActions, FormControl, InputLabel, Select, MenuItem
+  Button, IconButton, Chip
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Check as CheckIcon,
-  Close as CloseIcon,
-  Image as ImageIcon,
-  Museum as MuseumIcon,
   ArtTrack as ArtTrackIcon,
   EventAvailable as EventAvailableIcon,
-  Storage as StorageIcon
+  Storage as StorageIcon,
+  TrendingUp as TrendingUpIcon
 } from '@mui/icons-material';
 
 // Mock data - Replace with API calls
@@ -33,342 +30,191 @@ const mockRentalRequests = [
 ];
 
 const MuseumDashboard = () => {
-  const [tabValue, setTabValue] = useState(0);
   const [artifacts, setArtifacts] = useState(mockArtifacts);
   const [rentalRequests, setRentalRequests] = useState(mockRentalRequests);
-  const [openArtifactDialog, setOpenArtifactDialog] = useState(false);
-  const [openRentalDialog, setOpenRentalDialog] = useState(false);
-  const [currentArtifact, setCurrentArtifact] = useState(null);
-  const [currentRental, setCurrentRental] = useState(null);
   const { user } = useAuth();
-  const router = useRouter();
+  const navigate = useNavigate();
 
   // Redirect if not authenticated or not a museum admin
   useEffect(() => {
-    if (!user || user.role !== 'museum_admin') {
-      router.push('/login');
+    if (!user || user.role !== 'museumAdmin') {
+      navigate('/auth');
     }
-  }, [user, router]);
-
-  const handleTabChange = (event, newValue) => {
-    setTabValue(newValue);
-  };
-
-  const handleArtifactSubmit = (e) => {
-    e.preventDefault();
-    // TODO: Implement artifact creation/update
-    setOpenArtifactDialog(false);
-  };
-
-  const handleRentalAction = (requestId, action) => {
-    // TODO: Implement rental request action
-    setRentalRequests(prev => prev.map(req => 
-      req.id === requestId ? { ...req, status: action } : req
-    ));
-  };
+  }, [user, navigate]);
 
   if (!user) {
     return <div>Loading...</div>;
   }
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-        <MuseumIcon color="primary" sx={{ fontSize: 40, mr: 2 }} />
-        <Typography variant="h4" component="h1">
-          {user.museumName || 'Museum'} Dashboard
-        </Typography>
-      </Box>
+    <div className="flex min-h-screen bg-gray-50">
+      <MuseumAdminSidebar />
+      
+      <div className="flex-1 overflow-auto">
+        <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+          {/* Welcome Header */}
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h4" component="h1" sx={{ mb: 1 }}>
+              Welcome back, {user?.name || 'Museum Admin'}!
+            </Typography>
+            <Typography variant="subtitle1" color="text.secondary">
+              {user?.museumName || 'Your Museum'} Dashboard Overview
+            </Typography>
+          </Box>
 
-      {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={4} lg={3}>
-          <Paper sx={{ p: 3, display: 'flex', alignItems: 'center' }}>
-            <ArtTrackIcon color="primary" sx={{ fontSize: 40, mr: 2 }} />
-            <Box>
-              <Typography color="text.secondary">Total Artifacts</Typography>
-              <Typography variant="h5">{artifacts.length}</Typography>
-            </Box>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={4} lg={3}>
-          <Paper sx={{ p: 3, display: 'flex', alignItems: 'center' }}>
-            <EventAvailableIcon color="warning" sx={{ fontSize: 40, mr: 2 }} />
-            <Box>
-              <Typography color="text.secondary">Active Rentals</Typography>
-              <Typography variant="h5">
-                {rentalRequests.filter(r => r.status === 'approved').length}
-              </Typography>
-            </Box>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={4} lg={3}>
-          <Paper sx={{ p: 3, display: 'flex', alignItems: 'center' }}>
-            <StorageIcon color="info" sx={{ fontSize: 40, mr: 2 }} />
-            <Box>
-              <Typography color="text.secondary">In Storage</Typography>
-              <Typography variant="h5">
-                {artifacts.filter(a => a.status === 'in_storage').length}
-              </Typography>
-            </Box>
-          </Paper>
-        </Grid>
-      </Grid>
+          {/* Quick Stats Cards */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12} md={3}>
+              <Paper sx={{ p: 3, display: 'flex', alignItems: 'center', background: 'linear-gradient(135deg, #8B5A3C 0%, #A67C5A 100%)', color: 'white' }}>
+                <ArtTrackIcon sx={{ fontSize: 40, mr: 2 }} />
+                <Box>
+                  <Typography color="inherit" variant="body2">Total Artifacts</Typography>
+                  <Typography variant="h4" color="inherit">{artifacts.length}</Typography>
+                  <Typography variant="caption" sx={{ opacity: 0.8 }}>In Collection</Typography>
+                </Box>
+              </Paper>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <Paper sx={{ p: 3, display: 'flex', alignItems: 'center', background: 'linear-gradient(135deg, #A67C5A 0%, #8B5A3C 100%)', color: 'white' }}>
+                <EventAvailableIcon sx={{ fontSize: 40, mr: 2 }} />
+                <Box>
+                  <Typography color="inherit" variant="body2">Active Rentals</Typography>
+                  <Typography variant="h4" color="inherit">
+                    {rentalRequests.filter(r => r.status === 'approved').length}
+                  </Typography>
+                  <Typography variant="caption" sx={{ opacity: 0.8 }}>Current Bookings</Typography>
+                </Box>
+              </Paper>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <Paper sx={{ p: 3, display: 'flex', alignItems: 'center', background: 'linear-gradient(135deg, #92775A 0%, #8B5A3C 100%)', color: 'white' }}>
+                <StorageIcon sx={{ fontSize: 40, mr: 2 }} />
+                <Box>
+                  <Typography color="inherit" variant="body2">In Storage</Typography>
+                  <Typography variant="h4" color="inherit">
+                    {artifacts.filter(a => a.status === 'in_storage').length}
+                  </Typography>
+                  <Typography variant="caption" sx={{ opacity: 0.8 }}>Available Items</Typography>
+                </Box>
+              </Paper>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <Paper sx={{ p: 3, display: 'flex', alignItems: 'center', background: 'linear-gradient(135deg, #A67C5A 0%, #D2B48C 100%)', color: 'white' }}>
+                <TrendingUpIcon sx={{ fontSize: 40, mr: 2 }} />
+                <Box>
+                  <Typography color="inherit" variant="body2">Monthly Visitors</Typography>
+                  <Typography variant="h4" color="inherit">1,245</Typography>
+                  <Typography variant="caption" sx={{ opacity: 0.8 }}>+15% Growth</Typography>
+                </Box>
+              </Paper>
+            </Grid>
+          </Grid>
 
-      <Paper sx={{ mb: 4 }}>
-        <Tabs
-          value={tabValue}
-          onChange={handleTabChange}
-          variant="scrollable"
-          scrollButtons="auto"
-          sx={{ borderBottom: 1, borderColor: 'divider' }}
-        >
-          <Tab label="Artifacts" />
-          <Tab label="Rental Requests" />
-          <Tab label="Museum Profile" />
-          <Tab label="Analytics" />
-        </Tabs>
-
-        <Box sx={{ p: 3 }}>
-          {tabValue === 0 && (
-            <>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-                <Typography variant="h6">Artifact Management</Typography>
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={() => {
-                    setCurrentArtifact(null);
-                    setOpenArtifactDialog(true);
-                  }}
-                >
-                  Add Artifact
-                </Button>
-              </Box>
-              
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Name</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Last Updated</TableCell>
-                      <TableCell>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {artifacts.map((artifact) => (
-                      <TableRow key={artifact.id}>
-                        <TableCell>{artifact.name}</TableCell>
-                        <TableCell>
-                          <Chip
-                            label={artifact.status.replace('_', ' ')}
-                            color={artifact.status === 'on_display' ? 'success' : 'default'}
-                            size="small"
-                          />
-                        </TableCell>
-                        <TableCell>{artifact.lastUpdated}</TableCell>
-                        <TableCell>
-                          <IconButton size="small" onClick={() => setCurrentArtifact(artifact)}>
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton size="small" color="error">
-                            <DeleteIcon />
-                          </IconButton>
-                        </TableCell>
+          {/* Recent Activity and Quick Actions */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12} md={8}>
+              <Paper sx={{ p: 3 }}>
+                <Typography variant="h6" sx={{ mb: 2 }}>Recent Artifacts</Typography>
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Name</TableCell>
+                        <TableCell>Status</TableCell>
+                        <TableCell>Last Updated</TableCell>
+                        <TableCell>Actions</TableCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </>
-          )}
+                    </TableHead>
+                    <TableBody>
+                      {artifacts.slice(0, 5).map((artifact) => (
+                        <TableRow key={artifact.id}>
+                          <TableCell>{artifact.name}</TableCell>
+                          <TableCell>
+                            <Chip
+                              label={artifact.status.replace('_', ' ')}
+                              sx={{
+                                backgroundColor: artifact.status === 'on_display' ? '#8B5A3C' : '#A67C5A',
+                                color: 'white',
+                                '&:hover': {
+                                  backgroundColor: artifact.status === 'on_display' ? '#A67C5A' : '#8B5A3C'
+                                }
+                              }}
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell>{artifact.lastUpdated}</TableCell>
+                          <TableCell>
+                          <IconButton size="small" sx={{ color: '#8B5A3C', '&:hover': { backgroundColor: '#F5F5DC' } }}>
+                              <EditIcon />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                <Box sx={{ mt: 2, textAlign: 'center' }}>
+                  <Button 
+                    variant="outlined" 
+                    onClick={() => navigate('/museum-dashboard/artifacts')}
+                    sx={{ borderColor: '#8B5A3C', color: '#8B5A3C', '&:hover': { borderColor: '#A67C5A', backgroundColor: '#F5F5DC' } }}
+                  >
+                    View All Artifacts
+                  </Button>
+                </Box>
+              </Paper>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Paper sx={{ p: 3, mb: 3 }}>
+                <Typography variant="h6" sx={{ mb: 2 }}>Quick Actions</Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Button 
+                    variant="contained" 
+                    startIcon={<AddIcon />} 
+                    fullWidth
+                    onClick={() => navigate('/museum-dashboard/artifacts/new')}
+                    sx={{ backgroundColor: '#8B5A3C', '&:hover': { backgroundColor: '#A67C5A' } }}
+                  >
+                    Add New Artifact
+                  </Button>
+                  <Button 
+                    variant="outlined" 
+                    fullWidth
+                    onClick={() => navigate('/museum-dashboard/virtual-museum/create')}
+                    sx={{ borderColor: '#8B5A3C', color: '#8B5A3C', '&:hover': { borderColor: '#A67C5A', backgroundColor: '#F5F5DC' } }}
+                  >
+                    Create Exhibition
+                  </Button>
+                  <Button 
+                    variant="outlined" 
+                    fullWidth
+                    onClick={() => navigate('/museum-dashboard/events/new')}
+                    sx={{ borderColor: '#8B5A3C', color: '#8B5A3C', '&:hover': { borderColor: '#A67C5A', backgroundColor: '#F5F5DC' } }}
+                  >
+                    Schedule Event
+                  </Button>
+                </Box>
+              </Paper>
+              <Paper sx={{ p: 3 }}>
+                <Typography variant="h6" sx={{ mb: 2 }}>Pending Tasks</Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Typography variant="body2" sx={{ color: '#A67C5A' }}>• 3 Rental requests awaiting approval</Typography>
+                  <Typography variant="body2" sx={{ color: '#8B5A3C' }}>• 2 Virtual museum submissions in review</Typography>
+                  <Typography variant="body2" sx={{ color: '#92775A' }}>• 1 New staff member to onboard</Typography>
+                </Box>
+              </Paper>
+            </Grid>
+          </Grid>
 
-          {tabValue === 1 && (
-            <>
-              <Typography variant="h6" gutterBottom>Rental Requests</Typography>
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Artifact</TableCell>
-                      <TableCell>Requester</TableCell>
-                      <TableCell>Date</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {rentalRequests.map((request) => (
-                      <TableRow key={request.id}>
-                        <TableCell>{request.artifact}</TableCell>
-                        <TableCell>{request.requester}</TableCell>
-                        <TableCell>{request.date}</TableCell>
-                        <TableCell>
-                          <Chip
-                            label={request.status}
-                            color={
-                              request.status === 'approved' ? 'success' :
-                              request.status === 'rejected' ? 'error' : 'default'
-                            }
-                            size="small"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {request.status === 'pending' && (
-                            <>
-                              <IconButton
-                                size="small"
-                                color="success"
-                                onClick={() => handleRentalAction(request.id, 'approved')}
-                              >
-                                <CheckIcon />
-                              </IconButton>
-                              <IconButton
-                                size="small"
-                                color="error"
-                                onClick={() => handleRentalAction(request.id, 'rejected')}
-                              >
-                                <CloseIcon />
-                              </IconButton>
-                            </>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </>
-          )}
 
-          {tabValue === 2 && (
-            <Box>
-              <Typography variant="h6" gutterBottom>Museum Profile</Typography>
-              <form>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Museum Name"
-                      defaultValue={user.museumName || ''}
-                      margin="normal"
-                    />
-                    <TextField
-                      fullWidth
-                      label="Location"
-                      defaultValue=""
-                      margin="normal"
-                    />
-                    <TextField
-                      fullWidth
-                      label="Description"
-                      multiline
-                      rows={4}
-                      margin="normal"
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <Box sx={{ textAlign: 'center', mb: 2 }}>
-                      <Avatar
-                        sx={{
-                          width: 150,
-                          height: 150,
-                          mx: 'auto',
-                          mb: 2,
-                          bgcolor: 'primary.main'
-                        }}
-                      >
-                        <ImageIcon sx={{ fontSize: 60 }} />
-                      </Avatar>
-                      <Button variant="outlined" component="label">
-                        Upload Logo
-                        <input type="file" hidden accept="image/*" />
-                      </Button>
-                    </Box>
-                    <TextField
-                      fullWidth
-                      label="Contact Email"
-                      type="email"
-                      margin="normal"
-                    />
-                    <TextField
-                      fullWidth
-                      label="Phone Number"
-                      margin="normal"
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Button variant="contained" color="primary">
-                      Save Changes
-                    </Button>
-                  </Grid>
-                </Grid>
-              </form>
-            </Box>
-          )}
 
-          {tabValue === 3 && (
-            <Box>
-              <Typography variant="h6" gutterBottom>Analytics</Typography>
-              <Typography color="text.secondary">
-                Analytics dashboard will be available soon. This section will display:
-              </Typography>
-              <ul>
-                <li>Visitor statistics</li>
-                <li>Artifact popularity</li>
-                <li>Rental history</li>
-                <li>Engagement metrics</li>
-              </ul>
-            </Box>
-          )}
-        </Box>
-      </Paper>
 
-      {/* Artifact Dialog */}
-      <Dialog open={openArtifactDialog} onClose={() => setOpenArtifactDialog(false)}>
-        <form onSubmit={handleArtifactSubmit}>
-          <DialogTitle>{currentArtifact ? 'Edit Artifact' : 'Add New Artifact'}</DialogTitle>
-          <DialogContent>
-            <TextField
-              autoFocus
-              margin="dense"
-              label="Artifact Name"
-              fullWidth
-              variant="outlined"
-              sx={{ mb: 2 }}
-              defaultValue={currentArtifact?.name || ''}
-            />
-            <FormControl fullWidth margin="dense">
-              <InputLabel>Status</InputLabel>
-              <Select
-                label="Status"
-                defaultValue={currentArtifact?.status || 'in_storage'}
-              >
-                <MenuItem value="in_storage">In Storage</MenuItem>
-                <MenuItem value="on_display">On Display</MenuItem>
-                <MenuItem value="under_maintenance">Under Maintenance</MenuItem>
-              </Select>
-            </FormControl>
-            <TextField
-              margin="dense"
-              label="Description"
-              fullWidth
-              multiline
-              rows={4}
-              variant="outlined"
-              sx={{ mt: 2 }}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenArtifactDialog(false)}>Cancel</Button>
-            <Button type="submit" variant="contained" color="primary">
-              {currentArtifact ? 'Update' : 'Add'} Artifact
-            </Button>
-          </DialogActions>
-        </form>
-      </Dialog>
-    </Container>
+
+
+
+        </Container>
+      </div>
+    </div>
   );
 };
 

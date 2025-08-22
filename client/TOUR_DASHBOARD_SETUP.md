@@ -4,8 +4,6 @@
 
 Your Tour Organizer Dashboard is now **fully configured and ready to run**!
 
-
-
 ### 🚀 **How to Run:**
 
 ```bash
@@ -47,6 +45,7 @@ http://localhost:5173/tour-organizer
 
 ### 🎨 **Design Features:**
 
+- **Emerald Color Scheme**: Professional green theme
 - **Responsive Design**: Mobile-first approach
 - **Modern UI**: Clean, professional interface
 - **Accessibility**: Screen reader friendly

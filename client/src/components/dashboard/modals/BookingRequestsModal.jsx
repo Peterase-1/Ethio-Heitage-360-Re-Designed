@@ -85,11 +85,11 @@ export function BookingRequestsModal() {
                         {tour?.title || "Unknown Tour"}
                       </CardTitle>
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge className="bg-yellow-100 text-yellow-800">
+                        <Badge className="bg-amber-100 text-amber-800">
                           Pending
                         </Badge>
                         <Badge className="border border-gray-300 text-gray-700">
-                          ${booking.totalAmount}
+                          ETB {booking.totalAmount}
                         </Badge>
                       </div>
                     </div>
@@ -132,7 +132,7 @@ export function BookingRequestsModal() {
                         <div className="flex items-center gap-2">
                           <DollarSign className="w-4 h-4 text-gray-600" />
                           <span className="text-sm">
-                            Total: ${booking.totalAmount}
+                            Total: ETB {booking.totalAmount}
                           </span>
                         </div>
 
@@ -145,7 +145,7 @@ export function BookingRequestsModal() {
 
                     {/* Special Requests */}
                     {booking.specialRequests && (
-                      <div className="bg-gray-50 p-3 rounded-lg">
+                      <div className="bg-stone-50 p-3 rounded-lg">
                         <h5 className="text-sm font-medium text-gray-800 mb-1">
                           Special Requests:
                         </h5>
@@ -162,7 +162,7 @@ export function BookingRequestsModal() {
                       {/* Left Buttons */}
                       <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                         <Button
-                          className="border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 px-3 py-2 text-sm rounded w-full sm:w-auto"
+                          className="border border-stone-300 bg-white text-stone-700 hover:bg-stone-100 px-3 py-2 text-sm rounded w-full sm:w-auto"
                           onClick={() => handleViewDetails(booking.id)}
                         >
                           <Eye className="w-4 h-4 mr-1" />
@@ -170,7 +170,7 @@ export function BookingRequestsModal() {
                         </Button>
 
                         <Button
-                          className="border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 px-3 py-2 text-sm rounded w-full sm:w-auto"
+                          className="border border-stone-300 bg-white text-stone-700 hover:bg-stone-100 px-3 py-2 text-sm rounded w-full sm:w-auto"
                           onClick={() =>
                             handleContactCustomer(booking.customerEmail)
                           }
@@ -194,7 +194,7 @@ export function BookingRequestsModal() {
                         </Button>
 
                         <Button
-                          className="bg-primary hover:bg-primary text-white px-3 py-2 text-sm rounded w-full sm:w-auto"
+                          className="bg-yellow-900 hover:bg-yellow-800 text-white px-3 py-2 text-sm rounded w-full sm:w-auto"
                           onClick={() =>
                             handleStatusUpdate(booking.id, "confirmed")
                           }
@@ -215,7 +215,7 @@ export function BookingRequestsModal() {
         {/* Close Button */}
         <div className="flex justify-end pt-4">
           <Button
-            className="border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 px-4 py-2 rounded w-full sm:w-auto"
+            className="border border-stone-300 bg-white text-stone-700 hover:bg-stone-100 px-4 py-2 rounded w-full sm:w-auto"
             onClick={() => setShowBookingRequestsModal(false)}
           >
             Close

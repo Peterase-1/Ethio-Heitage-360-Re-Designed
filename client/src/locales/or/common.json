@@ -1,0 +1,14 @@
+{
+  "navigation": {
+    "virtualMuseums": "Museums Virtual",
+    "heritageMap": "Kaartii Heritage",
+    "liveTours": "Tours Jireessa",
+    "education": "Barumsa",
+    "signIn": "Seeni"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Dogoggora",
+    "success": "Milkaa'e"
+  }
+}

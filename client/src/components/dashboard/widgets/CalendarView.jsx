@@ -57,7 +57,7 @@ export function CalendarView() {
             return (
               <div 
                 key={tour.id}
-                className="flex gap-4 p-4 rounded-lg border border-gray-200 hover:border-green-300 hover:shadow-sm transition-all cursor-pointer"
+                className="flex gap-4 p-4 rounded-lg border border-gray-200 hover:border-yellow-700 hover:shadow-sm transition-all cursor-pointer"
                 onClick={() => handleTourClick(tour.id)}
               >
                 {/* Date Column */}
@@ -117,7 +117,7 @@ export function CalendarView() {
         <div className="pt-2">
           <button 
             onClick={handleViewFullCalendar}
-            className="text-sm text-green-600 hover:text-green-700 font-medium"
+            className="text-sm text-yellow-700 hover:text-yellow-800 font-medium"
           >
             View full calendar →
           </button>

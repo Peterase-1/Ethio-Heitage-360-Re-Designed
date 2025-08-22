@@ -39,7 +39,7 @@ export function QuickActions() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Button
             onClick={handleCreateTour}
-            className="h-12 bg-primary hover:bg-primary text-white shadow-md"
+            className="h-12 bg-yellow-900 hover:bg-yellow-800 text-white shadow-md"
             size="lg"
           >
             <Plus className="w-5 h-5 mr-2" />
@@ -49,7 +49,7 @@ export function QuickActions() {
           <Button
             onClick={handleViewBookingRequests}
             variant="outline"
-            className="h-12 border-gray-300 text-gray-700 hover:bg-gray-50 relative"
+            className="h-12 border-stone-300 text-stone-700 hover:bg-stone-50 relative"
             size="lg"
           >
             <Eye className="w-5 h-5 mr-2" />
@@ -64,7 +64,7 @@ export function QuickActions() {
           <Button
             onClick={handleManageCustomers}
             variant="outline"
-            className="h-12 border-gray-300 text-gray-700 hover:bg-gray-50"
+            className="h-12 border-stone-300 text-stone-700 hover:bg-stone-50"
             size="lg"
           >
             <Users className="w-5 h-5 mr-2" />
@@ -74,7 +74,7 @@ export function QuickActions() {
           <Button
             onClick={handleViewAnalytics}
             variant="outline"
-            className="h-12 border-gray-300 text-gray-700 hover:bg-gray-50"
+            className="h-12 border-stone-300 text-stone-700 hover:bg-stone-50"
             size="lg"
           >
             <BarChart3 className="w-5 h-5 mr-2" />

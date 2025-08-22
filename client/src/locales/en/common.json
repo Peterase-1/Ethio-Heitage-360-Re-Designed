@@ -1,0 +1,14 @@
+{
+  "navigation": {
+    "virtualMuseums": "Virtual Museums",
+    "heritageMap": "Heritage Map",
+    "liveTours": "Live Tours",
+    "education": "Education",
+    "signIn": "Sign In"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  }
+}

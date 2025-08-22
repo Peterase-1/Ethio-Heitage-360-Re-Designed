@@ -1,6 +1,4 @@
-
-
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { format } from 'date-fns';
 import {
@@ -252,49 +250,84 @@ const UserManagement = ({
         severity: 'error',
       });
     }
-    
+  };
+  
   // Handle reject user
   const handleReject = async () => {
     if (!selectedUser) return;
     
+    if (!rejectionReason.trim()) {
+      setSnackbar({
+        open: true,
+        message: 'Please provide a reason for rejection.',
+        severity: 'warning',
+      });
       return;
     }
 
     try {
-      await onReject(selectedUser.id, rejectReason);
+      await onReject(selectedUser.id, rejectionReason);
+      addAuditLog('ACCOUNT_REJECTED', selectedUser, `Rejected ${selectedUser.role} account for ${selectedUser.email} with reason: ${rejectionReason}`);
+      
       setRejectDialogOpen(false);
-      setRejectReason('');
+      setRejectionReason('');
       setSnackbar({
         open: true,
         message: 'User rejected successfully.',
         severity: 'success',
       });
+      
+      // Update local state
+      setSelected(selected.filter(id => id !== selectedUser.id));
+      
+      // Refresh the user list
+      if (onRefresh) onRefresh();
+      
     } catch (error) {
+      console.error('Rejection error:', error);
       setSnackbar({
         open: true,
-        message: 'Failed to reject user. Please try again.',
+        message: `Failed to reject user: ${error.message || 'Unknown error'}`,
         severity: 'error',
       });
     }
   };
 
   // Filter and sort users
-  const filteredUsers = users
-    .filter((user) => {
-      const matchesSearch = user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         user.email?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = filterStatus === 'all' || user.status === filterStatus;
-      return matchesSearch && matchesStatus;
-    })
-    .sort((a, b) => {
-      let comparison = 0;
-      if (a[orderBy] > b[orderBy]) {
-        comparison = 1;
-      } else if (a[orderBy] < b[orderBy]) {
-        comparison = -1;
-      }
-      return order === 'desc' ? -comparison : comparison;
-    });
+  const filteredUsers = useMemo(() => {
+    let sortableUsers = [...users];
+
+    // Filter by search term
+    if (searchTerm) {
+      sortableUsers = sortableUsers.filter(
+        (user) =>
+          user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.role?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filter by status
+    if (statusFilter !== 'all') {
+      sortableUsers = sortableUsers.filter(
+        (user) => user.status === statusFilter
+      );
+    }
+
+    // Sort
+    if (sortConfig.key) {
+      sortableUsers.sort((a, b) => {
+        if (a[sortConfig.key] < b[sortConfig.key]) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (a[sortConfig.key] > b[sortConfig.key]) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableUsers;
+  }, [users, searchTerm, statusFilter, sortConfig]);
 
   // Pagination
   const paginatedUsers = filteredUsers.slice(
@@ -338,6 +371,37 @@ const UserManagement = ({
     }
   };
 
+  // Handle checkbox selection
+  const handleSelectAllClick = (event) => {
+    if (event.target.checked) {
+      const newSelecteds = filteredUsers.map((user) => user.id);
+      setSelected(newSelecteds);
+      return;
+    }
+    setSelected([]);
+  };
+
+  const handleClick = (event, id) => {
+    const selectedIndex = selected.indexOf(id);
+    let newSelected = [];
+
+    if (selectedIndex === -1) {
+      newSelected = newSelected.concat(selected, id);
+    } else if (selectedIndex === 0) {
+      newSelected = newSelected.concat(selected.slice(1));
+    } else if (selectedIndex === selected.length - 1) {
+      newSelected = newSelected.concat(selected.slice(0, -1));
+    } else if (selectedIndex > 0) {
+      newSelected = newSelected.concat(
+        selected.slice(0, selectedIndex),
+        selected.slice(selectedIndex + 1),
+      );
+    }
+    setSelected(newSelected);
+  };
+
+  const isSelected = (id) => selected.indexOf(id) !== -1;
+
   return (
     <>
       <Card elevation={0}>
@@ -369,8 +433,8 @@ const UserManagement = ({
               size="small"
               placeholder="Search users..."
               variant="outlined"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
                 startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />,
               }}
@@ -381,8 +445,8 @@ const UserManagement = ({
               <InputLabel id="status-filter-label">Status</InputLabel>
               <Select
                 labelId="status-filter-label"
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
                 label="Status"
                 startAdornment={
                   <FilterListIcon sx={{ color: 'text.secondary', mr: 1 }} />
@@ -395,6 +459,31 @@ const UserManagement = ({
                 ))}
               </Select>
             </FormControl>
+
+            {selected.length > 0 && (
+              <FormControl variant="outlined" size="small" sx={{ minWidth: 150 }}>
+                <InputLabel id="bulk-action-label">Bulk Actions</InputLabel>
+                <Select
+                  labelId="bulk-action-label"
+                  value={bulkAction}
+                  onChange={(e) => setBulkAction(e.target.value)}
+                  label="Bulk Actions"
+                >
+                  <MenuItem value="approve">Approve Selected</MenuItem>
+                  <MenuItem value="reject">Reject Selected</MenuItem>
+                </Select>
+              </FormControl>
+            )}
+            {selected.length > 0 && (
+              <Button
+                variant="contained"
+                color={bulkAction === 'approve' ? 'success' : 'error'}
+                onClick={() => setBulkActionDialogOpen(true)}
+                disabled={selected.length === 0}
+              >
+                Apply Bulk Action
+              </Button>
+            )}
           </Box>
 
           {/* Users Table */}
@@ -403,129 +492,183 @@ const UserManagement = ({
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>User</TableCell>
-                    <TableCell>Email</TableCell>
-                    <TableCell>Role</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Registration Date</TableCell>
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        indeterminate={selected.length > 0 && selected.length < filteredUsers.length}
+                        checked={filteredUsers.length > 0 && selected.length === filteredUsers.length}
+                        onChange={handleSelectAllClick}
+                        inputProps={{ 'aria-label': 'select all desserts' }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={sortConfig.key === 'name'}
+                        direction={sortConfig.direction}
+                        onClick={() => handleRequestSort('name')}
+                      >
+                        User
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={sortConfig.key === 'email'}
+                        direction={sortConfig.direction}
+                        onClick={() => handleRequestSort('email')}
+                      >
+                        Email
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={sortConfig.key === 'role'}
+                        direction={sortConfig.direction}
+                        onClick={() => handleRequestSort('role')}
+                      >
+                        Role
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={sortConfig.key === 'status'}
+                        direction={sortConfig.direction}
+                        onClick={() => handleRequestSort('status')}
+                      >
+                        Status
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={sortConfig.key === 'createdAt'}
+                        direction={sortConfig.direction}
+                        onClick={() => handleRequestSort('createdAt')}
+                      >
+                        Registration Date
+                      </TableSortLabel>
+                    </TableCell>
                     <TableCell align="right">Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                      <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                         <CircularProgress />
                       </TableCell>
                     </TableRow>
                   ) : paginatedUsers.length > 0 ? (
-                    paginatedUsers.map((user) => (
-                      <TableRow key={user.id} hover>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Avatar 
-                              src={user.avatar} 
-                              alt={user.name}
-                              sx={{ width: 36, height: 36, mr: 2 }}
-                            >
-                              {user.name?.charAt(0) || <PersonIcon />}
-                            </Avatar>
-                            <Box>
-                              <Typography variant="subtitle2">{user.name}</Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                @{user.username || 'user' + user.id}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        </TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
-                          <Chip 
-                            label={user.role || 'User'} 
-                            size="small" 
-                            variant="outlined"
-                            color={user.role === 'admin' ? 'primary' : 'default'}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Chip 
-                            label={user.status || 'pending'} 
-                            size="small"
-                            color={getStatusColor(user.status)}
-                            icon={getStatusIcon(user.status)}
-                            variant="outlined"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {new Date(user.createdAt).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell align="right">
-                          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                            <Tooltip title="View Details">
-                              <IconButton 
-                                size="small" 
-                                onClick={() => handleViewUser(user)}
-                                color="info"
+                    paginatedUsers.map((user) => {
+                      const isItemSelected = isSelected(user.id);
+                      return (
+                        <TableRow
+                          hover
+                          onClick={(event) => handleClick(event, user.id)}
+                          role="checkbox"
+                          aria-checked={isItemSelected}
+                          tabIndex={-1}
+                          key={user.id}
+                          selected={isItemSelected}
+                        >
+                          <TableCell padding="checkbox">
+                            <Checkbox
+                              checked={isItemSelected}
+                              inputProps={{ 'aria-labelledby': `enhanced-table-checkbox-${user.id}` }}
+                            />
+                          </TableCell>
+                          <TableCell component="th" scope="row" padding="none">
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              <Avatar 
+                                src={user.avatar} 
+                                alt={user.name}
+                                sx={{ width: 36, height: 36, mr: 2 }}
                               >
-                                <VisibilityIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            
-                            {user.status === 'pending' && (
-                              <>
-                                <Tooltip title="Approve">
-                                  <IconButton 
-                                    size="small" 
-                                    color="success"
-                                    onClick={() => handleApprove(user.id)}
-                                  >
-                                    <CheckCircleIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                                <Tooltip title="Reject">
-                                  <IconButton 
-                                    size="small" 
-                                    color="error"
-                                    onClick={() => {
-                                      setSelectedUser(user);
-                                      setRejectDialogOpen(true);
-                                    }}
-                                  >
-                                    <CancelIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                              </>
-                            )}
-                            
-                            <Tooltip title="Delete">
-                              <IconButton size="small" color="error">
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                                {user.name?.charAt(0) || <PersonIcon />}
+                              </Avatar>
+                              <Box>
+                                <Typography variant="subtitle2">{user.name}</Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  @{user.username || 'user' + user.id}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>
+                            <Chip 
+                              label={user.role || 'User'} 
+                              size="small" 
+                              variant="outlined"
+                              color={user.role === 'admin' ? 'primary' : 'default'}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Chip 
+                              label={user.status || 'pending'} 
+                              size="small"
+                              color={getStatusColor(user.status)}
+                              icon={getStatusIcon(user.status)}
+                              variant="outlined"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            {format(new Date(user.createdAt), 'PPP')}
+                          </TableCell>
+                          <TableCell align="right">
+                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                              <Tooltip title="View Details">
+                                <IconButton 
+                                  size="small" 
+                                  onClick={(e) => { e.stopPropagation(); handleViewUser(user); }}
+                                  color="info"
+                                >
+                                  <VisibilityIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              
+                              {user.status === 'pending' && (
+                                <>
+                                  <Tooltip title="Approve">
+                                    <IconButton 
+                                      size="small" 
+                                      color="success"
+                                      onClick={(e) => { e.stopPropagation(); handleApprove(user); }}
+                                    >
+                                      <CheckCircleIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                  <Tooltip title="Reject">
+                                    <IconButton 
+                                      size="small" 
+                                      color="error"
+                                      onClick={(e) => { e.stopPropagation(); setSelectedUser(user); setRejectDialogOpen(true); }}
+                                    >
+                                      <CancelIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                </>
+                              )}
+                              
+                              <Tooltip title="Delete">
+                                <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); /* Implement delete logic */ }}>
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                        <Box sx={{ textAlign: 'center' }}>
-                          <PersonOffIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
-                          <Typography variant="subtitle1" color="text.secondary">
-                            No users found
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                            Try adjusting your search or filter criteria
-                          </Typography>
-                        </Box>
+                      <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                        <Typography variant="body1" color="text.secondary">
+                          No users found matching your criteria.
+                        </Typography>
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
             </TableContainer>
-            
-            {/* Pagination */}
             <TablePagination
               rowsPerPageOptions={[5, 10, 25]}
               component="div"
@@ -539,183 +682,172 @@ const UserManagement = ({
         </Box>
       </Card>
 
-      {/* User Details Dialog */}
-      <Dialog 
-        open={viewDialogOpen} 
-        onClose={() => setViewDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
+      {/* View User Dialog */}
+      <Dialog open={viewDialogOpen} onClose={() => setViewDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>User Details</DialogTitle>
-        <DialogContent>
+        <DialogContent dividers>
           {selectedUser && (
             <Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <Avatar 
                   src={selectedUser.avatar} 
                   alt={selectedUser.name}
-                  sx={{ width: 80, height: 80, mr: 3 }}
+                  sx={{ width: 80, height: 80, mr: 2 }}
                 >
-                  {selectedUser.name?.charAt(0) || <PersonIcon />}
+                  {selectedUser.name?.charAt(0) || <PersonIcon sx={{ fontSize: 40 }} />}
                 </Avatar>
                 <Box>
                   <Typography variant="h6">{selectedUser.name}</Typography>
-                  <Typography variant="subtitle1" color="text.secondary">
-                    {selectedUser.email}
-                  </Typography>
+                  <Typography variant="body2" color="text.secondary">@{selectedUser.username}</Typography>
                   <Chip 
                     label={selectedUser.role || 'User'} 
                     size="small" 
+                    variant="outlined"
                     color={selectedUser.role === 'admin' ? 'primary' : 'default'}
-                    sx={{ mt: 1 }}
+                    sx={{ mt: 0.5 }}
                   />
                 </Box>
               </Box>
-              
               <Divider sx={{ my: 2 }} />
-              
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <EmailIcon color="action" sx={{ mr: 1 }} />
-                    <Typography variant="body2">{selectedUser.email}</Typography>
-                  </Box>
-                  {selectedUser.phone && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <PhoneIcon color="action" sx={{ mr: 1 }} />
-                      <Typography variant="body2">{selectedUser.phone}</Typography>
-                    </Box>
-                  )}
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  {selectedUser.address && (
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-                      <LocationIcon color="action" sx={{ mr: 1, mt: 0.5 }} />
-                      <Typography variant="body2">{selectedUser.address}</Typography>
-                    </Box>
-                  )}
-                  {selectedUser.organization && (
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <BusinessIcon color="action" sx={{ mr: 1 }} />
-                      <Typography variant="body2">{selectedUser.organization}</Typography>
-                    </Box>
-                  )}
-                </Grid>
-              </Grid>
-              
-              {selectedUser.bio && (
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="subtitle2" gutterBottom>Bio</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {selectedUser.bio}
-                  </Typography>
+              <List dense>
+                <ListItem>
+                  <ListItemIcon><EmailIcon /></ListItemIcon>
+                  <ListItemText primary="Email" secondary={selectedUser.email} />
+                </ListItem>
+                {selectedUser.phone && (
+                  <ListItem>
+                    <ListItemIcon><PhoneIcon /></ListItemIcon>
+                    <ListItemText primary="Phone" secondary={selectedUser.phone} />
+                  </ListItem>
+                )}
+                {selectedUser.location && (
+                  <ListItem>
+                    <ListItemIcon><LocationIcon /></ListItemIcon>
+                    <ListItemText primary="Location" secondary={selectedUser.location} />
+                  </ListItem>
+                )}
+                {selectedUser.organization && (
+                  <ListItem>
+                    <ListItemIcon><BusinessIcon /></ListItemIcon>
+                    <ListItemText primary="Organization" secondary={selectedUser.organization} />
+                  </ListItem>
+                )}
+                <ListItem>
+                  <ListItemIcon><CheckCircleIcon /></ListItemIcon>
+                  <ListItemText 
+                    primary="Status" 
+                    secondary={
+                      <Chip 
+                        label={selectedUser.status || 'pending'} 
+                        size="small"
+                        color={getStatusColor(selectedUser.status)}
+                        icon={getStatusIcon(selectedUser.status)}
+                        variant="outlined"
+                      />
+                    }
+                  />
+                </ListItem>
+                <ListItem>
+                  <ListItemIcon><CalendarIcon /></ListItemIcon>
+                  <ListItemText primary="Registration Date" secondary={format(new Date(selectedUser.createdAt), 'PPP')} />
+                </ListItem>
+                {selectedUser.lastLogin && (
+                  <ListItem>
+                    <ListItemIcon><RefreshIcon /></ListItemIcon>
+                    <ListItemText primary="Last Login" secondary={format(new Date(selectedUser.lastLogin), 'PPP p')} />
+                  </ListItem>
+                )}
+              </List>
+              {selectedUser.status === 'pending' && (
+                <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                  <Button 
+                    variant="contained" 
+                    color="success" 
+                    onClick={() => handleApprove(selectedUser)}
+                  >
+                    Approve
+                  </Button>
+                  <Button 
+                    variant="contained" 
+                    color="error" 
+                    onClick={() => { setRejectDialogOpen(true); setViewDialogOpen(false); }}
+                  >
+                    Reject
+                  </Button>
                 </Box>
               )}
-              
-              <Divider sx={{ my: 3 }} />
-              
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box>
-                  <Typography variant="subtitle2" gutterBottom>Account Status</Typography>
-                  <Chip 
-                    label={selectedUser.status || 'pending'} 
-                    color={getStatusColor(selectedUser.status)}
-                    icon={getStatusIcon(selectedUser.status)}
-                    size="small"
-                  />
-                </Box>
-                <Typography variant="caption" color="text.secondary">
-                  Joined on {new Date(selectedUser.createdAt).toLocaleDateString()}
-                </Typography>
-              </Box>
             </Box>
           )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setViewDialogOpen(false)}>Close</Button>
-          {selectedUser?.status === 'pending' && (
-            <>
-              <Button 
-                color="error"
-                onClick={() => {
-                  setViewDialogOpen(false);
-                  setRejectDialogOpen(true);
-                }}
-              >
-                Reject
-              </Button>
-              <Button 
-                variant="contained" 
-                color="primary"
-                onClick={() => {
-                  handleApprove(selectedUser.id);
-                  setViewDialogOpen(false);
-                }}
-              >
-                Approve
-              </Button>
-            </>
-          )}
         </DialogActions>
       </Dialog>
 
       {/* Reject User Dialog */}
-      <Dialog 
-        open={rejectDialogOpen} 
-        onClose={() => setRejectDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Reject User Request</DialogTitle>
+      <Dialog open={rejectDialogOpen} onClose={() => setRejectDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Reject User: {selectedUser?.name}</DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ mb: 2 }}>
-            Are you sure you want to reject {selectedUser?.name || 'this user'}'s request?
-            Please provide a reason for rejection.
-          </DialogContentText>
           <TextField
             autoFocus
             margin="dense"
-            id="reject-reason"
-            label="Reason for rejection"
+            label="Reason for Rejection"
             type="text"
             fullWidth
-            variant="outlined"
             multiline
-            rows={3}
-            value={rejectReason}
-            onChange={(e) => setRejectReason(e.target.value)}
+            rows={4}
+            value={rejectionReason}
+            onChange={(e) => setRejectionReason(e.target.value)}
+            helperText="Please provide a clear reason for rejecting this user."
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => {
-            setRejectDialogOpen(false);
-            setRejectReason('');
-          }}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleReject} 
-            color="error"
-            variant="contained"
-            disabled={!rejectReason.trim()}
-          >
-            Reject User
+          <Button onClick={() => setRejectDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleReject} color="error" variant="contained">
+            Reject
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar for notifications */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <Alert 
-          onClose={() => setSnackbar({ ...snackbar, open: false })} 
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
+      {/* Bulk Action Confirmation Dialog */}
+      <Dialog open={bulkActionDialogOpen} onClose={() => setBulkActionDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {bulkAction === 'approve' ? 'Approve Selected Users' : 'Reject Selected Users'}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            You are about to {bulkAction} <strong>{selected.length}</strong> user account{selected.length !== 1 ? 's' : ''}.
+          </DialogContentText>
+          {bulkAction === 'reject' && (
+            <TextField
+              autoFocus
+              margin="dense"
+              label="Reason for Bulk Rejection (Optional)"
+              type="text"
+              fullWidth
+              multiline
+              rows={3}
+              value={bulkRejectionReason}
+              onChange={(e) => setBulkRejectionReason(e.target.value)}
+              helperText="Provide a reason for rejecting these users. This will be logged."
+              sx={{ mt: 2 }}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setBulkActionDialogOpen(false)}>Cancel</Button>
+          <Button 
+            onClick={handleBulkAction} 
+            color={bulkAction === 'approve' ? 'success' : 'error'}
+            variant="contained"
+          >
+            Confirm {bulkAction === 'approve' ? 'Approval' : 'Rejection'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
           {snackbar.message}
         </Alert>
       </Snackbar>
@@ -724,3 +856,4 @@ const UserManagement = ({
 };
 
 export default UserManagement;
+

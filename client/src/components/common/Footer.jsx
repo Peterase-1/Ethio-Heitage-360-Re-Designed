@@ -58,7 +58,7 @@ const Footer = () => {
             <ul className="space-y-2">
               <li><a href="#" className="text-primary-foreground/70 hover:text-primary-foreground text-sm transition-colors">Virtual Museums</a></li>
               <li><a href="#" className="text-primary-foreground/70 hover:text-primary-foreground text-sm transition-colors">Artifacts Gallery</a></li>
-              <li><Link to="/map" className="text-primary-foreground/70 hover:text-primary-foreground text-sm transition-colors">Heritage Sites Map</Link></li>
+              <li><a href="#" className="text-primary-foreground/70 hover:text-primary-foreground text-sm transition-colors">Heritage Sites Map</a></li>
               <li><a href="#" className="text-primary-foreground/70 hover:text-primary-foreground text-sm transition-colors">Live Tours</a></li>
             </ul>
           </div>

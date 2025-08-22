@@ -13,17 +13,29 @@ import {
 } from "../../ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "../../ui/popover";
 import { useDashboard } from "../../../context/DashboardContext";
+import { useAuth } from "../../../hooks/useAuth";
 import { toast } from "sonner";
 
 export function TopBar() {
   const {
-    currentUser,
     notifications,
     searchQuery,
     setSearchQuery,
     markNotificationAsRead,
     currentPage,
   } = useDashboard();
+
+  // Use the authenticated user from auth context instead of dashboard context
+  const { user: authUser, logout } = useAuth();
+  
+  // Use auth user, fallback to a default if not available
+  const currentUser = authUser || {
+    name: 'User',
+    role: 'organizer',
+    avatar: null,
+    firstName: 'User',
+    lastName: ''
+  };
 
   const getPageTitle = (page) => {
     switch (page) {
@@ -62,9 +74,37 @@ export function TopBar() {
     toast.info("Team settings page would open here");
   };
 
-  const handleSignOut = () => {
-    toast.success("Signed out successfully");
+  const handleSignOut = async () => {
+    try {
+      await logout();
+      toast.success("Signed out successfully");
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error("Error signing out");
+    }
   };
+
+  // Safe user name extraction
+  const getUserName = (user) => {
+    if (user.name) return user.name;
+    if (user.firstName && user.lastName) return `${user.firstName} ${user.lastName}`;
+    if (user.firstName) return user.firstName;
+    return 'User';
+  };
+
+  // Safe initials extraction
+  const getUserInitials = (user) => {
+    const name = getUserName(user);
+    return name
+      .split(' ')
+      .map(n => n[0] || '')
+      .join('')
+      .toUpperCase()
+      .slice(0, 2) || 'U';
+  };
+
+  const displayName = getUserName(currentUser);
+  const userInitials = getUserInitials(currentUser);
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between">
@@ -79,7 +119,7 @@ export function TopBar() {
             placeholder="Search tours, bookings..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 w-80 bg-gray-50 border-gray-200 focus:border-green-400 focus:ring-green-300"
+            className="pl-10 w-80 bg-gray-50 border-gray-200 focus:border-yellow-700 focus:ring-yellow-300"
           />
         </div>
       </div>
@@ -124,7 +164,7 @@ export function TopBar() {
                     <div
                       key={notification.id}
                       className={`p-3 rounded-lg border cursor-pointer hover:bg-gray-50 ${
-                        !notification.read ? "bg-blue-50 border-blue-200" : "border-gray-200"
+                        !notification.read ? "bg-yellow-50 border-yellow-700" : "border-gray-200"
                       }`}
                       onClick={() => handleNotificationClick(notification.id)}
                     >
@@ -137,7 +177,7 @@ export function TopBar() {
                           </p>
                         </div>
                         {!notification.read && (
-                          <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1"></div>
+                          <div className="w-2 h-2 bg-yellow-700 rounded-full flex-shrink-0 mt-1"></div>
                         )}
                       </div>
                     </div>
@@ -153,17 +193,14 @@ export function TopBar() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-3 hover:bg-gray-100">
               <Avatar className="w-8 h-8">
-                <AvatarImage src={currentUser.avatar} />
-                <AvatarFallback className="bg-primary text-green-700">
-                  {currentUser.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
+                <AvatarImage src={currentUser?.avatar} />
+                <AvatarFallback className="bg-yellow-900 text-white">
+                  {userInitials}
                 </AvatarFallback>
               </Avatar>
               <div className="hidden md:block text-left">
-                <p className="text-sm font-medium text-gray-800">{currentUser.name}</p>
-                <p className="text-xs text-gray-600 capitalize">{currentUser.role.replace("_", " ")}</p>
+                <p className="text-sm font-medium text-gray-800">{displayName}</p>
+                <p className="text-xs text-gray-600 capitalize">{(currentUser?.role || 'organizer').replace("_", " ")}</p>
               </div>
               <ChevronDown className="w-4 h-4 text-gray-600" />
             </Button>

@@ -1,0 +1,14 @@
+{
+  "navigation": {
+    "virtualMuseums": "የተራ ሙዚየሞች",
+    "heritageMap": "የዘርፍ ካርታ",
+    "liveTours": "የቀጥታ ጉዞዎች",
+    "education": "ትምህርት",
+    "signIn": "ግባ"
+  },
+  "common": {
+    "loading": "በመጫን ላይ...",
+    "error": "ስህተት",
+    "success": "ተሳክቷል"
+  }
+}
