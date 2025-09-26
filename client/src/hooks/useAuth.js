@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
   const validateSession = useCallback(async () => {
     const token = localStorage.getItem('token')
     const refreshToken = localStorage.getItem('refreshToken')
-    
+
     if (!token) {
       setUser(null)
       return false
@@ -26,10 +26,10 @@ export const AuthProvider = ({ children }) => {
         console.warn('Invalid token format');
         return false;
       }
-      
+
       const tokenParts = token.split('.');
       let tokenPayload;
-      
+
       try {
         // Add padding if necessary for base64 decoding
         let base64Payload = tokenParts[1];
@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('user');
         return false;
       }
-      
+
       const now = Math.floor(Date.now() / 1000)
       const timeUntilExpiry = tokenPayload.exp - now
 
@@ -87,7 +87,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const token = localStorage.getItem('token');
         const user = localStorage.getItem('user');
-        
+
         // Check if user data is valid JSON
         if (user) {
           try {
@@ -97,7 +97,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('user');
           }
         }
-        
+
         // Check if token is valid format
         if (token && (typeof token !== 'string' || token.split('.').length !== 3)) {
           console.warn('Corrupted token detected, clearing...');
@@ -109,17 +109,17 @@ export const AuthProvider = ({ children }) => {
         console.error('Error during localStorage cleanup:', error);
       }
     };
-    
+
     const initializeAuth = async () => {
       // Clean up corrupted data first
       cleanupCorruptedData();
-      
+
       const token = localStorage.getItem('token')
       if (token) {
         try {
           // Validate session first
           const isValidSession = await validateSession()
-          
+
           if (isValidSession) {
             // Try to get user from localStorage first
             const cachedUser = localStorage.getItem('user')
@@ -179,7 +179,7 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('🔄 LOGIN: Starting login process')
       console.log('📧 LOGIN: Credentials:', { email: credentials.email, password: '[HIDDEN]' })
-      
+
       const response = await api.login(credentials)
       console.log('✅ LOGIN: Backend response received:', {
         success: response?.success,
@@ -188,23 +188,23 @@ export const AuthProvider = ({ children }) => {
         userRole: response?.user?.role,
         userName: response?.user?.name || response?.user?.firstName
       })
-      
+
       const { token, refreshToken, user } = response
-      
+
       // Store tokens and user data
       localStorage.setItem('token', token)
       localStorage.setItem('user', JSON.stringify(user))
       localStorage.setItem('lastLogin', new Date().toISOString())
-      
+
       if (refreshToken) {
         localStorage.setItem('refreshToken', refreshToken)
         console.log('🔑 LOGIN: Refresh token saved')
       }
-      
+
       setUser(user)
       setSessionExpired(false)
       console.log('👤 LOGIN: User state updated, role:', user.role)
-      
+
       // Check if there's a redirect URL stored
       const redirectUrl = sessionStorage.getItem('redirectAfterLogin')
       if (redirectUrl) {
@@ -213,7 +213,7 @@ export const AuthProvider = ({ children }) => {
         navigate(redirectUrl)
         return { success: true }
       }
-      
+
       // Default redirect based on role (matching frontend routing expectations)
       console.log('🔀 LOGIN: Determining redirect for role:', user.role, 'type:', typeof user.role)
       switch (user.role) {
@@ -242,7 +242,7 @@ export const AuthProvider = ({ children }) => {
           console.log('🚀 LOGIN: Redirecting to visitor dashboard (default case)')
           navigate('/visitor-dashboard')
       }
-      
+
       console.log('✅ LOGIN: Process completed successfully')
       return { success: true }
     } catch (error) {
@@ -258,7 +258,7 @@ export const AuthProvider = ({ children }) => {
         ...userData,
         password: '[HIDDEN]'
       })
-      
+
       // Use the role selected by the user during registration
       const response = await api.register(userData)
       console.log('✅ REGISTRATION: Backend response received:', {
@@ -268,21 +268,21 @@ export const AuthProvider = ({ children }) => {
         userRole: response?.user?.role,
         userName: response?.user?.name || response?.user?.firstName
       })
-      
+
       const { token, refreshToken, user } = response
-      
+
       localStorage.setItem('token', token)
       localStorage.setItem('user', JSON.stringify(user))
       localStorage.setItem('lastLogin', new Date().toISOString())
-      
+
       if (refreshToken) {
         localStorage.setItem('refreshToken', refreshToken)
         console.log('🔑 REGISTRATION: Refresh token saved')
       }
-      
+
       setUser(user)
       console.log('👤 REGISTRATION: User state updated, role:', user.role)
-      
+
       // Redirect to appropriate dashboard (matching frontend routing expectations)
       console.log('🔀 REGISTRATION: Determining redirect for role:', user.role)
       switch (user.role) {
@@ -311,7 +311,7 @@ export const AuthProvider = ({ children }) => {
           console.log('🚀 REGISTRATION: Redirecting to visitor dashboard')
           navigate('/visitor-dashboard')
       }
-      
+
       console.log('✅ REGISTRATION: Process completed successfully')
       return { success: true }
     } catch (error) {

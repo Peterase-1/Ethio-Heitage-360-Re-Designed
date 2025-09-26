@@ -22,7 +22,7 @@ const HeritagePhotoGallery = ({
   const [selectedRegion, setSelectedRegion] = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState('');
   const [viewMode, setViewMode] = useState('grid');
-  const [showFilters, setShowFiltersPanel] = useState(false);
+  const [showFiltersPanel, setShowFiltersPanel] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -195,9 +195,9 @@ const HeritagePhotoGallery = ({
           <div className="flex gap-2">
             {showFilters && (
               <button
-                onClick={() => setShowFiltersPanel(!showFilters)}
+                onClick={() => setShowFiltersPanel(!showFiltersPanel)}
                 className={`px-4 py-2 rounded-lg border ${
-                  showFilters ? 'bg-primary text-white' : 'bg-white text-gray-700 border-gray-300'
+                  showFiltersPanel ? 'bg-primary text-white' : 'bg-white text-gray-700 border-gray-300'
                 } hover:shadow-md transition-all duration-200 flex items-center gap-2`}
               >
                 <Filter className="w-4 h-4" />
@@ -229,7 +229,7 @@ const HeritagePhotoGallery = ({
       )}
 
       {/* Filters Panel */}
-      {showFilters && showFilters && (
+      {showFilters && showFiltersPanel && (
         <div className="bg-gray-50 p-6 rounded-lg space-y-4">
           <div className="flex flex-wrap gap-4">
             {/* Category Filter */}

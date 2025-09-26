@@ -1,4 +1,4 @@
-import { api } from '../utils/api.js';
+import api from '../utils/api.js';
 
 class AuthService {
   constructor() {
@@ -7,7 +7,7 @@ class AuthService {
     this.refreshToken = localStorage.getItem('refreshToken');
     this.sessionCheckInterval = null;
     this.tokenExpiryWarned = false;
-    
+
     // Initialize session check
     this.initializeSessionCheck();
   }
@@ -62,7 +62,7 @@ class AuthService {
     try {
       const base64Url = token.split('.')[1];
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
         return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
       }).join(''));
       return JSON.parse(jsonPayload);
@@ -81,19 +81,19 @@ class AuthService {
 
     try {
       const response = await api.refreshToken(this.refreshToken);
-      
+
       if (response.token) {
         this.token = response.token;
         localStorage.setItem('token', response.token);
-        
+
         if (response.refreshToken) {
           this.refreshToken = response.refreshToken;
           localStorage.setItem('refreshToken', response.refreshToken);
         }
-        
+
         console.log('Token refreshed successfully');
       }
-      
+
       return response;
     } catch (error) {
       console.error('Token refresh failed:', error);
@@ -109,26 +109,26 @@ class AuthService {
   async login(credentials) {
     try {
       const response = await api.login(credentials);
-      
+
       if (response.token) {
         this.token = response.token;
         this.currentUser = response.user;
         localStorage.setItem('token', response.token);
         localStorage.setItem('user', JSON.stringify(response.user));
-        
+
         // Store refresh token if provided
         if (response.refreshToken) {
           this.refreshToken = response.refreshToken;
           localStorage.setItem('refreshToken', response.refreshToken);
         }
-        
+
         // Set last login timestamp
         localStorage.setItem('lastLogin', new Date().toISOString());
-        
+
         // Reset token expiry warning flag
         this.tokenExpiryWarned = false;
       }
-      
+
       return response;
     } catch (error) {
       console.error('Login error:', error);
@@ -144,14 +144,14 @@ class AuthService {
   async register(userData) {
     try {
       const response = await api.register(userData);
-      
+
       if (response.token) {
         this.token = response.token;
         this.currentUser = response.user;
         localStorage.setItem('token', response.token);
         localStorage.setItem('user', JSON.stringify(response.user));
       }
-      
+
       return response;
     } catch (error) {
       console.error('Registration error:', error);
@@ -169,7 +169,7 @@ class AuthService {
         clearInterval(this.sessionCheckInterval);
         this.sessionCheckInterval = null;
       }
-      
+
       await api.logout();
     } catch (error) {
       console.error('Logout error:', error);
@@ -178,13 +178,13 @@ class AuthService {
       this.token = null;
       this.refreshToken = null;
       this.tokenExpiryWarned = false;
-      
+
       // Clear all stored authentication data
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
       localStorage.removeItem('lastLogin');
-      
+
       // Redirect to login page
       window.location.href = '/auth';
     }
@@ -212,18 +212,18 @@ class AuthService {
           }
         }
       }
-      
+
       // If still no user, fetch from server
       if (!this.currentUser) {
         const response = await api.getCurrentUser();
         this.currentUser = response.user || response;
         localStorage.setItem('user', JSON.stringify(this.currentUser));
       }
-      
+
       return this.currentUser;
     } catch (error) {
       console.error('Get current user error:', error);
-      
+
       // If it's a token error, try to refresh token first
       if (error.message.includes('expired') || error.message.includes('invalid')) {
         try {
@@ -237,7 +237,7 @@ class AuthService {
           console.error('Token refresh failed:', refreshError);
         }
       }
-      
+
       // If all fails, logout user
       this.logout();
       return null;
@@ -250,7 +250,7 @@ class AuthService {
    */
   isAuthenticated() {
     if (!this.token) return false;
-    
+
     try {
       // Check if token is still valid
       const tokenPayload = this.decodeToken(this.token);

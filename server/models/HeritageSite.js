@@ -618,10 +618,21 @@ heritageSiteSchema.index({ createdAt: -1 });
 heritageSiteSchema.index({ status: 1, verified: 1, featured: 1 });
 heritageSiteSchema.index({ 'location.region': 1, type: 1 });
 
-// 2dsphere index for geospatial queries
+// Enhanced geospatial indexes
 heritageSiteSchema.index({
   'location.coordinates': '2dsphere'
 });
+
+// Additional geographic and performance indexes
+heritageSiteSchema.index({ 'location.coordinates.latitude': 1, 'location.coordinates.longitude': 1 });
+heritageSiteSchema.index({ 'location.region': 1, 'location.zone': 1 }); // Regional queries
+heritageSiteSchema.index({ 'location.city': 1, status: 1 }); // City-based searches
+heritageSiteSchema.index({ 'tourism.annualVisitors': -1 }); // Popular sites
+heritageSiteSchema.index({ 'conservation.status': 1, priority: 1 }); // Conservation priorities
+heritageSiteSchema.index({ 'history.period': 1, type: 1 }); // Historical period searches
+heritageSiteSchema.index({ featured: 1, verified: 1, status: 1 }); // Homepage featured sites
+heritageSiteSchema.index({ 'proposal.proposalDate': -1 }); // Recent proposals
+heritageSiteSchema.index({ tags: 1 }); // Tag-based searches
 
 // Virtual for full location name
 heritageSiteSchema.virtual('fullLocation').get(function() {

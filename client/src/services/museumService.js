@@ -1,4 +1,4 @@
-import { api } from '../utils/api.js';
+import api from '../utils/api.js';
 
 class MuseumService {
   constructor() {
@@ -13,7 +13,7 @@ class MuseumService {
    */
   async getMuseums(filters = {}) {
     const cacheKey = `museums_${JSON.stringify(filters)}`;
-    
+
     // Check cache first
     if (this.cache.has(cacheKey)) {
       const cached = this.cache.get(cacheKey);
@@ -25,13 +25,13 @@ class MuseumService {
     try {
       const response = await api.getMuseums(filters);
       const museums = response.museums || response.data || response;
-      
+
       // Cache the result
       this.cache.set(cacheKey, {
         data: museums,
         timestamp: Date.now()
       });
-      
+
       return museums;
     } catch (error) {
       console.error('Get museums error:', error);
@@ -46,7 +46,7 @@ class MuseumService {
    */
   async getMuseumById(id) {
     const cacheKey = `museum_${id}`;
-    
+
     // Check cache first
     if (this.cache.has(cacheKey)) {
       const cached = this.cache.get(cacheKey);
@@ -58,13 +58,13 @@ class MuseumService {
     try {
       const response = await api.getMuseumById(id);
       const museum = response.museum || response.data || response;
-      
+
       // Cache the result
       this.cache.set(cacheKey, {
         data: museum,
         timestamp: Date.now()
       });
-      
+
       return museum;
     } catch (error) {
       console.error('Get museum by ID error:', error);
@@ -80,10 +80,10 @@ class MuseumService {
   async createMuseum(museumData) {
     try {
       const response = await api.createMuseum(museumData);
-      
+
       // Clear cache to force refresh
       this.clearCache();
-      
+
       return response.museum || response.data || response;
     } catch (error) {
       console.error('Create museum error:', error);
@@ -100,10 +100,10 @@ class MuseumService {
   async updateMuseum(id, museumData) {
     try {
       const response = await api.updateMuseum(id, museumData);
-      
+
       // Clear cache to force refresh
       this.clearCache();
-      
+
       return response.museum || response.data || response;
     } catch (error) {
       console.error('Update museum error:', error);
@@ -119,10 +119,10 @@ class MuseumService {
   async deleteMuseum(id) {
     try {
       const response = await api.deleteMuseum(id);
-      
+
       // Clear cache to force refresh
       this.clearCache();
-      
+
       return response;
     } catch (error) {
       console.error('Delete museum error:', error);
@@ -141,7 +141,7 @@ class MuseumService {
       ...filters,
       search: query
     };
-    
+
     return this.getMuseums(searchFilters);
   }
 
@@ -155,7 +155,7 @@ class MuseumService {
       featured: true,
       limit
     };
-    
+
     return this.getMuseums(filters);
   }
 
@@ -170,7 +170,7 @@ class MuseumService {
       ...filters,
       location
     };
-    
+
     return this.getMuseums(locationFilters);
   }
 
@@ -185,7 +185,7 @@ class MuseumService {
       ...filters,
       type
     };
-    
+
     return this.getMuseums(typeFilters);
   }
 
@@ -445,7 +445,7 @@ class MuseumService {
    */
   async getMuseumTypes() {
     const cacheKey = 'museum_types';
-    
+
     // Check cache first
     if (this.cache.has(cacheKey)) {
       const cached = this.cache.get(cacheKey);
@@ -457,13 +457,13 @@ class MuseumService {
     try {
       const response = await api.request('/museum/types');
       const types = response.types || response.data || response;
-      
+
       // Cache the result
       this.cache.set(cacheKey, {
         data: types,
         timestamp: Date.now()
       });
-      
+
       return types;
     } catch (error) {
       console.error('Get museum types error:', error);

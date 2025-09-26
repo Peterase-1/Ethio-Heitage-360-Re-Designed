@@ -17,61 +17,32 @@
 
 // Role hierarchy levels (higher number = higher privilege)
 const ROLE_LEVELS = {
-  'visitor': 10,
-  'educator': 20,
-  'organizer': 30,
-  'museum': 40,
-  'tour_admin': 50,
-  'museum_admin': 60,
-  'admin': 80,
-  'super_admin': 100
+  'user': 10,
+  'museumAdmin': 60,
+  'superAdmin': 100
 };
 
 // Role permissions - what each role can access
 const ROLE_PERMISSIONS = {
-  'visitor': [
+  'user': [
     'view_content',
     'book_tours',
     'rate_artifacts',
     'basic_chat'
   ],
-  'educator': [
-    'create_educational_content',
-    'manage_courses',
-    'view_learning_analytics'
-  ],
-  'organizer': [
-    'create_tours',
-    'manage_tours',
-    'view_tour_analytics',
-    'handle_bookings'
-  ],
-  'museum': [
-    'add_artifacts',
+  'museumAdmin': [
+    'manage_museum_profile',
+    'manage_museum_staff',
+    'manage_artifacts',
     'edit_museum_artifacts',
     'view_museum_analytics',
-    'manage_museum_content'
+    'manage_museum_content',
+    'create_events',
+    'approve_local_rentals',
+    'suggest_heritage_sites',
+    'manage_virtual_museum'
   ],
-  'tour_admin': [
-    'approve_tours',
-    'manage_all_tours',
-    'tour_system_settings'
-  ],
-  'museum_admin': [
-    'manage_museum_profile',
-    'approve_museum_artifacts',
-    'manage_museum_staff',
-    'approve_museum_rentals',
-    'museum_analytics',
-    'museum_events',
-    'museum_notifications'
-  ],
-  'admin': [
-    'manage_users',
-    'manage_general_content',
-    'view_platform_analytics'
-  ],
-  'super_admin': [
+  'superAdmin': [
     'full_platform_access',
     'manage_all_users',
     'manage_all_museums',

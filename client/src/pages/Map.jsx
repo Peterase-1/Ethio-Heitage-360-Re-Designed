@@ -16,11 +16,11 @@ const MapPage = () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Try to fetch from API, fallback to mock data
         let sitesData;
         try {
-          const response = await fetch('http://localhost:5000/api/map/sites');
+          const response = await fetch('http://localhost:5001/api/map/heritage-sites');
           if (response.ok) {
             const result = await response.json();
             sitesData = result.data;
@@ -28,66 +28,10 @@ const MapPage = () => {
             throw new Error('API not available');
           }
         } catch (apiError) {
-          console.log('API not available, using mock data');
-          // Fallback to mock data with more Ethiopian sites
-          sitesData = [
-            {
-              id: 1,
-              name: "Rock-Hewn Churches of Lalibela",
-              description: "Eleven medieval monolithic cave churches carved from rock",
-              region: "Amhara",
-              category: "UNESCO World Heritage",
-              lat: 12.0333,
-              lng: 39.0333
-            },
-            {
-              id: 2, 
-              name: "Aksum Obelisks",
-              description: "Ancient granite obelisks marking royal tombs",
-              region: "Tigray",
-              category: "UNESCO World Heritage",
-              lat: 14.1319,
-              lng: 38.7195
-            },
-            {
-              id: 3,
-              name: "Simien Mountains National Park",
-              description: "Dramatic mountain landscape with endemic wildlife",
-              region: "Amhara",
-              category: "Natural Heritage", 
-              lat: 13.1885,
-              lng: 38.0404
-            },
-            {
-              id: 4,
-              name: "Fasil Ghebbi Castle",
-              description: "17th century royal fortress and palace complex",
-              region: "Amhara",
-              category: "UNESCO World Heritage",
-              lat: 12.6087,
-              lng: 37.4679
-            },
-            {
-              id: 5,
-              name: "Harar Jugol",
-              description: "Historic fortified city with unique Islamic architecture",
-              region: "Harari",
-              category: "UNESCO World Heritage",
-              lat: 9.3133,
-              lng: 42.1333
-            },
-            {
-              id: 6,
-              name: "Lower Valley of the Awash",
-              description: "Archaeological site with early human fossils including Lucy",
-              region: "Afar",
-              category: "Archaeological Site",
-              lat: 11.0833,
-              lng: 40.5833
-            }
-          ];
+          console.error('API Error:', apiError);
+          throw new Error('Failed to fetch heritage sites from API');
         }
-        
+
         setSites(sitesData);
         setFilteredSites(sitesData);
       } catch (err) {
@@ -97,7 +41,7 @@ const MapPage = () => {
         setLoading(false);
       }
     };
-    
+
     fetchSites();
   }, []);
 
@@ -132,7 +76,7 @@ const MapPage = () => {
       <div className="flex h-[calc(100vh-200px)]">
         {/* Left Sidebar - Site Selector */}
         <div className="w-1/3 bg-card border-r border-border overflow-y-auto">
-          <SiteSelector 
+          <SiteSelector
             sites={sites}
             onSiteSelect={handleSiteSelect}
             selectedSite={selectedSite}
@@ -141,7 +85,7 @@ const MapPage = () => {
 
         {/* Right Side - Interactive Map */}
         <div className="flex-1">
-          <LeafletMap 
+          <LeafletMap
             sites={filteredSites}
             selectedSite={selectedSite}
             onSiteSelect={handleSiteSelect}

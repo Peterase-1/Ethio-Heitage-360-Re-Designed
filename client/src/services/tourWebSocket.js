@@ -19,8 +19,8 @@ class TourWebSocketService {
     }
 
     try {
-      const serverUrl = import.meta.env.VITE_WEBSOCKET_URL || import.meta.env.REACT_APP_WEBSOCKET_URL || 'http://localhost:5000';
-      
+      const serverUrl = import.meta.env.VITE_WEBSOCKET_URL || import.meta.env.REACT_APP_WEBSOCKET_URL || 'http://localhost:5001';
+
       this.socket = io(`${serverUrl}/tours`, {
         auth: {
           token: token
@@ -31,7 +31,7 @@ class TourWebSocketService {
       });
 
       this.setupEventHandlers();
-      
+
       console.log('Tour WebSocket connecting...');
     } catch (error) {
       console.error('Error connecting to tour WebSocket:', error);
@@ -55,7 +55,7 @@ class TourWebSocketService {
       console.log('Disconnected from tour WebSocket:', reason);
       this.connected = false;
       this.emit('disconnected', reason);
-      
+
       // Auto-reconnect unless it was a manual disconnect
       if (reason !== 'io client disconnect') {
         this.handleReconnect();
@@ -118,9 +118,9 @@ class TourWebSocketService {
 
     this.reconnectAttempts++;
     const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxReconnectDelay);
-    
+
     console.log(`Attempting to reconnect tour WebSocket in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-    
+
     setTimeout(() => {
       if (!this.connected && this.socket) {
         console.log('Attempting to reconnect tour WebSocket...');
@@ -264,23 +264,23 @@ class TourWebSocketService {
 
   subscribeAllTourUpdates(callbacks = {}) {
     this.joinToursListRoom();
-    
+
     if (callbacks.onTourCreated) {
       this.on('tourCreated', callbacks.onTourCreated);
     }
-    
+
     if (callbacks.onTourUpdated) {
       this.on('tourUpdated', callbacks.onTourUpdated);
     }
-    
+
     if (callbacks.onTourDeleted) {
       this.on('tourDeleted', callbacks.onTourDeleted);
     }
-    
+
     if (callbacks.onTourStatusChanged) {
       this.on('tourStatusChanged', callbacks.onTourStatusChanged);
     }
-    
+
     if (callbacks.onToursRefresh) {
       this.on('toursRefresh', callbacks.onToursRefresh);
     }

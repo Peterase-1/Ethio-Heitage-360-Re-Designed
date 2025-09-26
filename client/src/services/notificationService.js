@@ -1,4 +1,4 @@
-import { api } from '../utils/api.js';
+import api from '../utils/api.js';
 
 class NotificationService {
   constructor() {
@@ -16,7 +16,7 @@ class NotificationService {
       if ('Notification' in window) {
         this.notificationPermission = await Notification.requestPermission();
       }
-      
+
       // Load local notifications
       this.loadLocalNotifications();
     } catch (error) {
@@ -34,7 +34,7 @@ class NotificationService {
       const queryParams = new URLSearchParams(filters).toString();
       const response = await api.request(`/user/notifications${queryParams ? `?${queryParams}` : ''}`);
       const serverNotifications = response.notifications || response.data || response;
-      
+
       // Merge with local notifications
       const localNotifications = this.getLocalNotifications();
       return this.mergeNotifications(serverNotifications, localNotifications);
@@ -54,10 +54,10 @@ class NotificationService {
       const response = await api.request(`/user/notifications/${notificationId}/read`, {
         method: 'PUT'
       });
-      
+
       // Update local notification
       this.updateLocalNotification(notificationId, { isRead: true });
-      
+
       return response;
     } catch (error) {
       console.error('Mark as read error:', error);
@@ -75,10 +75,10 @@ class NotificationService {
       const response = await api.request('/user/notifications/read-all', {
         method: 'PUT'
       });
-      
+
       // Update all local notifications
       this.markAllLocalNotificationsAsRead();
-      
+
       return response;
     } catch (error) {
       console.error('Mark all as read error:', error);
@@ -97,10 +97,10 @@ class NotificationService {
       const response = await api.request(`/user/notifications/${notificationId}`, {
         method: 'DELETE'
       });
-      
+
       // Remove from local notifications
       this.removeLocalNotification(notificationId);
-      
+
       return response;
     } catch (error) {
       console.error('Delete notification error:', error);
@@ -120,7 +120,7 @@ class NotificationService {
         method: 'POST',
         body: notificationData
       });
-      
+
       return response.notification || response.data || response;
     } catch (error) {
       console.error('Create notification error:', error);
@@ -176,7 +176,7 @@ class NotificationService {
         method: 'PUT',
         body: { preferences }
       });
-      
+
       return response;
     } catch (error) {
       console.error('Update notification preferences error:', error);
@@ -208,11 +208,11 @@ class NotificationService {
       notification.onclick = (event) => {
         event.preventDefault();
         window.focus();
-        
+
         if (notificationData.url) {
           window.location.href = notificationData.url;
         }
-        
+
         notification.close();
       };
 
@@ -258,7 +258,7 @@ class NotificationService {
    */
   subscribe(callback) {
     this.subscribers.push(callback);
-    
+
     // Return unsubscribe function
     return () => {
       const index = this.subscribers.indexOf(callback);
@@ -306,10 +306,10 @@ class NotificationService {
       const response = await api.request('/user/notifications', {
         method: 'DELETE'
       });
-      
+
       // Clear local notifications
       this.clearLocalNotifications();
-      
+
       return response;
     } catch (error) {
       console.error('Clear all notifications error:', error);
@@ -342,12 +342,12 @@ class NotificationService {
     try {
       const notifications = this.getLocalNotifications();
       notifications.unshift(notification); // Add to beginning
-      
+
       // Keep only last 100 notifications
       if (notifications.length > 100) {
         notifications.splice(100);
       }
-      
+
       localStorage.setItem(this.localStorageKey, JSON.stringify(notifications));
     } catch (error) {
       console.error('Add local notification error:', error);
@@ -363,7 +363,7 @@ class NotificationService {
     try {
       const notifications = this.getLocalNotifications();
       const index = notifications.findIndex(n => n.id === notificationId);
-      
+
       if (index !== -1) {
         notifications[index] = { ...notifications[index], ...updates };
         localStorage.setItem(this.localStorageKey, JSON.stringify(notifications));
@@ -473,7 +473,7 @@ class NotificationService {
    */
   mergeNotifications(serverNotifications, localNotifications) {
     const merged = [...(serverNotifications || [])];
-    
+
     // Add local notifications that don't exist on server
     localNotifications.forEach(localNotif => {
       const existsOnServer = merged.some(serverNotif => serverNotif.id === localNotif.id);
@@ -481,7 +481,7 @@ class NotificationService {
         merged.push(localNotif);
       }
     });
-    
+
     // Sort by timestamp (newest first)
     return merged.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   }

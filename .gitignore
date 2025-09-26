@@ -71,6 +71,7 @@ Thumbs.db
 uploads/
 public/uploads/
 
+
 # Local development files
 .local
 .cache

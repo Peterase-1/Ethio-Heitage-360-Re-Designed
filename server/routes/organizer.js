@@ -1,12 +1,28 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
+const { auth, authorize } = require('../middleware/auth');
+
+// Import existing models (keep existing functionality)
 const TourPackage = require('../models/TourPackage');
 const Booking = require('../models/Booking');
 const Message = require('../models/Message');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
-const { auth } = require('../middleware/auth');
+
+// Import educational tour management functions
+const {
+  getDashboardData,
+  // Educational Tours
+  getEducationalTours,
+  getEducationalTour,
+  createEducationalTour,
+  updateEducationalTour,
+  deleteEducationalTour,
+  submitTourForApproval,
+  getTourEnrollments,
+  updateEnrollmentStatus
+} = require('../controllers/organizer');
 
 // Get comprehensive dashboard data
 router.get('/dashboard/:organizerId', async (req, res) => {
@@ -296,5 +312,35 @@ function formatRelativeTime(date) {
   }
 }
 
-module.exports = router;
 
+// ===== EDUCATIONAL TOURS MANAGEMENT USING CONTROLLER =====
+
+// Get all educational tours for organizer (from controller)
+router.get('/educational-tours', auth, authorize(['organizer']), getEducationalTours);
+
+// Get single educational tour (from controller)
+router.get('/educational-tours/:id', auth, authorize(['organizer']), getEducationalTour);
+
+// Create educational tour (from controller)
+router.post('/educational-tours', auth, authorize(['organizer']), createEducationalTour);
+
+// Update educational tour (from controller)
+router.put('/educational-tours/:id', auth, authorize(['organizer']), updateEducationalTour);
+
+// Delete educational tour (from controller)
+router.delete('/educational-tours/:id', auth, authorize(['organizer']), deleteEducationalTour);
+
+// Submit tour for approval (from controller)
+router.post('/educational-tours/:id/submit-for-approval', auth, authorize(['organizer']), submitTourForApproval);
+
+// Get tour enrollments (from controller)
+router.get('/educational-tours/:id/enrollments', auth, authorize(['organizer']), getTourEnrollments);
+
+// Update enrollment status (from controller)
+router.put('/educational-tours/:tourId/enrollments/:userId', auth, authorize(['organizer']), updateEnrollmentStatus);
+
+// Dashboard data using controller
+router.get('/dashboard', auth, authorize(['organizer']), getDashboardData);
+
+
+module.exports = router;

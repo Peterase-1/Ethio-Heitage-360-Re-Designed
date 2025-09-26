@@ -468,10 +468,10 @@ chatRoomSchema.pre('save', function(next) {
 });
 
 // Create models
-const Message = mongoose.model('Message', messageSchema);
+const ChatMessage = mongoose.model('ChatMessage', messageSchema);
 const ChatRoom = mongoose.model('ChatRoom', chatRoomSchema);
 
 module.exports = {
   ChatRoom,
-  Message
+  ChatMessage
 };

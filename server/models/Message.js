@@ -125,12 +125,12 @@ messageSchema.index({
 });
 
 // Virtual for response status
-messageSchema.virtual('hasResponse').get(function() {
+messageSchema.virtual('hasResponse').get(function () {
   return !!(this.response && this.response.message);
 });
 
 // Virtual for age in hours
-messageSchema.virtual('ageInHours').get(function() {
+messageSchema.virtual('ageInHours').get(function () {
   const now = new Date();
   const created = new Date(this.createdAt);
   const diffTime = now - created;
@@ -138,25 +138,25 @@ messageSchema.virtual('ageInHours').get(function() {
 });
 
 // Static method to find unread messages
-messageSchema.statics.findUnread = function(organizerId = null) {
+messageSchema.statics.findUnread = function (organizerId = null) {
   const query = { status: 'unread' };
   if (organizerId) query.organizerId = organizerId;
   return this.find(query).sort({ createdAt: -1 });
 };
 
 // Static method to find by organizer
-messageSchema.statics.findByOrganizer = function(organizerId) {
+messageSchema.statics.findByOrganizer = function (organizerId) {
   return this.find({ organizerId }).sort({ createdAt: -1 });
 };
 
 // Instance method to mark as read
-messageSchema.methods.markAsRead = async function() {
+messageSchema.methods.markAsRead = async function () {
   this.status = 'read';
   return await this.save();
 };
 
 // Instance method to reply to message
-messageSchema.methods.reply = async function(responseMessage, respondedBy) {
+messageSchema.methods.reply = async function (responseMessage, respondedBy) {
   this.response = {
     message: responseMessage,
     respondedBy,
@@ -167,9 +167,9 @@ messageSchema.methods.reply = async function(responseMessage, respondedBy) {
 };
 
 // Instance method to archive message
-messageSchema.methods.archive = async function() {
+messageSchema.methods.archive = async function () {
   this.status = 'archived';
   return await this.save();
 };
 
-module.exports = mongoose.model('Message', messageSchema);
+module.exports = mongoose.model('SystemMessage', messageSchema);

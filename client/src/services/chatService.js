@@ -2,11 +2,13 @@ import axios from 'axios';
 import io from 'socket.io-client';
 
 const API_URL = '/api/chat';
+const CHAT_API_URL = import.meta.env.VITE_CHAT_API_URL || `${API_URL}/ask`;
+const FOLDERS_API_URL = import.meta.env.VITE_CHAT_FOLDERS_URL || `${API_URL}/folders`;
 let socket = null;
 
 const initializeSocket = () => {
   if (!socket) {
-    socket = io(import.meta.env.VITE_SOCKET_URL || import.meta.env.REACT_APP_SOCKET_URL || 'http://localhost:5000');
+    socket = io(import.meta.env.VITE_SOCKET_URL || import.meta.env.REACT_APP_SOCKET_URL || 'http://localhost:5001');
   }
   return socket;
 };
@@ -66,6 +68,50 @@ const onNewMessage = (callback) => {
   }
 };
 
+// Listen for bot replies if the backend emits them
+const onBotReply = (callback) => {
+  if (socket) {
+    socket.on('bot_reply', callback);
+  }
+};
+
+// Ask the backend a question and get an answer
+const askQuestion = async (question, options = {}) => {
+  try {
+    const payload = {
+      question,
+      context: options.context || 'general',
+      user: options.user || null,
+      history: options.history || [],
+      metadata: options.metadata || {},
+    };
+    const response = await axios.post(CHAT_API_URL, payload);
+    // Normalize common response shapes
+    const data = response.data || {};
+    return {
+      text: data.answer || data.text || data.message || '',
+      suggestions: data.suggestions || [],
+      references: data.references || data.citations || [],
+      raw: data,
+    };
+  } catch (error) {
+    console.error('Error asking chat question', error);
+    throw error;
+  }
+};
+
+// Optionally fetch a folder index from the backend to power suggestions
+const getFolderIndex = async () => {
+  try {
+    const response = await axios.get(FOLDERS_API_URL);
+    return response.data;
+  } catch (error) {
+    // Silently fail if endpoint not available
+    console.warn('Folder index endpoint not available:', error?.response?.status || error?.message);
+    return null;
+  }
+};
+
 export default {
   initializeSocket,
   disconnectSocket,
@@ -75,4 +121,7 @@ export default {
   joinRoom,
   leaveRoom,
   onNewMessage,
+  onBotReply,
+  askQuestion,
+  getFolderIndex,
 };

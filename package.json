@@ -1,14 +1,113 @@
 {
-  "name": "project-for-g25",
+  "name": "ethioheritage360",
   "private": true,
   "version": "1.0.0",
-  "description": "EthioHeritage360 Project",
+  "description": "EthioHeritage360: Comprehensive Digital Heritage Platform for Ethiopia",
+  "author": "EthioHeritage360 Team",
+  "license": "MIT",
+  "homepage": "https://github.com/Summer-Camp-Project/Project-for-G25",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Summer-Camp-Project/Project-for-G25.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Summer-Camp-Project/Project-for-G25/issues"
+  },
+  "keywords": [
+    "heritage",
+    "ethiopia",
+    "cultural",
+    "museum",
+    "virtual-tour",
+    "education",
+    "mongodb",
+    "react",
+    "node.js",
+    "express"
+  ],
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
   "workspaces": [
     "client",
     "server"
   ],
+  "scripts": {
+    "preinstall": "node scripts/check-node-version.js",
+    "install:client": "cd client && npm install",
+    "install:server": "cd server && npm install",
+    "install:all": "npm run install:client && npm run install:server",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:client": "cd client && npm run dev",
+    "dev:server": "cd server && npm run dev",
+    "build": "npm run build:client && npm run build:server",
+    "build:client": "cd client && npm run build",
+    "build:server": "cd server && npm run build",
+    "start": "cd server && npm start",
+    "start:client": "cd client && npm run preview",
+    "start:server": "cd server && npm start",
+    "test": "npm run test:client && npm run test:server",
+    "test:client": "cd client && npm run test",
+    "test:server": "cd server && npm run test",
+    "lint": "npm run lint:client && npm run lint:server",
+    "lint:client": "cd client && npm run lint",
+    "lint:server": "cd server && npm run lint",
+    "lint:fix": "npm run lint:fix:client && npm run lint:fix:server",
+    "lint:fix:client": "cd client && npm run lint:fix",
+    "lint:fix:server": "cd server && npm run lint:fix",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
+    "clean": "npm run clean:client && npm run clean:server",
+    "clean:client": "cd client && rm -rf dist node_modules",
+    "clean:server": "cd server && rm -rf dist node_modules logs/*.log",
+    "clean:all": "npm run clean && rm -rf node_modules",
+    "setup": "npm run install:all && npm run setup:env && npm run db:setup",
+    "setup:env": "node scripts/setup-environment.js",
+    "db:start": "docker-compose up -d mongodb",
+    "db:stop": "docker-compose stop mongodb",
+    "db:setup": "npm run db:start && cd server && npm run seed",
+    "db:reset": "cd server && npm run clean-db && npm run seed",
+    "db:seed": "cd server && npm run seed",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up",
+    "docker:prod": "docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d",
+    "health:check": "node scripts/health-check.js",
+    "security:audit": "npm audit --workspaces && node scripts/security-check.js",
+    "ci:install": "npm ci && npm run install:all",
+    "ci:build": "npm run lint && npm run test && npm run build",
+    "ci:test": "npm run test && npm run security:audit",
+    "prepare": "husky install || true",
+    "postinstall": "npm run setup:env"
+  },
   "dependencies": {
     "mongodb": "^6.18.0",
-    "mongoose": "^8.17.1"
+    "mongoose": "^7.8.7",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "husky": "^8.0.3",
+    "prettier": "^3.0.3",
+    "lint-staged": "^15.0.2"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,css,md}": [
+      "prettier --write",
+      "git add"
+    ],
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "git add"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "pre-push": "npm run ci:test"
+    }
   }
 }

@@ -14,11 +14,12 @@ import {
   Error as ErrorIcon, Info as InfoIcon, Delete as DeleteIcon, Visibility as VisibilityIcon
 } from '@mui/icons-material';
 import { useDropzone } from 'react-dropzone';
+import api from '../../utils/api.js';
 
 const MuseumArtifactUpload = () => {
   const theme = useTheme();
   const [activeStep, setActiveStep] = useState(0);
-  
+
   // Form state
   const [formData, setFormData] = useState({
     title: '',
@@ -37,23 +38,23 @@ const MuseumArtifactUpload = () => {
     insuranceInfo: '',
     notes: ''
   });
-  
+
   // File upload state
   const [files, setFiles] = useState({
     model: null,
     images: [],
     documents: []
   });
-  
+
   // UI state
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
     severity: 'success'
   });
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Handle form input changes
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -62,7 +63,7 @@ const MuseumArtifactUpload = () => {
       [name]: type === 'checkbox' ? checked : value
     }));
   };
-  
+
   // Handle file uploads with react-dropzone
   const onDrop = (acceptedFiles, type) => {
     if (type === 'model') {
@@ -70,12 +71,12 @@ const MuseumArtifactUpload = () => {
         const file = acceptedFiles[0];
         const validTypes = ['.glb', '.gltf', '.obj'];
         const fileExt = file.name.split('.').pop().toLowerCase();
-        
+
         if (!validTypes.includes(`.${fileExt}`)) {
           showSnackbar('Invalid file type. Please upload a .glb, .gltf, or .obj file.', 'error');
           return;
         }
-        
+
         setFiles(prev => ({ ...prev, model: file }));
       }
     } else if (type === 'images') {
@@ -87,20 +88,20 @@ const MuseumArtifactUpload = () => {
       }));
     }
   };
-  
+
   // Configure dropzone
   const { getRootProps: getModelRootProps, getInputProps: getModelInputProps } = useDropzone({
     accept: { 'model/gltf-binary': ['.glb'], 'model/gltf+json': ['.gltf'], 'model/obj': ['.obj'] },
     maxFiles: 1,
     onDrop: (acceptedFiles) => onDrop(acceptedFiles, 'model')
   });
-  
+
   const { getRootProps: getImagesRootProps } = useDropzone({
     accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] },
     multiple: true,
     onDrop: (acceptedFiles) => onDrop(acceptedFiles, 'images')
   });
-  
+
   // Remove file from state
   const removeFile = (type, index) => {
     if (type === 'model') {
@@ -111,41 +112,69 @@ const MuseumArtifactUpload = () => {
       setFiles(prev => ({ ...prev, images: newImages }));
     }
   };
-  
+
   // Show snackbar
   const showSnackbar = (message, severity) => {
     setSnackbar({ open: true, message, severity });
   };
-  
+
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    // Validate required fields
+
     const requiredFields = ['title', 'category', 'period', 'material', 'origin'];
     const newErrors = {};
-    
     requiredFields.forEach(field => {
-      if (!formData[field]) {
-        newErrors[field] = 'This field is required';
-      }
+      if (!formData[field]) newErrors[field] = 'This field is required';
     });
-    
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       showSnackbar('Please fill in all required fields', 'error');
       setIsSubmitting(false);
       return;
     }
-    
-    // Submit form data (mock)
-    console.log('Submitting artifact data:', { ...formData, files });
-    
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
+
+    try {
+      // Map UI fields to backend artifact schema
+      const payload = {
+        name: formData.title,
+        description: formData.description,
+        category: formData.category,
+        period: formData.period,
+        material: formData.material,
+        origin: formData.origin,
+        condition: formData.condition,
+        isFragile: !!formData.isFragile,
+        isOnDisplay: !!formData.isOnDisplay,
+        acquisitionMethod: formData.acquisitionMethod,
+        acquisitionDate: formData.acquisitionDate || undefined,
+        donor: formData.donor,
+        value: formData.value ? Number(formData.value) : undefined,
+        insuranceInfo: formData.insuranceInfo,
+        notes: formData.notes,
+      };
+
+      // Create artifact (metadata)
+      const created = await api.createArtifact(payload);
+      const artifactId = created?.artifact?._id || created?._id || created?.id;
+
+      if (!artifactId) {
+        throw new Error('Artifact created but no ID returned');
+      }
+
+      // Upload images if any
+      if (files.images && files.images.length > 0) {
+        await api.uploadArtifactImages(artifactId, files.images);
+      }
+
+      // Upload 3D model if present
+      if (files.model) {
+        await api.uploadArtifactModel(artifactId, files.model);
+      }
+
       showSnackbar('Artifact uploaded successfully!', 'success');
+
       // Reset form
       setFormData({
         title: '',
@@ -164,31 +193,39 @@ const MuseumArtifactUpload = () => {
         insuranceInfo: '',
         notes: ''
       });
-      setFiles({
-        model: null,
-        images: [],
-        documents: []
-      });
-    }, 2000);
+      setFiles({ model: null, images: [], documents: [] });
+
+    } catch (err) {
+      console.error('Artifact upload failed:', err);
+      showSnackbar(err.message || 'Artifact upload failed', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
-  
+
   // Stepper steps
   const steps = [
-    { label: 'Basic Information', fields: [
-      { name: 'title', label: 'Artifact Title', type: 'text', required: true },
-      { name: 'description', label: 'Description', type: 'textarea', required: true },
-      { name: 'category', label: 'Category', type: 'select', 
-        options: ['Sculpture', 'Pottery', 'Jewelry', 'Tool', 'Weapon', 'Textile', 'Other'], 
-        required: true },
-      { name: 'period', label: 'Historical Period', type: 'text', required: true },
-      { name: 'material', label: 'Material', type: 'text', required: true },
-    ]},
-    { label: 'Media & Files', fields: [
-      { name: '3dModel', label: '3D Model', type: 'file', accept: '.glb,.gltf,.obj' },
-      { name: 'images', label: 'Images', type: 'image', multiple: true },
-    ]}
+    {
+      label: 'Basic Information', fields: [
+        { name: 'title', label: 'Artifact Title', type: 'text', required: true },
+        { name: 'description', label: 'Description', type: 'textarea', required: true },
+        {
+          name: 'category', label: 'Category', type: 'select',
+          options: ['Sculpture', 'Pottery', 'Jewelry', 'Tool', 'Weapon', 'Textile', 'Other'],
+          required: true
+        },
+        { name: 'period', label: 'Historical Period', type: 'text', required: true },
+        { name: 'material', label: 'Material', type: 'text', required: true },
+      ]
+    },
+    {
+      label: 'Media & Files', fields: [
+        { name: '3dModel', label: '3D Model', type: 'file', accept: '.glb,.gltf,.obj' },
+        { name: 'images', label: 'Images', type: 'image', multiple: true },
+      ]
+    }
   ];
-  
+
   return (
     <Card>
       <CardHeader title="Upload New Artifact" />
@@ -233,10 +270,10 @@ const MuseumArtifactUpload = () => {
                         ) : field.type === 'file' || field.type === 'image' ? (
                           <div {...(field.name === '3dModel' ? getModelRootProps() : getImagesRootProps())}>
                             <input {...(field.name === '3dModel' ? getModelInputProps() : {})} />
-                            <Paper 
-                              variant="outlined" 
-                              sx={{ 
-                                p: 3, 
+                            <Paper
+                              variant="outlined"
+                              sx={{
+                                p: 3,
                                 textAlign: 'center',
                                 cursor: 'pointer',
                                 '&:hover': { backgroundColor: 'action.hover' }
@@ -253,14 +290,14 @@ const MuseumArtifactUpload = () => {
                                 <>
                                   <PhotoCameraIcon fontSize="large" color="action" />
                                   <Typography>
-                                    {files.images.length > 0 
-                                      ? `Selected ${files.images.length} image(s)` 
+                                    {files.images.length > 0
+                                      ? `Selected ${files.images.length} image(s)`
                                       : 'Drag & drop images or click to select'}
                                   </Typography>
                                 </>
                               )}
                             </Paper>
-                            
+
                             {(field.name === '3dModel' && files.model) && (
                               <List>
                                 <ListItem
@@ -273,14 +310,14 @@ const MuseumArtifactUpload = () => {
                                   <ListItemIcon>
                                     <ThreeDRotationIcon />
                                   </ListItemIcon>
-                                  <ListItemText 
-                                    primary={files.model.name} 
-                                    secondary={`${(files.model.size / 1024 / 1024).toFixed(2)} MB`} 
+                                  <ListItemText
+                                    primary={files.model.name}
+                                    secondary={`${(files.model.size / 1024 / 1024).toFixed(2)} MB`}
                                   />
                                 </ListItem>
                               </List>
                             )}
-                            
+
                             {field.name === 'images' && files.images.length > 0 && (
                               <List>
                                 {files.images.map((file, index) => (
@@ -295,9 +332,9 @@ const MuseumArtifactUpload = () => {
                                     <ListItemIcon>
                                       <PhotoCameraIcon />
                                     </ListItemIcon>
-                                    <ListItemText 
-                                      primary={file.name} 
-                                      secondary={`${(file.size / 1024 / 1024).toFixed(2)} MB`} 
+                                    <ListItemText
+                                      primary={file.name}
+                                      secondary={`${(file.size / 1024 / 1024).toFixed(2)} MB`}
                                     />
                                   </ListItem>
                                 ))}
@@ -319,7 +356,7 @@ const MuseumArtifactUpload = () => {
                       </Grid>
                     ))}
                   </Grid>
-                  
+
                   <Box sx={{ mt: 2 }}>
                     <Button
                       variant="contained"
@@ -345,9 +382,9 @@ const MuseumArtifactUpload = () => {
             </Step>
           ))}
         </Stepper>
-        
+
         {isSubmitting && <LinearProgress sx={{ mt: 2 }} />}
-        
+
         <Snackbar
           open={snackbar.open}
           autoHideDuration={6000}

@@ -13,7 +13,15 @@ const {
   forgotPassword,
   resetPassword,
   updateProfile,
-  changePassword
+  changePassword,
+  getUserStats,
+  updatePreferences,
+  followUser,
+  unfollowUser,
+  getUserActivity,
+  getRecommendations,
+  earnBadge,
+  updateWeeklyGoals
 } = require('../controllers/auth');
 
 const router = express.Router();
@@ -118,6 +126,93 @@ router.put('/change-password', auth, [
     .isLength({ min: 6 })
     .withMessage('New password must be at least 6 characters long')
 ], changePassword);
+
+// =============== ADVANCED USER FEATURES ===============
+
+// @route   GET /api/auth/stats
+// @desc    Get user statistics and analytics
+// @access  Private
+router.get('/stats', auth, getUserStats);
+
+// @route   PUT /api/auth/preferences
+// @desc    Update user preferences
+// @access  Private
+router.put('/preferences', auth, [
+  body('language')
+    .optional()
+    .isIn(['en', 'am', 'om', 'ti'])
+    .withMessage('Invalid language code'),
+  body('timezone')
+    .optional()
+    .isString()
+    .withMessage('Timezone must be a string'),
+  body('currency')
+    .optional()
+    .isIn(['ETB', 'USD', 'EUR'])
+    .withMessage('Invalid currency code')
+], updatePreferences);
+
+// @route   POST /api/auth/follow/:userId
+// @desc    Follow another user
+// @access  Private
+router.post('/follow/:userId', auth, followUser);
+
+// @route   DELETE /api/auth/follow/:userId
+// @desc    Unfollow a user
+// @access  Private
+router.delete('/follow/:userId', auth, unfollowUser);
+
+// @route   GET /api/auth/activity
+// @desc    Get user activity log
+// @access  Private
+router.get('/activity', auth, getUserActivity);
+
+// @route   GET /api/auth/recommendations
+// @desc    Get personalized recommendations
+// @access  Private
+router.get('/recommendations', auth, getRecommendations);
+
+// @route   POST /api/auth/badge
+// @desc    Award badge to user (admin only)
+// @access  Private (admin)
+router.post('/badge', auth, [
+  body('userId')
+    .notEmpty()
+    .withMessage('User ID is required'),
+  body('badgeId')
+    .notEmpty()
+    .withMessage('Badge ID is required'),
+  body('name')
+    .notEmpty()
+    .withMessage('Badge name is required'),
+  body('description')
+    .optional()
+    .isString(),
+  body('icon')
+    .optional()
+    .isString(),
+  body('category')
+    .isIn(['exploration', 'learning', 'social', 'achievement'])
+    .withMessage('Invalid badge category')
+], earnBadge);
+
+// @route   PUT /api/auth/weekly-goals
+// @desc    Update weekly goals
+// @access  Private
+router.put('/weekly-goals', auth, [
+  body('artifactsToView')
+    .optional()
+    .isInt({ min: 1, max: 50 })
+    .withMessage('Artifacts to view must be between 1 and 50'),
+  body('toursToBook')
+    .optional()
+    .isInt({ min: 1, max: 10 })
+    .withMessage('Tours to book must be between 1 and 10'),
+  body('eventsToAttend')
+    .optional()
+    .isInt({ min: 1, max: 10 })
+    .withMessage('Events to attend must be between 1 and 10')
+], updateWeeklyGoals);
 
 module.exports = router;
 

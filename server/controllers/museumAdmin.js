@@ -22,7 +22,7 @@ try {
 async function getDashboard(req, res) {
   try {
     const museumAdminId = req.user._id;
-    
+
     // Find the museum this admin manages
     const museum = await Museum.findOne({ admin: museumAdminId })
       .populate('admin', 'name email')
@@ -90,8 +90,8 @@ async function getDashboard(req, res) {
         }
       ]),
       Rental.countDocuments({ museum: museum._id, status: 'active' }),
-      Rental.countDocuments({ 
-        museum: museum._id, 
+      Rental.countDocuments({
+        museum: museum._id,
         'approvals.museumAdmin.status': 'pending'
       }),
       Rental.countDocuments({ museum: museum._id, status: 'completed' }),
@@ -129,7 +129,7 @@ async function getDashboard(req, res) {
     // Calculate visitor growth
     const currentVisitors = thisMonthVisitors[0]?.uniqueVisitors || 0;
     const previousVisitors = lastMonthVisitors[0]?.uniqueVisitors || 0;
-    const visitorGrowth = previousVisitors > 0 
+    const visitorGrowth = previousVisitors > 0
       ? ((currentVisitors - previousVisitors) / previousVisitors * 100).toFixed(1)
       : 0;
 
@@ -265,7 +265,7 @@ async function getMuseumProfile(req, res) {
 async function updateMuseumProfile(req, res) {
   try {
     const updateData = req.body;
-    
+
     // Fields that can be updated by museum admin
     const allowedUpdates = [
       'name', 'description', 'contactInfo', 'operatingHours',
@@ -333,7 +333,7 @@ async function getArtifacts(req, res) {
     } = req.query;
 
     const query = { museum: museum._id };
-    
+
     if (status && status !== 'all') query.status = status;
     if (category && category !== 'all') query.category = category;
     if (search) {
@@ -398,7 +398,7 @@ async function approveArtifact(req, res) {
     }
 
     const newStatus = status === 'approved' ? 'published' : 'draft';
-    
+
     const artifact = await Artifact.findOneAndUpdate(
       { _id: id, museum: museum._id },
       {
@@ -531,10 +531,10 @@ async function reviewRental(req, res) {
 
     // Define criteria for local vs high-value rentals
     const HIGH_VALUE_THRESHOLD = 5000; // USD
-    const isHighValue = estimatedValue > HIGH_VALUE_THRESHOLD || 
-                       rental.pricing?.totalAmount > HIGH_VALUE_THRESHOLD;
+    const isHighValue = estimatedValue > HIGH_VALUE_THRESHOLD ||
+      rental.pricing?.totalAmount > HIGH_VALUE_THRESHOLD;
     const isInternational = rental.shipping?.international || false;
-    
+
     // Museum Admins can only approve small local bookings
     if (decision === 'approve' && (isHighValue || isInternational || !isLocalBooking)) {
       return res.status(403).json({
@@ -544,7 +544,7 @@ async function reviewRental(req, res) {
     }
 
     let newStatus, finalDecision;
-    
+
     if (decision === 'approve' && isLocalBooking && !isHighValue && !isInternational) {
       // Museum Admin can approve small local bookings
       newStatus = 'approved_by_museum';
@@ -589,7 +589,7 @@ async function reviewRental(req, res) {
       const superAdmins = await User.find({ role: 'super_admin' });
       if (superAdmins.length > 0) {
         const recipients = superAdmins.map(admin => ({ user: admin._id }));
-        
+
         await createSystemNotification({
           title: `Rental Forwarded: ${rental.artifact.name}`,
           message: `${museum.name} has forwarded a rental request for "${rental.artifact.name}" requiring Owner approval.`,
@@ -802,7 +802,7 @@ async function getEvents(req, res) {
     } = req.query;
 
     const query = { museum: museum._id };
-    
+
     if (status && status !== 'all') query.status = status;
     if (type && type !== 'all') query.type = type;
     if (search) {
@@ -885,7 +885,7 @@ async function updateEvent(req, res) {
   try {
     const { id } = req.params;
     const museum = await Museum.findOne({ admin: req.user._id });
-    
+
     if (!museum) {
       return res.status(404).json({
         success: false,
@@ -926,7 +926,7 @@ async function deleteEvent(req, res) {
   try {
     const { id } = req.params;
     const museum = await Museum.findOne({ admin: req.user._id });
-    
+
     if (!museum) {
       return res.status(404).json({
         success: false,
@@ -1053,7 +1053,7 @@ async function getNotifications(req, res) {
 async function markNotificationAsRead(req, res) {
   try {
     const { id } = req.params;
-    
+
     const notification = await Notification.findById(id);
     if (!notification) {
       return res.status(404).json({
@@ -1091,7 +1091,7 @@ async function markNotificationAsRead(req, res) {
 async function dismissNotification(req, res) {
   try {
     const { id } = req.params;
-    
+
     const notification = await Notification.findById(id);
     if (!notification) {
       return res.status(404).json({
@@ -1130,7 +1130,7 @@ async function takeNotificationAction(req, res) {
   try {
     const { id } = req.params;
     const { response } = req.body;
-    
+
     const notification = await Notification.findById(id);
     if (!notification) {
       return res.status(404).json({
@@ -1224,7 +1224,7 @@ async function createNotification(req, res) {
     const notificationService = req.app.get('notificationService');
     if (notificationService) {
       const notificationRecipients = recipients || [{ user: req.user._id }];
-      
+
       for (const recipient of notificationRecipients) {
         await notificationService.sendNotificationToUser(recipient.user, notification);
       }
@@ -1262,7 +1262,7 @@ async function createSystemNotification(data) {
 
     await notification.save();
     await notification.send();
-    
+
     return notification;
   } catch (error) {
     console.error('Create system notification error:', error);
@@ -1461,7 +1461,7 @@ async function getAllMuseumArtifacts(req, res) {
     }
 
     const query = { museum: museum._id };
-    
+
     if (status && status !== 'all') query.status = status;
     if (category && category !== 'all') query.category = category;
     if (search) {
@@ -1513,10 +1513,10 @@ async function getAllMuseumArtifacts(req, res) {
 async function getAllMuseumsForAdmin(req, res) {
   try {
     // This function is accessible by super admin to manage all museums
-    const { 
-      page = 1, 
-      limit = 20, 
-      status, 
+    const {
+      page = 1,
+      limit = 20,
+      status,
       verified,
       search,
       sortBy = 'createdAt',
@@ -1524,7 +1524,7 @@ async function getAllMuseumsForAdmin(req, res) {
     } = req.query;
 
     const query = { isActive: true };
-    
+
     if (status && status !== 'all') query.status = status;
     if (verified !== undefined) query.verified = verified === 'true';
     if (search) {
@@ -1582,7 +1582,7 @@ async function updateMuseumStatus(req, res) {
 
     const museum = await Museum.findByIdAndUpdate(
       id,
-      { 
+      {
         status,
         verified: status === 'approved'
       },
@@ -1642,13 +1642,13 @@ async function getAllRentalsForMuseum(req, res) {
     const query = {};
     if (museum) query.museum = museum._id;
     if (status && status !== 'all') query.status = status;
-    
+
     if (search) {
       // Search in artifact names or renter names
       const users = await User.find({
         name: { $regex: search, $options: 'i' }
       }).select('_id');
-      
+
       const artifacts = await Artifact.find({
         name: { $regex: search, $options: 'i' }
       }).select('_id');
@@ -1846,7 +1846,7 @@ async function submitArtifactForApproval(req, res) {
     const superAdmins = await User.find({ role: 'super_admin' });
     if (superAdmins.length > 0) {
       const recipients = superAdmins.map(admin => ({ user: admin._id }));
-      
+
       await createSystemNotification({
         title: `Artifact Submission: ${artifact.name}`,
         message: `${museum.name} has submitted artifact "${artifact.name}" for your approval.`,
@@ -2025,7 +2025,7 @@ async function provideFeedback(req, res) {
     // Find the content creator to send feedback to
     let contentCreator = null;
     let contentTitle = 'Content';
-    
+
     if (contentType === 'artifact') {
       const artifact = await Artifact.findOne({ _id: contentId, museum: museum._id });
       if (artifact) {
@@ -2119,7 +2119,7 @@ async function getHeritageSites(req, res) {
 
     // For now, return placeholder data since HeritageSite model may not exist
     // This would need to be implemented with actual HeritageSite model
-    
+
     const placeholderSites = [
       {
         _id: '507f1f77bcf86cd799439011',
@@ -2311,7 +2311,7 @@ async function updateHeritageSiteSuggestion(req, res) {
   try {
     const { id } = req.params;
     const museum = await Museum.findOne({ admin: req.user._id });
-    
+
     if (!museum) {
       return res.status(404).json({
         success: false,
@@ -2320,7 +2320,7 @@ async function updateHeritageSiteSuggestion(req, res) {
     }
 
     const updateData = req.body;
-    
+
     // For now, return placeholder response
     // This would update the HeritageSite suggestion in the database
     res.json({
@@ -2342,30 +2342,30 @@ async function updateHeritageSiteSuggestion(req, res) {
 module.exports = {
   // Dashboard
   getDashboard,
-  
+
   // Museum Profile
   getMuseumProfile,
   updateMuseumProfile,
-  
+
   // Artifact Management
   getArtifacts,
   approveArtifact,
   getAllMuseumArtifacts,
-  
+
   // Rental Management
   getRentals,
   approveRental: reviewRental, // Updated to use reviewRental function
   getAllRentalsForMuseum,
-  
+
   // Analytics
   getAnalytics,
-  
+
   // Event Management
   getEvents,
   createEvent,
   updateEvent,
   deleteEvent,
-  
+
   // Notification Management
   getNotifications,
   markNotificationAsRead,
@@ -2373,24 +2373,24 @@ module.exports = {
   takeNotificationAction,
   createNotification,
   createSystemNotification,
-  
+
   // Staff Management
   getStaff,
   addStaff,
   updateStaff,
   removeStaff,
-  
+
   // Museum Management (for super admin access)
   getAllMuseumsForAdmin,
   updateMuseumStatus,
-  
+
   // Content Moderation (Limited - Submit to Super Admin)
   getPendingContent,
   submitArtifactForApproval, // Museum Admin submits to Super Admin
   reviewVirtualMuseum,
   getContentReviews,
   provideFeedback,
-  
+
   // Heritage Site Management (Suggestions Only)
   getHeritageSites,
   suggestHeritageSite,

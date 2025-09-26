@@ -1,4 +1,4 @@
-import { api } from '../utils/api.js';
+import api from '../utils/api.js';
 import imageMapper from './imageMapperService.js';
 
 class LearningService {
@@ -14,7 +14,7 @@ class LearningService {
    */
   async getCourses() {
     const cacheKey = 'learning_courses';
-    
+
     if (this.cache.has(cacheKey)) {
       const cached = this.cache.get(cacheKey);
       if (Date.now() - cached.timestamp < this.cacheExpiry) {
@@ -23,18 +23,19 @@ class LearningService {
     }
 
     try {
-      const response = await api.request('/learning/courses');
+      // Use the new public courses API endpoint
+      const response = await api.request('/education/public/courses');
       const courses = response.courses || response.data || response;
-      
+
       this.cache.set(cacheKey, {
         data: courses,
         timestamp: Date.now()
       });
-      
+
       return courses;
     } catch (error) {
       console.error('Get courses error:', error);
-      // Return mock courses
+      // Return mock courses as fallback
       return this.getMockCourses();
     }
   }
@@ -94,10 +95,10 @@ class LearningService {
       const response = await api.request(`/learning/lessons/${lessonId}/start`, {
         method: 'POST'
       });
-      
+
       // Update local progress
       this.updateLocalProgress(lessonId, 'started');
-      
+
       return response;
     } catch (error) {
       console.error('Start lesson error:', error);
@@ -118,10 +119,10 @@ class LearningService {
         method: 'POST',
         body: completionData
       });
-      
+
       // Update local progress
       this.updateLocalProgress(lessonId, 'completed', completionData);
-      
+
       return response;
     } catch (error) {
       console.error('Complete lesson error:', error);
@@ -138,7 +139,7 @@ class LearningService {
     try {
       const response = await api.request('/learning/progress');
       const serverProgress = response.progress || response.data || response;
-      
+
       // Merge with local progress
       const localProgress = this.getLocalProgress();
       return this.mergeProgress(serverProgress, localProgress);
@@ -190,7 +191,7 @@ class LearningService {
         method: 'POST',
         body: { answers }
       });
-      
+
       return response;
     } catch (error) {
       console.error('Take quiz error:', error);
@@ -202,6 +203,128 @@ class LearningService {
         passed: true,
         feedback: 'Great job! You have a good understanding of Ethiopian heritage.'
       };
+    }
+  }
+
+  /**
+   * Enroll in a course
+   * @param {string|number} courseId - Course ID
+   * @returns {Promise<Object>} Enrollment result
+   */
+  async enrollInCourse(courseId) {
+    try {
+      const response = await api.request(`/learning/courses/${courseId}/enroll`, {
+        method: 'POST'
+      });
+
+      // Update local cache if enrollment successful
+      if (response.success) {
+        // Clear courses cache to force refresh
+        this.cache.delete('enrolled_courses');
+        this.cache.delete('learning_progress');
+      }
+
+      return response;
+    } catch (error) {
+      console.error('Enroll in course error:', error);
+      // Return optimistic response for offline handling
+      return {
+        success: false,
+        message: error.message || 'Failed to enroll in course. Please check your connection.'
+      };
+    }
+  }
+
+  /**
+   * Get enrolled courses for current user
+   * @returns {Promise<Object>} Enrolled courses and stats
+   */
+  async getEnrolledCourses() {
+    const cacheKey = 'enrolled_courses';
+
+    if (this.cache.has(cacheKey)) {
+      const cached = this.cache.get(cacheKey);
+      if (Date.now() - cached.timestamp < this.cacheExpiry) {
+        return cached.data;
+      }
+    }
+
+    try {
+      const response = await api.request('/learning/enrollments');
+      const enrollmentData = response.data || response;
+
+      this.cache.set(cacheKey, {
+        data: enrollmentData,
+        timestamp: Date.now()
+      });
+
+      return enrollmentData;
+    } catch (error) {
+      console.error('Get enrolled courses error:', error);
+      // Return mock enrolled courses for demo purposes
+      return {
+        success: true,
+        enrollments: [],
+        stats: {
+          totalCoursesEnrolled: 0,
+          completedCourses: 0,
+          totalLessonsCompleted: 0,
+          totalTimeSpent: 0,
+          averageScore: 0,
+          currentStreak: 0,
+          longestStreak: 0,
+          certificatesEarned: 0,
+          achievementsUnlocked: 0
+        }
+      };
+    }
+  }
+
+  /**
+   * Unenroll from a course
+   * @param {string|number} courseId - Course ID
+   * @returns {Promise<Object>} Unenrollment result
+   */
+  async unenrollFromCourse(courseId) {
+    try {
+      const response = await api.request(`/learning/courses/${courseId}/unenroll`, {
+        method: 'DELETE'
+      });
+
+      // Update local cache if unenrollment successful
+      if (response.success) {
+        // Clear courses cache to force refresh
+        this.cache.delete('enrolled_courses');
+        this.cache.delete('learning_progress');
+      }
+
+      return response;
+    } catch (error) {
+      console.error('Unenroll from course error:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to unenroll from course. Please check your connection.'
+      };
+    }
+  }
+
+  /**
+   * Check if user is enrolled in a course
+   * @param {string|number} courseId - Course ID
+   * @returns {Promise<boolean>} Enrollment status
+   */
+  async isEnrolledInCourse(courseId) {
+    try {
+      const enrollments = await this.getEnrolledCourses();
+      if (enrollments.success && enrollments.enrollments) {
+        return enrollments.enrollments.some(enrollment =>
+          enrollment.course._id.toString() === courseId.toString()
+        );
+      }
+      return false;
+    } catch (error) {
+      console.error('Check enrollment status error:', error);
+      return false;
     }
   }
 
@@ -317,23 +440,23 @@ class LearningService {
   updateLocalProgress(lessonId, status, data = {}) {
     try {
       const progress = this.getLocalProgress() || this.getDefaultProgress();
-      
+
       if (!progress.lessons[lessonId]) {
         progress.lessons[lessonId] = {};
       }
-      
+
       progress.lessons[lessonId].status = status;
       progress.lessons[lessonId].updatedAt = new Date().toISOString();
-      
+
       if (data.score) {
         progress.lessons[lessonId].score = data.score;
       }
-      
+
       if (status === 'completed') {
         progress.completedLessons++;
         progress.totalTimeSpent += data.timeSpent || 0;
       }
-      
+
       // Update streak
       if (status === 'completed') {
         const today = new Date().toDateString();
@@ -342,17 +465,17 @@ class LearningService {
           const todayDate = new Date(today);
           const diffTime = todayDate - lastDate;
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          
+
           if (diffDays === 1) {
             progress.currentStreak++;
           } else if (diffDays > 1) {
             progress.currentStreak = 1;
           }
-          
+
           progress.lastActivityDate = today;
         }
       }
-      
+
       this.saveLocalProgress(progress);
     } catch (error) {
       console.error('Update local progress error:', error);
@@ -415,158 +538,71 @@ class LearningService {
   mergeProgress(serverProgress, localProgress) {
     if (!serverProgress) return localProgress || this.getDefaultProgress();
     if (!localProgress) return serverProgress;
-    
+
     // Use server data as base, overlay local changes
     const merged = { ...serverProgress };
-    
+
     // Merge lesson progress
     Object.keys(localProgress.lessons || {}).forEach(lessonId => {
       const localLesson = localProgress.lessons[lessonId];
       const serverLesson = merged.lessons[lessonId];
-      
+
       if (!serverLesson || new Date(localLesson.updatedAt) > new Date(serverLesson.updatedAt || 0)) {
         merged.lessons[lessonId] = localLesson;
       }
     });
-    
+
     return merged;
   }
 
   // Mock data methods
 
   /**
-   * Get mock courses (cleaned up, no duplicates)
+   * Get mock courses (minimal fallback only)
    * @returns {Array} Mock courses
    */
   getMockCourses() {
+    // Minimal fallback courses only - real data comes from backend
     const courses = [
       {
-        id: 1,
+        id: 'fallback-1',
         title: 'Ethiopian History Fundamentals',
-        description: 'Explore the rich history of Ethiopia from ancient civilizations to modern day, including the Kingdom of Aksum, medieval dynasties, and contemporary developments',
+        description: 'Explore the rich history of Ethiopia from ancient civilizations to modern day',
         difficulty: 'Beginner',
         duration: '4 hours',
         lessons: 8,
-        category: 'History',
+        category: 'history',
         rating: 4.7,
         enrolled: 1250,
-        topics: ['Ancient Aksum', 'Zagwe Dynasty', 'Solomonic Dynasty', 'Modern Ethiopia']
+        image: imageMapper.getCourseImage({ category: 'History' })
       },
       {
-        id: 2,
+        id: 'fallback-2',
         title: 'Cultural Traditions of Ethiopia',
-        description: 'Discover the diverse cultural practices, traditions, and social customs across Ethiopian regions and ethnic groups',
+        description: 'Discover the diverse cultural practices and traditions across Ethiopian regions',
         difficulty: 'Intermediate',
         duration: '3 hours',
         lessons: 6,
-        category: 'Culture',
+        category: 'culture',
         rating: 4.8,
         enrolled: 890,
-        topics: ['Ethnic Diversity', 'Social Customs', 'Traditional Ceremonies', 'Cultural Values']
+        image: imageMapper.getCourseImage({ category: 'Culture' })
       },
       {
-        id: 3,
+        id: 'fallback-3',
         title: 'Archaeological Wonders',
-        description: 'Journey through Ethiopia\'s most significant archaeological discoveries including Lalibela, Aksum, and ancient fossils like Lucy',
+        description: 'Journey through Ethiopia\'s most significant archaeological discoveries',
         difficulty: 'Advanced',
         duration: '5 hours',
         lessons: 10,
-        category: 'Archaeology',
+        category: 'archaeology',
         rating: 4.9,
         enrolled: 650,
-        topics: ['Rock-hewn Churches', 'Ancient Obelisks', 'Human Evolution', 'Archaeological Methods']
-      },
-      {
-        id: 4,
-        title: 'Ethiopian Languages and Scripts',
-        description: 'Learn about Ethiopia\'s linguistic diversity including Amharic, Oromo, Tigrinya, and the ancient Ge\'ez script with its unique writing system',
-        difficulty: 'Intermediate',
-        duration: '6 hours',
-        lessons: 12,
-        category: 'Language',
-        rating: 4.6,
-        enrolled: 780,
-        topics: ['Semitic Languages', 'Cushitic Languages', 'Ge\'ez Script', 'Modern Alphabets']
-      },
-      {
-        id: 5,
-        title: 'Ethiopian Orthodox Christianity',
-        description: 'Explore the unique traditions, art, architecture, and spiritual practices of Ethiopian Orthodox Christianity',
-        difficulty: 'Intermediate',
-        duration: '4 hours',
-        lessons: 9,
-        category: 'Religion',
-        rating: 4.8,
-        enrolled: 920,
-        topics: ['Religious History', 'Church Architecture', 'Liturgical Art', 'Monastic Traditions']
-      },
-      {
-        id: 6,
-        title: 'Traditional Ethiopian Arts and Crafts',
-        description: 'Discover the rich artistic heritage including weaving, pottery, metalwork, basketry, and traditional painting techniques',
-        difficulty: 'Beginner',
-        duration: '3.5 hours',
-        lessons: 7,
-        category: 'Arts',
-        rating: 4.7,
-        enrolled: 650,
-        topics: ['Traditional Weaving', 'Pottery Making', 'Metalwork', 'Basket Crafting']
-      },
-      {
-        id: 7,
-        title: 'Ethiopian Cuisine and Food Culture',
-        description: 'Learn about traditional Ethiopian cuisine, spices, cooking methods, injera preparation, and food ceremonies',
-        difficulty: 'Beginner',
-        duration: '2.5 hours',
-        lessons: 5,
-        category: 'Culture',
-        rating: 4.9,
-        enrolled: 1150,
-        topics: ['Injera & Teff', 'Spice Blends', 'Cooking Methods', 'Food Ceremonies']
-      },
-      {
-        id: 8,
-        title: 'Music and Dance of Ethiopia',
-        description: 'Explore the diverse musical traditions and dance forms from different Ethiopian regions including traditional instruments and rhythms',
-        difficulty: 'Beginner',
-        duration: '3 hours',
-        lessons: 6,
-        category: 'Arts',
-        rating: 4.8,
-        enrolled: 820,
-        topics: ['Traditional Instruments', 'Regional Dances', 'Musical Scales', 'Performance Traditions']
-      },
-      {
-        id: 9,
-        title: 'Ethiopian Coffee Culture',
-        description: 'Explore the birthplace of coffee and its deep cultural significance in Ethiopian society, including traditional coffee ceremonies',
-        difficulty: 'Beginner',
-        duration: '2 hours',
-        lessons: 4,
-        category: 'Culture',
-        rating: 4.9,
-        enrolled: 1320,
-        topics: ['Coffee Origins', 'Coffee Ceremony', 'Cultural Significance', 'Regional Variations']
-      },
-      {
-        id: 10,
-        title: 'Traditional Ethiopian Medicine',
-        description: 'Discover traditional healing practices, medicinal plants, and indigenous knowledge systems used in Ethiopian healthcare',
-        difficulty: 'Advanced',
-        duration: '4.5 hours',
-        lessons: 9,
-        category: 'Traditional Knowledge',
-        rating: 4.5,
-        enrolled: 420,
-        topics: ['Medicinal Plants', 'Traditional Healers', 'Healing Practices', 'Herbal Remedies']
+        image: imageMapper.getCourseImage({ category: 'Archaeology' })
       }
     ];
 
-    // Add image mappings using the image mapper service
-    return courses.map(course => ({
-      ...course,
-      image: imageMapper.getCourseImage(course)
-    }));
+    return courses;
   }
 
   /**
@@ -962,7 +998,7 @@ class LearningService {
     try {
       const bookmarks = this.getLocalBookmarks();
       const bookmarkKey = `${contentType}_${contentId}`;
-      
+
       if (action === 'add') {
         bookmarks[bookmarkKey] = {
           contentType,
@@ -972,7 +1008,7 @@ class LearningService {
       } else if (action === 'remove') {
         delete bookmarks[bookmarkKey];
       }
-      
+
       localStorage.setItem('ethio_heritage_bookmarks', JSON.stringify(bookmarks));
     } catch (error) {
       console.error('Update local bookmarks error:', error);

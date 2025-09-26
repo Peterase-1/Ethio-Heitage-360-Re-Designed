@@ -1,4 +1,4 @@
-import { api } from '../utils/api.js';
+import api from '../utils/api.js';
 
 class TourService {
   constructor() {
@@ -14,7 +14,7 @@ class TourService {
    */
   async getTours(filters = {}) {
     const cacheKey = `tours_${JSON.stringify(filters)}`;
-    
+
     // Check cache first
     if (this.cache.has(cacheKey)) {
       const cached = this.cache.get(cacheKey);
@@ -26,27 +26,27 @@ class TourService {
     try {
       const response = await api.getTours();
       const tours = response.tours || response.data || response;
-      
+
       // Apply filters if any
       let filteredTours = tours;
       if (filters.type) {
         filteredTours = filteredTours.filter(tour => tour.type === filters.type);
       }
       if (filters.location) {
-        filteredTours = filteredTours.filter(tour => 
+        filteredTours = filteredTours.filter(tour =>
           tour.location?.toLowerCase().includes(filters.location.toLowerCase())
         );
       }
       if (filters.duration) {
         filteredTours = filteredTours.filter(tour => tour.duration === filters.duration);
       }
-      
+
       // Cache the result
       this.cache.set(cacheKey, {
         data: filteredTours,
         timestamp: Date.now()
       });
-      
+
       return filteredTours;
     } catch (error) {
       console.error('Get tours error:', error);
@@ -61,7 +61,7 @@ class TourService {
    */
   async getTourById(id) {
     const cacheKey = `tour_${id}`;
-    
+
     // Check cache first
     if (this.cache.has(cacheKey)) {
       const cached = this.cache.get(cacheKey);
@@ -73,13 +73,13 @@ class TourService {
     try {
       const response = await api.getTourById(id);
       const tour = response.tour || response.data || response;
-      
+
       // Cache the result
       this.cache.set(cacheKey, {
         data: tour,
         timestamp: Date.now()
       });
-      
+
       return tour;
     } catch (error) {
       console.error('Get tour by ID error:', error);
@@ -95,13 +95,13 @@ class TourService {
   async createTour(tourData) {
     try {
       const response = await api.createTour(tourData);
-      
+
       // Clear cache to force refresh
       this.clearCache();
-      
+
       // Emit cache invalidation event for real-time updates
       this.emitCacheInvalidation('tour-created', response.tour || response.data || response);
-      
+
       return response.tour || response.data || response;
     } catch (error) {
       console.error('Create tour error:', error);
@@ -121,10 +121,10 @@ class TourService {
         method: 'PUT',
         body: tourData
       });
-      
+
       // Clear cache to force refresh
       this.clearCache();
-      
+
       return response.tour || response.data || response;
     } catch (error) {
       console.error('Update tour error:', error);
@@ -142,10 +142,10 @@ class TourService {
       const response = await api.request(`/tours/${id}`, {
         method: 'DELETE'
       });
-      
+
       // Clear cache to force refresh
       this.clearCache();
-      
+
       return response;
     } catch (error) {
       console.error('Delete tour error:', error);
@@ -231,7 +231,7 @@ class TourService {
       ...filters,
       search: query
     };
-    
+
     return this.getTours(searchFilters);
   }
 
@@ -245,7 +245,7 @@ class TourService {
       featured: true,
       limit
     };
-    
+
     return this.getTours(filters);
   }
 
@@ -260,7 +260,7 @@ class TourService {
       ...filters,
       type
     };
-    
+
     return this.getTours(typeFilters);
   }
 
@@ -275,7 +275,7 @@ class TourService {
       ...filters,
       location
     };
-    
+
     return this.getTours(locationFilters);
   }
 
@@ -290,7 +290,7 @@ class TourService {
       ...filters,
       duration
     };
-    
+
     return this.getTours(durationFilters);
   }
 
@@ -400,7 +400,7 @@ class TourService {
    */
   async getTourTypes() {
     const cacheKey = 'tour_types';
-    
+
     // Check cache first
     if (this.cache.has(cacheKey)) {
       const cached = this.cache.get(cacheKey);
@@ -412,13 +412,13 @@ class TourService {
     try {
       const response = await api.request('/tours/types');
       const types = response.types || response.data || response;
-      
+
       // Cache the result
       this.cache.set(cacheKey, {
         data: types,
         timestamp: Date.now()
       });
-      
+
       return types;
     } catch (error) {
       console.error('Get tour types error:', error);
@@ -575,7 +575,7 @@ class TourService {
    */
   handleNewTour(tour) {
     console.log('TourService: Handling new tour', tour.title);
-    
+
     // Clear all tours cache to ensure fresh data
     const keysToDelete = [];
     for (const key of this.cache.keys()) {
@@ -584,7 +584,7 @@ class TourService {
       }
     }
     keysToDelete.forEach(key => this.cache.delete(key));
-    
+
     // Emit event for any subscribers
     this.emitCacheInvalidation('new-tour', tour);
   }
@@ -595,11 +595,11 @@ class TourService {
    */
   handleTourUpdate(tour) {
     console.log('TourService: Handling tour update', tour.title);
-    
+
     // Remove specific tour from cache
     this.cache.delete(`tour_${tour.id}`);
     this.cache.delete(`tour_${tour._id}`);
-    
+
     // Clear tours list cache
     const keysToDelete = [];
     for (const key of this.cache.keys()) {
@@ -608,7 +608,7 @@ class TourService {
       }
     }
     keysToDelete.forEach(key => this.cache.delete(key));
-    
+
     // Emit event for any subscribers
     this.emitCacheInvalidation('tour-updated', tour);
   }
@@ -619,10 +619,10 @@ class TourService {
    */
   handleTourDeletion(tourId) {
     console.log('TourService: Handling tour deletion', tourId);
-    
+
     // Remove specific tour from cache
     this.cache.delete(`tour_${tourId}`);
-    
+
     // Clear tours list cache
     const keysToDelete = [];
     for (const key of this.cache.keys()) {
@@ -631,7 +631,7 @@ class TourService {
       }
     }
     keysToDelete.forEach(key => this.cache.delete(key));
-    
+
     // Emit event for any subscribers
     this.emitCacheInvalidation('tour-deleted', { tourId });
   }
@@ -651,20 +651,20 @@ class TourService {
    */
   initializeRealTimeUpdates(webSocketService) {
     console.log('TourService: Initializing real-time updates');
-    
+
     // Subscribe to WebSocket events
     webSocketService.on('tourCreated', (data) => {
       this.handleNewTour(data.tour);
     });
-    
+
     webSocketService.on('tourUpdated', (data) => {
       this.handleTourUpdate(data.tour);
     });
-    
+
     webSocketService.on('tourDeleted', (data) => {
       this.handleTourDeletion(data.tourId);
     });
-    
+
     webSocketService.on('toursRefresh', () => {
       this.forceRefreshCache();
     });

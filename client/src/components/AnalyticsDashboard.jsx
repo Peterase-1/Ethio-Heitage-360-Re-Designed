@@ -66,8 +66,14 @@ const AnalyticsDashboard = () => {
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
-      const response = await api.getAnalytics(timeRange);
-      setAnalytics(response.data || getMockData());
+      // Try to get real analytics data first
+      const response = await api.getSuperAdminAnalytics({ timeRange });
+      if (response.success && response.data) {
+        setAnalytics(response.data);
+      } else {
+        // Fallback to mock data
+        setAnalytics(getMockData());
+      }
     } catch (error) {
       console.error('Failed to fetch analytics:', error);
       setAnalytics(getMockData());
@@ -272,7 +278,7 @@ const AnalyticsDashboard = () => {
               <div key={index} className="flex items-center">
                 <span className="text-sm text-gray-600 w-12">{activity.hour}:00</span>
                 <div className="flex-1 mx-2 bg-gray-200 rounded-full h-2">
-                  <div 
+                  <div
                     className="bg-blue-600 h-2 rounded-full"
                     style={{ width: `${(activity.users / 280) * 100}%` }}
                   ></div>
@@ -485,11 +491,10 @@ const AnalyticsDashboard = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`py-4 px-2 border-b-2 font-medium text-sm flex items-center space-x-2 ${
-                    activeTab === tab.id
+                  className={`py-4 px-2 border-b-2 font-medium text-sm flex items-center space-x-2 ${activeTab === tab.id
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
+                    }`}
                 >
                   <Icon className="h-4 w-4" />
                   <span>{tab.label}</span>

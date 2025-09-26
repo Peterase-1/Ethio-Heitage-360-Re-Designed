@@ -68,7 +68,7 @@ const eventSchema = new mongoose.Schema({
       type: Date,
       required: [true, 'End date is required'],
       validate: {
-        validator: function(v) {
+        validator: function (v) {
           return v >= this.schedule.startDate;
         },
         message: 'End date must be after start date'
@@ -96,7 +96,7 @@ const eventSchema = new mongoose.Schema({
       frequency: {
         type: String,
         enum: ['daily', 'weekly', 'monthly', 'yearly'],
-        required: function() {
+        required: function () {
           return this.schedule.isRecurring;
         }
       },
@@ -131,8 +131,7 @@ const eventSchema = new mongoose.Schema({
     coordinates: {
       type: {
         type: String,
-        enum: ['Point'],
-        default: 'Point'
+        enum: ['Point']
       },
       coordinates: {
         type: [Number],
@@ -149,7 +148,7 @@ const eventSchema = new mongoose.Schema({
       type: Number,
       min: 1,
       validate: {
-        validator: function(v) {
+        validator: function (v) {
           return !this.registration.required || v > 0;
         },
         message: 'Capacity must be specified if registration is required'
@@ -344,19 +343,19 @@ eventSchema.index({ title: 'text', description: 'text', tags: 'text' });
 eventSchema.index({ 'location.coordinates': '2dsphere' });
 
 // Virtual for available spots
-eventSchema.virtual('availableSpots').get(function() {
+eventSchema.virtual('availableSpots').get(function () {
   if (!this.registration.required || !this.registration.capacity) return null;
   return Math.max(0, this.registration.capacity - this.registration.currentRegistrations);
 });
 
 // Virtual for full status
-eventSchema.virtual('isFull').get(function() {
+eventSchema.virtual('isFull').get(function () {
   if (!this.registration.required || !this.registration.capacity) return false;
   return this.registration.currentRegistrations >= this.registration.capacity;
 });
 
 // Virtual for event status based on dates
-eventSchema.virtual('eventStatus').get(function() {
+eventSchema.virtual('eventStatus').get(function () {
   const now = new Date();
   if (this.status === 'cancelled') return 'cancelled';
   if (now < this.schedule.startDate) return 'upcoming';
@@ -365,18 +364,18 @@ eventSchema.virtual('eventStatus').get(function() {
 });
 
 // Virtual for duration in hours
-eventSchema.virtual('duration').get(function() {
+eventSchema.virtual('duration').get(function () {
   const start = new Date(`2000-01-01 ${this.schedule.startTime}`);
   const end = new Date(`2000-01-01 ${this.schedule.endTime}`);
   return Math.abs(end - start) / (1000 * 60 * 60); // in hours
 });
 
 // Static methods
-eventSchema.statics.findByStatus = function(status) {
+eventSchema.statics.findByStatus = function (status) {
   return this.find({ status }).populate('museum organizer');
 };
 
-eventSchema.statics.findUpcoming = function(limit = 10) {
+eventSchema.statics.findUpcoming = function (limit = 10) {
   return this.find({
     'schedule.startDate': { $gte: new Date() },
     status: 'published',
@@ -388,7 +387,7 @@ eventSchema.statics.findUpcoming = function(limit = 10) {
     .populate('organizer', 'name email');
 };
 
-eventSchema.statics.findByDateRange = function(startDate, endDate) {
+eventSchema.statics.findByDateRange = function (startDate, endDate) {
   return this.find({
     $or: [
       {
@@ -406,81 +405,81 @@ eventSchema.statics.findByDateRange = function(startDate, endDate) {
   });
 };
 
-eventSchema.statics.findByMuseum = function(museumId, status = null) {
+eventSchema.statics.findByMuseum = function (museumId, status = null) {
   const query = { museum: museumId };
   if (status) query.status = status;
   return this.find(query).sort({ 'schedule.startDate': -1 });
 };
 
 // Instance methods
-eventSchema.methods.addAttendee = function(userId, ticketType = 'general') {
+eventSchema.methods.addAttendee = function (userId, ticketType = 'general') {
   if (this.isFull) {
     throw new Error('Event is full');
   }
-  
+
   const existingAttendee = this.attendees.find(a => a.user.toString() === userId);
   if (existingAttendee) {
     throw new Error('User is already registered for this event');
   }
-  
+
   this.attendees.push({
     user: userId,
     ticketType,
     status: 'registered'
   });
-  
+
   this.registration.currentRegistrations += 1;
   this.statistics.totalRegistrations += 1;
-  
+
   return this.save();
 };
 
-eventSchema.methods.removeAttendee = function(userId) {
+eventSchema.methods.removeAttendee = function (userId) {
   const attendeeIndex = this.attendees.findIndex(a => a.user.toString() === userId);
   if (attendeeIndex === -1) {
     throw new Error('User is not registered for this event');
   }
-  
+
   this.attendees.splice(attendeeIndex, 1);
   this.registration.currentRegistrations = Math.max(0, this.registration.currentRegistrations - 1);
-  
+
   return this.save();
 };
 
-eventSchema.methods.addReview = function(userId, rating, comment) {
+eventSchema.methods.addReview = function (userId, rating, comment) {
   // Remove existing review from same user
   this.reviews = this.reviews.filter(r => r.user.toString() !== userId);
-  
+
   this.reviews.push({
     user: userId,
     rating,
     comment
   });
-  
+
   // Update statistics
   this.statistics.totalReviews = this.reviews.length;
   this.statistics.averageRating = this.reviews.reduce((sum, r) => sum + r.rating, 0) / this.reviews.length;
-  
+
   return this.save();
 };
 
-eventSchema.methods.incrementViews = function() {
+eventSchema.methods.incrementViews = function () {
   this.statistics.totalViews += 1;
   return this.save();
 };
 
 // Pre-save middleware
-eventSchema.pre('save', function(next) {
+eventSchema.pre('save', function (next) {
   // Ensure end date is after start date
   if (this.schedule.endDate < this.schedule.startDate) {
     return next(new Error('End date must be after start date'));
   }
-  
+
   // Ensure registration capacity is set if required
   if (this.registration.required && !this.registration.capacity) {
     return next(new Error('Capacity must be set if registration is required'));
   }
-  
+
   next();
 });
 

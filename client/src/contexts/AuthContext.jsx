@@ -2,6 +2,9 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
 
+// Export AuthContext for named imports
+export { AuthContext };
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

@@ -56,6 +56,53 @@ const courseSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   },
+  organizerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  status: {
+    type: String,
+    enum: ['draft', 'pending', 'published', 'archived'],
+    default: 'draft'
+  },
+  enrollmentCount: {
+    type: Number,
+    default: 0
+  },
+  averageRating: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5
+  },
+  maxStudents: {
+    type: Number,
+    default: 30
+  },
+  price: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  startDate: {
+    type: Date
+  },
+  endDate: {
+    type: Date
+  },
+  duration: {
+    type: Number, // in weeks
+    default: 4
+  },
+  curriculum: [{
+    type: String,
+    trim: true
+  }],
+  learningOutcomes: [{
+    type: String,
+    trim: true
+  }],
   createdAt: {
     type: Date,
     default: Date.now
@@ -63,6 +110,14 @@ const courseSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
+  },
+  isSuperAdminCourse: {
+    type: Boolean,
+    default: false
+  },
+  featured: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true

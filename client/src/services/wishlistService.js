@@ -1,4 +1,4 @@
-import { api } from '../utils/api.js';
+import api from '../utils/api.js';
 
 class WishlistService {
   constructor() {
@@ -205,7 +205,7 @@ class WishlistService {
    */
   isInWishlist(type, id) {
     const wishlist = this.getLocalWishlist();
-    
+
     switch (type) {
       case 'artifact':
         return wishlist.artifacts.some(item => item.id === id);
@@ -227,7 +227,7 @@ class WishlistService {
    */
   getWishlistByType(type) {
     const wishlist = this.getLocalWishlist();
-    
+
     switch (type) {
       case 'artifacts':
         return wishlist.artifacts;
@@ -248,10 +248,10 @@ class WishlistService {
    */
   getWishlistStats() {
     const wishlist = this.getLocalWishlist();
-    
+
     return {
-      totalItems: wishlist.artifacts.length + wishlist.museums.length + 
-                 wishlist.tours.length + wishlist.heritageSites.length,
+      totalItems: wishlist.artifacts.length + wishlist.museums.length +
+        wishlist.tours.length + wishlist.heritageSites.length,
       artifacts: wishlist.artifacts.length,
       museums: wishlist.museums.length,
       tours: wishlist.tours.length,
@@ -269,10 +269,10 @@ class WishlistService {
       const response = await api.request('/user/wishlist', {
         method: 'DELETE'
       });
-      
+
       // Also clear local storage
       this.clearLocalWishlist();
-      
+
       return response;
     } catch (error) {
       this.clearLocalWishlist();
@@ -302,19 +302,19 @@ class WishlistService {
     } else if (format === 'csv') {
       // Convert to CSV format
       let csvContent = 'Type,Name,ID,Added Date\n';
-      
+
       wishlist.artifacts.forEach(item => {
         csvContent += `Artifact,"${item.name}",${item.id},${item.addedAt}\n`;
       });
-      
+
       wishlist.museums.forEach(item => {
         csvContent += `Museum,"${item.name}",${item.id},${item.addedAt}\n`;
       });
-      
+
       wishlist.tours.forEach(item => {
         csvContent += `Tour,"${item.title || item.name}",${item.id},${item.addedAt}\n`;
       });
-      
+
       wishlist.heritageSites.forEach(item => {
         csvContent += `Heritage Site,"${item.name}",${item.id},${item.addedAt}\n`;
       });

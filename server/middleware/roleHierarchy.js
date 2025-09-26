@@ -41,7 +41,7 @@ const requireMuseumAdminOrHigher = (req, res, next) => {
     });
   }
 
-  if (!hasRoleAccess(req.user.role, 'museum_admin')) {
+  if (!hasRoleAccess(req.user.role, 'museumAdmin')) {
     return res.status(403).json({
       success: false,
       message: 'Access denied. Museum Admin or higher privileges required.'

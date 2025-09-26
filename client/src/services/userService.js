@@ -1,4 +1,4 @@
-import { api } from '../utils/api.js';
+import api from '../utils/api.js';
 
 class UserService {
   constructor() {
@@ -29,13 +29,13 @@ class UserService {
   async updateUser(userId, userData) {
     try {
       const response = await api.updateUser(userId, userData);
-      
+
       // Update current user if it's the same user
       if (this.currentUser && this.currentUser.id === userId) {
         this.currentUser = { ...this.currentUser, ...response.user };
         localStorage.setItem('user', JSON.stringify(this.currentUser));
       }
-      
+
       return response;
     } catch (error) {
       console.error('Update user error:', error);
@@ -101,22 +101,22 @@ class UserService {
   async updateAvatar(avatarFile) {
     try {
       const uploadResponse = await api.uploadFile(avatarFile, 'avatar');
-      
+
       if (uploadResponse.url) {
         const updateResponse = await api.request('/user/avatar', {
           method: 'PUT',
           body: { avatarUrl: uploadResponse.url }
         });
-        
+
         // Update current user avatar
         if (this.currentUser) {
           this.currentUser.avatar = uploadResponse.url;
           localStorage.setItem('user', JSON.stringify(this.currentUser));
         }
-        
+
         return updateResponse;
       }
-      
+
       throw new Error('Failed to upload avatar');
     } catch (error) {
       console.error('Update avatar error:', error);
@@ -390,11 +390,11 @@ class UserService {
         method: 'DELETE',
         body: { reason }
       });
-      
+
       // Clear local storage
       localStorage.clear();
       this.currentUser = null;
-      
+
       return response;
     } catch (error) {
       console.error('Delete account error:', error);
@@ -484,7 +484,7 @@ class UserService {
     if (this.currentUser) {
       return this.currentUser;
     }
-    
+
     try {
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
@@ -494,7 +494,7 @@ class UserService {
     } catch (error) {
       console.error('Error getting current user from storage:', error);
     }
-    
+
     return null;
   }
 

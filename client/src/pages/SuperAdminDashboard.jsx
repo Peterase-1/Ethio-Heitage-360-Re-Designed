@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import api from '../utils/api';
 import LogoutButton from '../components/common/LogoutButton';
-import { 
-  Users, 
-  Building2, 
-  MapPin, 
-  Calendar, 
-  TrendingUp, 
-  Settings, 
-  FileCheck, 
+import {
+  Users,
+  Building2,
+  MapPin,
+  Calendar,
+  TrendingUp,
+  Settings,
+  FileCheck,
   DollarSign,
   BarChart3,
   Home,
@@ -29,18 +30,33 @@ import {
   AlertTriangle,
   Search,
   Filter,
-  Archive
+  Archive,
+  Monitor,
+  Award,
+  Star,
+  BookOpen,
+  GraduationCap,
+  FileText,
+  Users2,
+  Presentation,
+  Package
 } from 'lucide-react';
 import logo from '../assets/Logo.jpg';
 import HeritageSiteManager from '../components/HeritageSiteManager';
+import RentalRequestManager from '../components/RentalRequestManager';
 import AnalyticsDashboard from '../components/AnalyticsDashboard';
+import PerformanceAnalytics from '../components/PerformanceAnalytics';
+import PerformanceMetricsDashboard from '../components/PerformanceMetricsDashboard';
+import SuperAdminProgressManagement from '../components/admin/SuperAdminProgressManagement';
 
 const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('dashboard');
   const [expandedSections, setExpandedSections] = useState({
     'Platform Overview': true,
-    'User & Content Management': true, 
+    'User & Content Management': true,
+    'Educational Management': true,
     'Business Operations': true,
     'System Administration': true
   });
@@ -55,6 +71,9 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
     tourGrowth: 0
   });
 
+  // Enhanced dashboard data from backend
+  const [dashboardData, setDashboardData] = useState(null);
+
   // User management state
   const [usersState, setUsersState] = useState({
     items: [],
@@ -62,6 +81,30 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
     page: 1,
     limit: 10,
     role: '',
+    status: '',
+    searchTerm: '',
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
+    loading: false,
+    error: ''
+  });
+
+  // User statistics state
+  const [userStats, setUserStats] = useState({
+    totalUsers: 0,
+    activeUsers: 0,
+    newUsers: 0,
+    usersByRole: [],
+    usersByStatus: [],
+    userActivity: [],
+    loading: false,
+    error: ''
+  });
+
+  // Bulk operations state
+  const [bulkOperations, setBulkOperations] = useState({
+    selectedUsers: [],
+    action: '',
     loading: false,
     error: ''
   });
@@ -70,7 +113,100 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
   const [userModal, setUserModal] = useState({ open: false, mode: 'create', data: { name: '', email: '', password: '', role: 'visitor', isActive: true }, submitting: false, error: '' });
 
   // Museum oversight state
-  const [museumsState, setMuseumsState] = useState({ items: [], total: 0, page: 1, limit: 10, loading: false, error: '' });
+  const [museumsState, setMuseumsState] = useState({
+    items: [],
+    total: 0,
+    page: 1,
+    limit: 10,
+    status: '',
+    verified: '',
+    region: '',
+    searchTerm: '',
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
+    loading: false,
+    error: ''
+  });
+
+  // Museum statistics state
+  const [museumStats, setMuseumStats] = useState({
+    totalMuseums: 0,
+    activeMuseums: 0,
+    pendingMuseums: 0,
+    approvedMuseums: 0,
+    rejectedMuseums: 0,
+    museumsByStatus: [],
+    museumsByRegion: [],
+    newMuseums: 0,
+    museumActivity: [],
+    loading: false,
+    error: ''
+  });
+
+  // Heritage Sites state
+  const [heritageSitesState, setHeritageSitesState] = useState({
+    items: [],
+    total: 0,
+    page: 1,
+    limit: 10,
+    status: '',
+    verified: '',
+    region: '',
+    type: '',
+    designation: '',
+    searchTerm: '',
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
+    loading: false,
+    error: ''
+  });
+
+  // Heritage Sites statistics state
+  const [heritageSitesStats, setHeritageSitesStats] = useState({
+    totalSites: 0,
+    activeSites: 0,
+    unescoSites: 0,
+    verifiedSites: 0,
+    newSites: 0,
+    sitesByRegion: [],
+    sitesByType: [],
+    sitesByDesignation: [],
+    conservationStatus: [],
+    loading: false,
+    error: ''
+  });
+
+  // Museum bulk operations state
+  const [museumBulkOperations, setMuseumBulkOperations] = useState({
+    selectedMuseums: [],
+    action: '',
+    loading: false,
+    error: ''
+  });
+
+  // Delete confirmation modal state
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    museumId: null,
+    museumName: '',
+    action: ''
+  });
+
+  // Museum rejection modal state
+  const [rejectionModal, setRejectionModal] = useState({
+    isOpen: false,
+    museumId: null,
+    museumName: '',
+    reason: ''
+  });
+
+  // User deletion modal state
+  const [userDeleteModal, setUserDeleteModal] = useState({
+    isOpen: false,
+    userId: null,
+    userName: '',
+    userEmail: ''
+  });
 
   // Content moderation state
   const [contentModerationState, setContentModerationState] = useState({
@@ -87,14 +223,24 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
     error: ''
   });
 
-  const [feedbackModal, setFeedbackModal] = useState({ 
-    open: false, 
-    item: null, 
-    feedback: '', 
-    submitting: false 
+  const [feedbackModal, setFeedbackModal] = useState({
+    open: false,
+    item: null,
+    feedback: '',
+    submitting: false
   });
 
   const [selectedContentItem, setSelectedContentItem] = useState(null);
+
+  // Audit logs state
+  const [auditLogsState, setAuditLogsState] = useState({
+    items: [],
+    total: 0,
+    page: 1,
+    limit: 20,
+    loading: false,
+    error: ''
+  });
 
   const sidebarItems = [
     {
@@ -102,6 +248,8 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
       items: [
         { id: 'dashboard', label: 'Dashboard', icon: Home, description: 'Complete analytics - user activity, artifact stats, rentals' },
         { id: 'platform-analytics', label: 'Platform Analytics', icon: BarChart3, description: 'Insights for all museums combined' },
+        { id: 'performance-analytics', label: 'Performance Analytics', icon: Activity, description: 'Real-time system performance and metrics' },
+        { id: 'performance-metrics', label: 'Performance Metrics', icon: Monitor, description: 'Live system monitoring and health metrics' },
         { id: 'audit-logs', label: 'Audit Logs', icon: Activity, description: 'Track all approvals, rejections, and changes' }
       ]
     },
@@ -114,9 +262,19 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
       ]
     },
     {
+      category: 'Educational Management',
+      items: [
+        { id: 'education-overview', label: 'Education Overview', icon: GraduationCap, description: 'Educational content statistics and management' },
+        { id: 'course-management', label: 'Course Management', icon: BookOpen, description: 'Manage educational courses across the platform' },
+        { id: 'assignment-management', label: 'Assignment Management', icon: FileText, description: 'Oversee assignments and grading system' },
+        { id: 'student-management', label: 'Student Management', icon: Users2, description: 'Manage student enrollments and progress', link: '/super-admin/student-management' },
+        { id: 'educational-tours', label: 'Educational Tours', icon: Presentation, description: 'Manage educational tour programs' }
+      ]
+    },
+    {
       category: 'Business Operations',
       items: [
-        { id: 'rental-oversight', label: 'Rental System', icon: DollarSign, description: 'Manage artifact rental requests from users' },
+        { id: 'rental-requests', label: 'Rental System', icon: Package, description: 'Manage artifact rental requests between museums and virtual museum' },
         { id: 'approval-feedback', label: 'Approval Feedback', icon: MessageSquare, description: 'Send comments/clarifications to Museum Admins' }
       ]
     },
@@ -130,22 +288,46 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
   ];
 
   useEffect(() => {
-    // Fetch live stats
-    const load = async () => {
+    // Fetch enhanced dashboard data
+    const loadDashboard = async () => {
       try {
-        const res = await api.getAdminStats();
-        const s = res.stats || {};
-        setStats((prev) => ({
-          ...prev,
-          totalUsers: s.totalUsers ?? prev.totalUsers,
-          museums: s.totalMuseums ?? prev.museums,
-        }));
+        const res = await api.getSuperAdminDashboard();
+        if (res.success && res.dashboard) {
+          const dashboard = res.dashboard;
+
+          // Update stats with enhanced data
+          setStats((prev) => ({
+            ...prev,
+            totalUsers: dashboard.systemOverview?.users?.total ?? prev.totalUsers,
+            museums: dashboard.systemOverview?.museums?.total ?? prev.museums,
+            heritageSites: dashboard.systemOverview?.heritageSites?.total ?? prev.heritageSites,
+            activeTours: dashboard.systemOverview?.rentals?.active ?? prev.activeTours,
+            userGrowth: dashboard.trends?.userGrowth?.growthRate ?? prev.userGrowth,
+            museumGrowth: dashboard.trends?.museumGrowth?.approvalRate ?? prev.museumGrowth,
+            siteGrowth: dashboard.trends?.heritageSiteGrowth?.verificationRate ?? prev.siteGrowth,
+            tourGrowth: dashboard.systemOverview?.rentals?.completionRate ?? prev.tourGrowth
+          }));
+
+          // Store enhanced dashboard data for use in components
+          setDashboardData(dashboard);
+        }
       } catch (e) {
-        // keep defaults if fails
-        console.error('Failed to load admin stats', e);
+        console.error('Failed to load dashboard data', e);
+        // Fallback to basic stats if enhanced API fails
+        try {
+          const res = await api.getAdminStats();
+          const s = res.stats || {};
+          setStats((prev) => ({
+            ...prev,
+            totalUsers: s.totalUsers ?? prev.totalUsers,
+            museums: s.totalMuseums ?? prev.museums,
+          }));
+        } catch (fallbackError) {
+          console.error('Fallback stats also failed', fallbackError);
+        }
       }
     };
-    load();
+    loadDashboard();
   }, []);
 
   // Load museums when Museum Oversight active
@@ -154,15 +336,152 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
     const loadMuseums = async () => {
       setMuseumsState(prev => ({ ...prev, loading: true, error: '' }));
       try {
-        const res = await api.listMuseums({ page: museumsState.page, limit: museumsState.limit });
-        setMuseumsState(prev => ({ ...prev, items: res.items || [], total: res.total || 0, loading: false }));
+        const { page, limit, status, verified, region, searchTerm, sortBy, sortOrder } = museumsState;
+
+        // Use enhanced search API if search term is provided, otherwise use regular museums API
+        const apiEndpoint = searchTerm ? '/super-admin/museums/search' : '/super-admin/museums';
+        const queryParams = new URLSearchParams({
+          page: String(page),
+          limit: String(limit),
+          ...(status && { status }),
+          ...(verified && { verified }),
+          ...(region && { region }),
+          ...(searchTerm && { q: searchTerm }),
+          ...(sortBy && { sortBy }),
+          ...(sortOrder && { sortOrder })
+        });
+
+        const res = await api.request(`${apiEndpoint}?${queryParams.toString()}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        setMuseumsState(prev => ({
+          ...prev,
+          items: res.museums || [],
+          total: res.pagination?.total || 0,
+          loading: false
+        }));
       } catch (e) {
         setMuseumsState(prev => ({ ...prev, loading: false, error: e.message || 'Failed to load museums' }));
       }
     };
     loadMuseums();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSection, museumsState.page, museumsState.limit]);
+  }, [activeSection, museumsState.page, museumsState.limit, museumsState.status, museumsState.verified, museumsState.region, museumsState.searchTerm, museumsState.sortBy, museumsState.sortOrder]);
+
+  // Load museum statistics when Museum Oversight is active
+  useEffect(() => {
+    if (activeSection !== 'museum-oversight') return;
+    const loadMuseumStats = async () => {
+      setMuseumStats(prev => ({ ...prev, loading: true, error: '' }));
+      try {
+        const res = await api.getMuseumStatistics({ timeRange: '30d' });
+        if (res.success) {
+          setMuseumStats(prev => ({
+            ...prev,
+            totalMuseums: res.statistics?.totalMuseums || 0,
+            activeMuseums: res.statistics?.activeMuseums || 0,
+            pendingMuseums: res.statistics?.pendingMuseums || 0,
+            approvedMuseums: res.statistics?.approvedMuseums || 0,
+            rejectedMuseums: res.statistics?.rejectedMuseums || 0,
+            museumsByStatus: res.statistics?.museumsByStatus || [],
+            museumsByRegion: res.statistics?.museumsByRegion || [],
+            newMuseums: res.statistics?.newMuseums || 0,
+            museumActivity: res.statistics?.museumActivity || [],
+            loading: false
+          }));
+        }
+      } catch (e) {
+        setMuseumStats(prev => ({ ...prev, loading: false, error: e.message || 'Failed to load museum statistics' }));
+      }
+    };
+    loadMuseumStats();
+  }, [activeSection]);
+
+  // Load heritage sites when Heritage Sites section is active
+  useEffect(() => {
+    if (activeSection !== 'heritage-sites') return;
+    const loadHeritageSites = async () => {
+      setHeritageSitesState(prev => ({ ...prev, loading: true, error: '' }));
+      try {
+        const { page, limit, status, verified, region, type, designation, searchTerm, sortBy, sortOrder } = heritageSitesState;
+
+        // Use enhanced search API if search term is provided, otherwise use regular heritage sites API
+        const apiEndpoint = searchTerm ? '/super-admin/heritage-sites/search' : '/super-admin/heritage-sites';
+        const queryParams = new URLSearchParams({
+          page: String(page),
+          limit: String(limit),
+          sortBy,
+          sortOrder,
+          ...(status && { status }),
+          ...(verified && { verified }),
+          ...(region && { region }),
+          ...(type && { type }),
+          ...(designation && { designation }),
+          ...(searchTerm && { query: searchTerm })
+        });
+
+        const response = await api.request(`${apiEndpoint}?${queryParams.toString()}`);
+        setHeritageSitesState(prev => ({
+          ...prev,
+          items: response.data || [],
+          total: response.pagination?.total || 0,
+          loading: false,
+          error: ''
+        }));
+      } catch (error) {
+        console.error('Load heritage sites error:', error);
+        setHeritageSitesState(prev => ({
+          ...prev,
+          loading: false,
+          error: 'Failed to load heritage sites'
+        }));
+      }
+    };
+    loadHeritageSites();
+  }, [activeSection, heritageSitesState.page, heritageSitesState.limit, heritageSitesState.status, heritageSitesState.verified, heritageSitesState.region, heritageSitesState.type, heritageSitesState.designation, heritageSitesState.searchTerm, heritageSitesState.sortBy, heritageSitesState.sortOrder]);
+
+  // Load heritage sites statistics when Heritage Sites section is active
+  useEffect(() => {
+    if (activeSection !== 'heritage-sites') return;
+    const loadHeritageSitesStats = async () => {
+      setHeritageSitesStats(prev => ({ ...prev, loading: true, error: '' }));
+      try {
+        const response = await api.getHeritageSiteStatistics({ timeRange: '30d' });
+        console.log('📊 Heritage Sites Statistics Response (useEffect):', response);
+        if (response.success) {
+          const stats = {
+            totalSites: response.data.overview?.totalSites || 0,
+            activeSites: response.data.overview?.activeSites || 0,
+            unescoSites: response.data.overview?.unescoSites || 0,
+            verifiedSites: response.data.overview?.verifiedSites || 0,
+            newSites: response.data.overview?.newSites || 0,
+            sitesByRegion: response.data.distribution?.byRegion || [],
+            sitesByType: response.data.distribution?.byType || [],
+            sitesByDesignation: response.data.distribution?.byDesignation || [],
+            conservationStatus: response.data.distribution?.byConservationStatus || [],
+            loading: false,
+            error: ''
+          };
+          console.log('📊 Setting Heritage Sites Stats (useEffect):', stats);
+          setHeritageSitesStats(prev => ({
+            ...prev,
+            ...stats
+          }));
+        }
+      } catch (error) {
+        console.error('Load heritage sites stats error:', error);
+        setHeritageSitesStats(prev => ({
+          ...prev,
+          loading: false,
+          error: error.message || 'Failed to load heritage sites statistics'
+        }));
+      }
+    };
+    loadHeritageSitesStats();
+  }, [activeSection]);
 
   // Load users when opening User Management or when paging/filter changes
   useEffect(() => {
@@ -170,16 +489,97 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
     const loadUsers = async () => {
       setUsersState(prev => ({ ...prev, loading: true, error: '' }));
       try {
-        const { page, limit, role } = usersState;
-        const res = await api.listUsers({ page, limit, role: role || undefined });
-        setUsersState(prev => ({ ...prev, items: res.items || [], total: res.total || 0, loading: false }));
+        const { page, limit, role, status, searchTerm, sortBy, sortOrder } = usersState;
+
+        // Use enhanced search API if search term is provided, otherwise use regular users API
+        const apiEndpoint = searchTerm ? '/super-admin/users/search' : '/super-admin/users';
+        const queryParams = new URLSearchParams({
+          page: String(page),
+          limit: String(limit),
+          ...(role && { role }),
+          ...(status && { status }),
+          ...(searchTerm && { q: searchTerm }),
+          ...(sortBy && { sortBy }),
+          ...(sortOrder && { sortOrder })
+        });
+
+        const res = await api.request(`${apiEndpoint}?${queryParams.toString()}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        setUsersState(prev => ({
+          ...prev,
+          items: res.users || [],
+          total: res.pagination?.total || 0,
+          loading: false
+        }));
       } catch (e) {
         setUsersState(prev => ({ ...prev, loading: false, error: e.message || 'Failed to load users' }));
       }
     };
     loadUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSection, usersState.page, usersState.limit, usersState.role]);
+  }, [activeSection, usersState.page, usersState.limit, usersState.role, usersState.status, usersState.searchTerm, usersState.sortBy, usersState.sortOrder]);
+
+  // Load user statistics when User Management is active
+  useEffect(() => {
+    if (activeSection !== 'user-management') return;
+    const loadUserStats = async () => {
+      setUserStats(prev => ({ ...prev, loading: true, error: '' }));
+      try {
+        const res = await api.getUserStatistics({ timeRange: '30d' });
+        if (res.success) {
+          setUserStats(prev => ({
+            ...prev,
+            totalUsers: res.statistics?.totalUsers || 0,
+            activeUsers: res.statistics?.activeUsers || 0,
+            newUsers: res.statistics?.newUsers || 0,
+            usersByRole: res.statistics?.usersByRole || [],
+            usersByStatus: res.statistics?.usersByStatus || [],
+            userActivity: res.statistics?.userActivity || [],
+            loading: false
+          }));
+        }
+      } catch (e) {
+        setUserStats(prev => ({ ...prev, loading: false, error: e.message || 'Failed to load user statistics' }));
+      }
+    };
+    loadUserStats();
+  }, [activeSection]);
+
+  // Load audit logs when Audit Logs section is active
+  useEffect(() => {
+    if (activeSection !== 'audit-logs') return;
+    const loadAuditLogs = async () => {
+      setAuditLogsState(prev => ({ ...prev, loading: true, error: '' }));
+      try {
+        const { page, limit } = auditLogsState;
+        const queryParams = new URLSearchParams({
+          page: String(page),
+          limit: String(limit)
+        });
+
+        const res = await api.request(`/super-admin/audit-logs?${queryParams.toString()}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        setAuditLogsState(prev => ({
+          ...prev,
+          items: res.logs || [],
+          total: res.pagination?.total || 0,
+          loading: false
+        }));
+      } catch (e) {
+        setAuditLogsState(prev => ({ ...prev, loading: false, error: e.message || 'Failed to load audit logs' }));
+      }
+    };
+    loadAuditLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSection, auditLogsState.page, auditLogsState.limit]);
 
   const handleRoleChange = async (id, role) => {
     try {
@@ -190,13 +590,332 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
     }
   };
 
-  const handleDeleteUser = async (id) => {
-    if (!confirm('Delete this user?')) return;
+
+  // Bulk operations handlers
+  const handleBulkAction = async (action, userIds, data = {}) => {
+    setBulkOperations(prev => ({ ...prev, loading: true, error: '' }));
     try {
-      await api.deleteUser(id);
-      setUsersState(prev => ({ ...prev, items: prev.items.filter(u => u._id !== id), total: Math.max(0, prev.total - 1) }));
+      const res = await api.bulkUserActions(action, userIds, data);
+      if (res.success) {
+        alert(`${res.message} (${res.modifiedCount || res.deletedCount} users affected)`);
+        // Refresh user list
+        setUsersState(prev => ({ ...prev, page: 1 }));
+        setBulkOperations(prev => ({ ...prev, selectedUsers: [], action: '', loading: false }));
+      } else {
+        throw new Error(res.message || 'Bulk action failed');
+      }
     } catch (e) {
-      alert(`Failed to delete: ${e.message}`);
+      setBulkOperations(prev => ({ ...prev, loading: false, error: e.message }));
+      alert(`Bulk action failed: ${e.message}`);
+    }
+  };
+
+  const handleSelectUser = (userId) => {
+    setBulkOperations(prev => ({
+      ...prev,
+      selectedUsers: prev.selectedUsers.includes(userId)
+        ? prev.selectedUsers.filter(id => id !== userId)
+        : [...prev.selectedUsers, userId]
+    }));
+  };
+
+  const handleSelectAllUsers = () => {
+    setBulkOperations(prev => ({
+      ...prev,
+      selectedUsers: prev.selectedUsers.length === usersState.items.length
+        ? []
+        : usersState.items.map(user => user._id)
+    }));
+  };
+
+  // Museum bulk operations handlers
+  const handleMuseumBulkAction = async (action, museumIds, data = {}) => {
+    setMuseumBulkOperations(prev => ({ ...prev, loading: true, error: '' }));
+    try {
+      const res = await api.bulkMuseumActions(action, museumIds, data);
+      if (res.success) {
+        alert(`${res.message} (${res.modifiedCount || res.deletedCount} museums affected)`);
+        // Refresh museum list
+        setMuseumsState(prev => ({ ...prev, page: 1 }));
+        setMuseumBulkOperations(prev => ({ ...prev, selectedMuseums: [], action: '', loading: false }));
+      } else {
+        throw new Error(res.message || 'Bulk action failed');
+      }
+    } catch (e) {
+      setMuseumBulkOperations(prev => ({ ...prev, loading: false, error: e.message }));
+      alert(`Bulk action failed: ${e.message}`);
+    }
+  };
+
+  const handleSelectMuseum = (museumId) => {
+    setMuseumBulkOperations(prev => ({
+      ...prev,
+      selectedMuseums: prev.selectedMuseums.includes(museumId)
+        ? prev.selectedMuseums.filter(id => id !== museumId)
+        : [...prev.selectedMuseums, museumId]
+    }));
+  };
+
+  const handleSelectAllMuseums = () => {
+    setMuseumBulkOperations(prev => ({
+      ...prev,
+      selectedMuseums: prev.selectedMuseums.length === museumsState.items.length
+        ? []
+        : museumsState.items.map(museum => museum._id)
+    }));
+  };
+
+  // Handle museum delete with confirmation
+  const handleMuseumDelete = (museumId, museumName) => {
+    setDeleteModal({
+      isOpen: true,
+      museumId,
+      museumName,
+      action: 'delete'
+    });
+  };
+
+  // Confirm museum deletion
+  const confirmMuseumDelete = async () => {
+    if (!deleteModal.museumId) return;
+
+    try {
+      const result = await api.bulkMuseumActions('delete', [deleteModal.museumId]);
+      if (result.success) {
+        // Reload museums and statistics
+        await loadMuseums();
+        await loadMuseumStats();
+
+        // Close modal
+        setDeleteModal({ isOpen: false, museumId: null, museumName: '', action: '' });
+
+        // Show success message
+        alert(`Successfully deleted museum: ${deleteModal.museumName}`);
+      } else {
+        alert(`Failed to delete museum: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('Museum delete error:', error);
+      alert('Failed to delete museum');
+    }
+  };
+
+  // Handle museum rejection with modal
+  const handleMuseumRejection = (museumId, museumName) => {
+    setRejectionModal({
+      isOpen: true,
+      museumId,
+      museumName,
+      reason: ''
+    });
+  };
+
+  // Confirm museum rejection
+  const confirmMuseumRejection = async () => {
+    if (!rejectionModal.museumId) return;
+
+    try {
+      const result = await api.bulkMuseumActions('reject', [rejectionModal.museumId], { reason: rejectionModal.reason });
+      if (result.success) {
+        // Reload museums and statistics
+        await loadMuseums();
+        await loadMuseumStats();
+
+        // Close modal
+        setRejectionModal({ isOpen: false, museumId: null, museumName: '', reason: '' });
+
+        // Show success message
+        alert(`Successfully rejected museum: ${rejectionModal.museumName}`);
+      } else {
+        alert(`Failed to reject museum: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('Museum rejection error:', error);
+      alert('Failed to reject museum');
+    }
+  };
+
+  // Handle user deletion with modal
+  const handleUserDeletion = (userId, userName, userEmail) => {
+    setUserDeleteModal({
+      isOpen: true,
+      userId,
+      userName,
+      userEmail
+    });
+  };
+
+  // Confirm user deletion
+  const confirmUserDeletion = async () => {
+    if (!userDeleteModal.userId) return;
+
+    try {
+      const result = await api.deleteUser(userDeleteModal.userId);
+      if (result.success) {
+        // Reload users and statistics
+        await loadUsers();
+        await loadUserStats();
+
+        // Close modal
+        setUserDeleteModal({ isOpen: false, userId: null, userName: '', userEmail: '' });
+
+        // Show success message
+        alert(`Successfully deleted user: ${userDeleteModal.userName}`);
+      } else {
+        alert(`Failed to delete user: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('User deletion error:', error);
+      alert('Failed to delete user');
+    }
+  };
+
+  // Standalone functions for refresh buttons
+  const loadMuseums = async () => {
+    setMuseumsState(prev => ({ ...prev, loading: true, error: '' }));
+    try {
+      const { page, limit, status, verified, region, searchTerm, sortBy, sortOrder } = museumsState;
+
+      // Use enhanced search API if search term is provided, otherwise use regular museums API
+      const apiEndpoint = searchTerm ? '/super-admin/museums/search' : '/super-admin/museums';
+      const queryParams = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
+        sortBy,
+        sortOrder,
+        ...(status && { status }),
+        ...(verified !== '' && { verified }),
+        ...(region && { region }),
+        ...(searchTerm && { q: searchTerm })
+      });
+
+      const res = await api.request(`${apiEndpoint}?${queryParams.toString()}`);
+      if (res.success) {
+        setMuseumsState(prev => ({
+          ...prev,
+          items: res.museums || res.data || [],
+          total: res.pagination?.total || res.total || 0,
+          loading: false,
+          error: ''
+        }));
+      } else {
+        throw new Error(res.message || 'Failed to load museums');
+      }
+    } catch (error) {
+      console.error('Load museums error:', error);
+      setMuseumsState(prev => ({
+        ...prev,
+        loading: false,
+        error: error.message || 'Failed to load museums'
+      }));
+    }
+  };
+
+  const loadMuseumStats = async () => {
+    setMuseumStats(prev => ({ ...prev, loading: true, error: '' }));
+    try {
+      const res = await api.getMuseumStatistics({ timeRange: '30d' });
+      if (res.success) {
+        setMuseumStats(prev => ({
+          ...prev,
+          totalMuseums: res.statistics?.totalMuseums || 0,
+          activeMuseums: res.statistics?.activeMuseums || 0,
+          pendingMuseums: res.statistics?.pendingMuseums || 0,
+          approvedMuseums: res.statistics?.approvedMuseums || 0,
+          rejectedMuseums: res.statistics?.rejectedMuseums || 0,
+          museumsByStatus: res.statistics?.museumsByStatus || [],
+          museumsByRegion: res.statistics?.museumsByRegion || [],
+          newMuseums: res.statistics?.newMuseums || 0,
+          museumActivity: res.statistics?.museumActivity || [],
+          loading: false,
+          error: ''
+        }));
+      } else {
+        throw new Error(res.message || 'Failed to load museum statistics');
+      }
+    } catch (error) {
+      console.error('Load museum stats error:', error);
+      setMuseumStats(prev => ({
+        ...prev,
+        loading: false,
+        error: error.message || 'Failed to load museum statistics'
+      }));
+    }
+  };
+
+  // Heritage Sites loading functions for refresh button
+  const loadHeritageSites = async () => {
+    setHeritageSitesState(prev => ({ ...prev, loading: true, error: '' }));
+    try {
+      const { page, limit, status, verified, region, type, designation, searchTerm, sortBy, sortOrder } = heritageSitesState;
+
+      // Use enhanced search API if search term is provided, otherwise use regular heritage sites API
+      const apiEndpoint = searchTerm ? '/super-admin/heritage-sites/search' : '/super-admin/heritage-sites';
+      const queryParams = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
+        sortBy,
+        sortOrder,
+        ...(status && { status }),
+        ...(verified && { verified }),
+        ...(region && { region }),
+        ...(type && { type }),
+        ...(designation && { designation }),
+        ...(searchTerm && { query: searchTerm })
+      });
+
+      const response = await api.request(`${apiEndpoint}?${queryParams.toString()}`);
+      setHeritageSitesState(prev => ({
+        ...prev,
+        items: response.data || [],
+        total: response.pagination?.total || 0,
+        loading: false,
+        error: ''
+      }));
+    } catch (error) {
+      console.error('Load heritage sites error:', error);
+      setHeritageSitesState(prev => ({
+        ...prev,
+        loading: false,
+        error: 'Failed to load heritage sites'
+      }));
+    }
+  };
+
+  const loadHeritageSitesStats = async () => {
+    setHeritageSitesStats(prev => ({ ...prev, loading: true, error: '' }));
+    try {
+      const response = await api.getHeritageSiteStatistics({ timeRange: '30d' });
+      console.log('📊 Heritage Sites Statistics Response:', response);
+      if (response.success) {
+        const stats = {
+          totalSites: response.data.overview?.totalSites || 0,
+          activeSites: response.data.overview?.activeSites || 0,
+          unescoSites: response.data.overview?.unescoSites || 0,
+          verifiedSites: response.data.overview?.verifiedSites || 0,
+          newSites: response.data.overview?.newSites || 0,
+          sitesByRegion: response.data.distribution?.byRegion || [],
+          sitesByType: response.data.distribution?.byType || [],
+          sitesByDesignation: response.data.distribution?.byDesignation || [],
+          conservationStatus: response.data.distribution?.byConservationStatus || [],
+          loading: false,
+          error: ''
+        };
+        console.log('📊 Setting Heritage Sites Stats:', stats);
+        setHeritageSitesStats(prev => ({
+          ...prev,
+          ...stats
+        }));
+      } else {
+        throw new Error(response.message || 'Failed to load heritage sites statistics');
+      }
+    } catch (error) {
+      console.error('Load heritage sites stats error:', error);
+      setHeritageSitesStats(prev => ({
+        ...prev,
+        loading: false,
+        error: error.message || 'Failed to load heritage sites statistics'
+      }));
     }
   };
 
@@ -282,7 +1001,7 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
       category: 'Royal Artifacts'
     },
     {
-      _id: '2', 
+      _id: '2',
       name: 'Ethiopian Heritage Virtual Tour',
       museum: 'National Museum',
       submittedAt: '2025-01-11',
@@ -293,7 +1012,7 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
     },
     {
       _id: '3',
-      name: 'Coffee Ceremony Workshop', 
+      name: 'Coffee Ceremony Workshop',
       museum: 'Ethnological Museum',
       submittedAt: '2025-01-10',
       status: 'rejected',
@@ -329,10 +1048,10 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
       const matchesStatus = contentModerationState.filterStatus === 'all' || item.status === contentModerationState.filterStatus;
       const matchesType = contentModerationState.typeFilter === 'all' || item.type === contentModerationState.typeFilter;
       const matchesMuseum = contentModerationState.museumFilter === 'all' || item.museum === contentModerationState.museumFilter;
-      const matchesSearch = !contentModerationState.searchTerm || 
+      const matchesSearch = !contentModerationState.searchTerm ||
         (item.name?.toLowerCase().includes(contentModerationState.searchTerm.toLowerCase()) ||
-         item.artifactName?.toLowerCase().includes(contentModerationState.searchTerm.toLowerCase()) ||
-         item.museum?.toLowerCase().includes(contentModerationState.searchTerm.toLowerCase()));
+          item.artifactName?.toLowerCase().includes(contentModerationState.searchTerm.toLowerCase()) ||
+          item.museum?.toLowerCase().includes(contentModerationState.searchTerm.toLowerCase()));
       return matchesStatus && matchesType && matchesMuseum && matchesSearch;
     });
   };
@@ -344,7 +1063,7 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
       lightBrown: 'bg-stone-50 text-stone-700',
       neutral: 'bg-stone-100 text-stone-800'
     };
-    
+
     return (
       <div className="bg-white rounded-lg shadow-sm border border-stone-200 p-6">
         <div className="flex items-center justify-between">
@@ -376,7 +1095,7 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
           title="Total Users"
           value={stats.totalUsers}
           growth={stats.userGrowth}
-          subtitle="Active platform users"
+          subtitle={`${dashboardData?.systemOverview?.users?.active || 0} active users`}
           icon={Users}
           color="brown"
         />
@@ -384,7 +1103,7 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
           title="Museums"
           value={stats.museums}
           growth={stats.museumGrowth}
-          subtitle="Registered museums"
+          subtitle={`${dashboardData?.systemOverview?.museums?.pendingApprovals || 0} pending approval`}
           icon={Building2}
           color="darkBrown"
         />
@@ -392,9 +1111,17 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
           title="Heritage Sites"
           value={stats.heritageSites}
           growth={stats.siteGrowth}
-          subtitle="Mapped heritage locations"
+          subtitle={`${dashboardData?.systemOverview?.heritageSites?.unesco || 0} UNESCO sites`}
           icon={MapPin}
           color="lightBrown"
+        />
+        <StatCard
+          title="Active Rentals"
+          value={stats.activeTours}
+          growth={stats.tourGrowth}
+          subtitle={`${dashboardData?.systemOverview?.rentals?.revenue || 0} ETB revenue`}
+          icon={DollarSign}
+          color="green"
         />
       </div>
 
@@ -405,12 +1132,25 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
         </div>
         <div className="p-6">
           <div className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-amber-600 rounded-full"></div>
-              <span className="text-sm text-stone-600">Recent Activities</span>
-              <span className="text-xs text-stone-400">- hours ago</span>
-            </div>
-            
+            {dashboardData?.recentActivities?.length > 0 ? (
+              dashboardData.recentActivities.map((activity, index) => (
+                <div key={index} className="flex items-center space-x-3">
+                  <div className={`w-2 h-2 rounded-full ${activity.type === 'user_registration' ? 'bg-green-500' :
+                    activity.type === 'museum_application' ? 'bg-blue-500' :
+                      'bg-amber-600'
+                    }`}></div>
+                  <span className="text-sm text-stone-600">{activity.description}</span>
+                  <span className="text-xs text-stone-400">
+                    {new Date(activity.timestamp).toLocaleString()}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="flex items-center space-x-3">
+                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                <span className="text-sm text-stone-600">No recent activity</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -422,17 +1162,28 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
         </div>
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button className="p-4 border border-stone-200 rounded-lg hover:bg-stone-50 text-left">
+            <button
+              className="p-4 border border-stone-200 rounded-lg hover:bg-stone-50 text-left"
+              onClick={() => setActiveSection('artifact-approval')}
+            >
               <FileCheck className="h-6 w-6 text-amber-700 mb-2" />
               <h4 className="font-medium text-stone-900">Review Pending Approvals</h4>
-              <p className="text-sm text-stone-600">12 items waiting for review</p>
+              <p className="text-sm text-stone-600">
+                {dashboardData?.alerts?.pendingApprovals || 0} items waiting for review
+              </p>
             </button>
-            <button className="p-4 border border-stone-200 rounded-lg hover:bg-stone-50 text-left">
+            <button
+              className="p-4 border border-stone-200 rounded-lg hover:bg-stone-50 text-left"
+              onClick={() => setActiveSection('user-management')}
+            >
               <Users className="h-6 w-6 text-amber-700 mb-2" />
               <h4 className="font-medium text-stone-900">Manage Users</h4>
               <p className="text-sm text-stone-600">View and manage user accounts</p>
             </button>
-            <button className="p-4 border border-stone-200 rounded-lg hover:bg-stone-50 text-left">
+            <button
+              className="p-4 border border-stone-200 rounded-lg hover:bg-stone-50 text-left"
+              onClick={() => setActiveSection('platform-analytics')}
+            >
               <BarChart3 className="h-6 w-6 text-amber-700 mb-2" />
               <h4 className="font-medium text-stone-900">View Analytics</h4>
               <p className="text-sm text-stone-600">Platform performance insights</p>
@@ -491,100 +1242,315 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
         return renderDashboardContent();
       case 'user-management':
         return (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">User Management</h3>
-              <div className="flex items-center space-x-2">
-                <select
-                  className="border border-gray-300 rounded px-2 py-1 text-sm"
-                  value={usersState.role}
-                  onChange={(e) => setUsersState(prev => ({ ...prev, role: e.target.value, page: 1 }))}
-                >
-                  <option value="">All roles</option>
-                  <option value="visitor">visitor</option>
-                  <option value="museum">museum</option>
-                  <option value="museum_admin">museum_admin</option>
-                  <option value="organizer">organizer</option>
-                  <option value="admin">admin</option>
-                  <option value="super_admin">super_admin</option>
-                </select>
-                <button
-                  className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
-                  onClick={() => setUserModal({ open: true, mode: 'create', data: { name: '', email: '', password: '', role: 'visitor', isActive: true }, submitting: false, error: '' })}
-                >
-                  + Add User
-                </button>
+          <div className="space-y-6">
+            {/* User Statistics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <div className="flex items-center">
+                  <Users className="h-8 w-8 text-blue-600" />
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-500">Total Users</p>
+                    <p className="text-2xl font-semibold text-gray-900">{userStats.totalUsers}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <div className="flex items-center">
+                  <CheckCircle className="h-8 w-8 text-green-600" />
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-500">Active Users</p>
+                    <p className="text-2xl font-semibold text-gray-900">{userStats.activeUsers}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <div className="flex items-center">
+                  <TrendingUp className="h-8 w-8 text-purple-600" />
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-500">New This Month</p>
+                    <p className="text-2xl font-semibold text-gray-900">{userStats.newUsers}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <div className="flex items-center">
+                  <BarChart3 className="h-8 w-8 text-orange-600" />
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-500">Roles</p>
+                    <p className="text-2xl font-semibold text-gray-900">{userStats.usersByRole.length}</p>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="p-6">
-              {usersState.error && (
-                <div className="mb-4 text-red-600 text-sm">{usersState.error}</div>
-              )}
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                      <th className="px-4 py-2"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {usersState.loading ? (
-                      <tr><td colSpan="4" className="px-4 py-6 text-center text-gray-500">Loading...</td></tr>
-                    ) : usersState.items.length === 0 ? (
-                      <tr><td colSpan="4" className="px-4 py-6 text-center text-gray-500">No users found</td></tr>
-                    ) : (
-                      usersState.items.map(u => (
-                        <tr key={u._id}>
-                          <td className="px-4 py-2 text-sm text-gray-900">{u.name}</td>
-                          <td className="px-4 py-2 text-sm text-gray-600">{u.email}</td>
-                          <td className="px-4 py-2">
+
+            {/* Enhanced User Management */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-900">User Management</h3>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      className="flex items-center px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onClick={() => {
+                        loadUsers();
+                        loadUserStats();
+                      }}
+                      disabled={usersState.loading}
+                    >
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      {usersState.loading ? 'Refreshing...' : 'Refresh'}
+                    </button>
+                    <button
+                      className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
+                      onClick={() => setUserModal({ open: true, mode: 'create', data: { name: '', email: '', password: '', role: 'visitor', isActive: true }, submitting: false, error: '' })}
+                    >
+                      + Add User
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Enhanced Filters and Search */}
+              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                    <input
+                      type="text"
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                      placeholder="Search by name, email..."
+                      value={usersState.searchTerm}
+                      onChange={(e) => setUsersState(prev => ({ ...prev, searchTerm: e.target.value, page: 1 }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                    <select
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                      value={usersState.role}
+                      onChange={(e) => setUsersState(prev => ({ ...prev, role: e.target.value, page: 1 }))}
+                    >
+                      <option value="">All roles</option>
+                      <option value="visitor">visitor</option>
+                      <option value="museum">museum</option>
+                      <option value="museum_admin">museum_admin</option>
+                      <option value="admin">admin</option>
+                      <option value="super_admin">super_admin</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                      value={usersState.status}
+                      onChange={(e) => setUsersState(prev => ({ ...prev, status: e.target.value, page: 1 }))}
+                    >
+                      <option value="">All status</option>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                      <option value="verified">Verified</option>
+                      <option value="unverified">Unverified</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                    <select
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                      value={`${usersState.sortBy}-${usersState.sortOrder}`}
+                      onChange={(e) => {
+                        const [sortBy, sortOrder] = e.target.value.split('-');
+                        setUsersState(prev => ({ ...prev, sortBy, sortOrder, page: 1 }));
+                      }}
+                    >
+                      <option value="createdAt-desc">Newest First</option>
+                      <option value="createdAt-asc">Oldest First</option>
+                      <option value="name-asc">Name A-Z</option>
+                      <option value="name-desc">Name Z-A</option>
+                      <option value="email-asc">Email A-Z</option>
+                      <option value="email-desc">Email Z-A</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bulk Operations Bar */}
+              {bulkOperations.selectedUsers.length > 0 && (
+                <div className="px-6 py-3 bg-blue-50 border-b border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-blue-700">
+                      {bulkOperations.selectedUsers.length} user(s) selected
+                    </span>
+                    <div className="flex items-center space-x-2">
+                      <select
+                        className="border border-gray-300 rounded px-2 py-1 text-sm"
+                        value={bulkOperations.action}
+                        onChange={(e) => setBulkOperations(prev => ({ ...prev, action: e.target.value }))}
+                      >
+                        <option value="">Select action...</option>
+                        <option value="activate">Activate</option>
+                        <option value="deactivate">Deactivate</option>
+                        <option value="verify">Verify</option>
+                        <option value="unverify">Unverify</option>
+                        <option value="changeRole">Change Role</option>
+                        <option value="delete">Delete</option>
+                      </select>
+                      {bulkOperations.action && (
+                        <>
+                          {bulkOperations.action === 'changeRole' && (
                             <select
                               className="border border-gray-300 rounded px-2 py-1 text-sm"
-                              value={u.role}
-                              onChange={(e) => handleRoleChange(u._id, e.target.value)}
+                              onChange={(e) => {
+                                const role = e.target.value;
+                                if (role) {
+                                  handleBulkAction('changeRole', bulkOperations.selectedUsers, { role });
+                                }
+                              }}
                             >
+                              <option value="">Select role...</option>
                               <option value="visitor">visitor</option>
                               <option value="museum">museum</option>
                               <option value="museum_admin">museum_admin</option>
-                              <option value="organizer">organizer</option>
                               <option value="admin">admin</option>
                               <option value="super_admin">super_admin</option>
                             </select>
-                          </td>
-                          <td className="px-4 py-2 text-right space-x-3">
-                            <button className="text-blue-600 hover:text-blue-700 text-sm" onClick={() => setUserModal({ open: true, mode: 'edit', data: { ...u, password: '' }, submitting: false, error: '' })}>Edit</button>
-                            <button className="text-red-600 hover:text-red-700 text-sm" onClick={() => handleDeleteUser(u._id)}>Delete</button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Pagination */}
-              <div className="flex items-center justify-between mt-4">
-                <div className="text-sm text-gray-600">
-                  Page {usersState.page} of {Math.max(1, Math.ceil(usersState.total / usersState.limit))}
+                          )}
+                          <button
+                            className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
+                            onClick={() => handleBulkAction(bulkOperations.action, bulkOperations.selectedUsers)}
+                            disabled={bulkOperations.loading}
+                          >
+                            {bulkOperations.loading ? 'Processing...' : 'Apply'}
+                          </button>
+                        </>
+                      )}
+                      <button
+                        className="px-3 py-1 border border-gray-300 rounded text-sm"
+                        onClick={() => setBulkOperations(prev => ({ ...prev, selectedUsers: [], action: '' }))}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-x-2">
-                  <button
-                    className="px-3 py-1 border rounded text-sm disabled:opacity-50"
-                    disabled={usersState.page <= 1}
-                    onClick={() => setUsersState(prev => ({ ...prev, page: prev.page - 1 }))}
-                  >
-                    Prev
-                  </button>
-                  <button
-                    className="px-3 py-1 border rounded text-sm disabled:opacity-50"
-                    disabled={usersState.page >= Math.ceil(usersState.total / usersState.limit)}
-                    onClick={() => setUsersState(prev => ({ ...prev, page: prev.page + 1 }))}
-                  >
-                    Next
-                  </button>
+              )}
+
+              <div className="p-6">
+                {usersState.error && (
+                  <div className="mb-4 text-red-600 text-sm">{usersState.error}</div>
+                )}
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-2 text-left">
+                          <input
+                            type="checkbox"
+                            checked={bulkOperations.selectedUsers.length === usersState.items.length && usersState.items.length > 0}
+                            onChange={handleSelectAllUsers}
+                            className="rounded border-gray-300"
+                          />
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {usersState.loading ? (
+                        <tr><td colSpan="7" className="px-4 py-6 text-center text-gray-500">Loading...</td></tr>
+                      ) : usersState.items.length === 0 ? (
+                        <tr><td colSpan="7" className="px-4 py-6 text-center text-gray-500">No users found</td></tr>
+                      ) : (
+                        usersState.items.map(u => (
+                          <tr key={u._id} className="hover:bg-gray-50">
+                            <td className="px-4 py-2">
+                              <input
+                                type="checkbox"
+                                checked={bulkOperations.selectedUsers.includes(u._id)}
+                                onChange={() => handleSelectUser(u._id)}
+                                className="rounded border-gray-300"
+                              />
+                            </td>
+                            <td className="px-4 py-2 text-sm text-gray-900">{u.name}</td>
+                            <td className="px-4 py-2 text-sm text-gray-600">{u.email}</td>
+                            <td className="px-4 py-2">
+                              <select
+                                className="border border-gray-300 rounded px-2 py-1 text-sm"
+                                value={u.role}
+                                onChange={(e) => handleRoleChange(u._id, e.target.value)}
+                              >
+                                <option value="visitor">visitor</option>
+                                <option value="museum">museum</option>
+                                <option value="museum_admin">museum_admin</option>
+                                <option value="admin">admin</option>
+                                <option value="super_admin">super_admin</option>
+                              </select>
+                            </td>
+                            <td className="px-4 py-2">
+                              <div className="flex items-center space-x-2">
+                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${u.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                  }`}>
+                                  {u.isActive ? 'Active' : 'Inactive'}
+                                </span>
+                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${u.isEmailVerified ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'
+                                  }`}>
+                                  {u.isEmailVerified ? 'Verified' : 'Unverified'}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-2 text-sm text-gray-500">
+                              {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A'}
+                            </td>
+                            <td className="px-4 py-2 text-right space-x-2">
+                              <button
+                                className="text-blue-600 hover:text-blue-700 text-sm"
+                                onClick={() => setUserModal({ open: true, mode: 'edit', data: { ...u, password: '' }, submitting: false, error: '' })}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                className="text-red-600 hover:text-red-700 text-sm"
+                                onClick={() => handleUserDeletion(u._id, u.name, u.email)}
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Enhanced Pagination */}
+                <div className="flex items-center justify-between mt-4">
+                  <div className="text-sm text-gray-600">
+                    Showing {((usersState.page - 1) * usersState.limit) + 1} to {Math.min(usersState.page * usersState.limit, usersState.total)} of {usersState.total} users
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      className="px-3 py-1 border rounded text-sm disabled:opacity-50"
+                      disabled={usersState.page <= 1}
+                      onClick={() => setUsersState(prev => ({ ...prev, page: prev.page - 1 }))}
+                    >
+                      Previous
+                    </button>
+                    <span className="px-3 py-1 text-sm">
+                      Page {usersState.page} of {Math.max(1, Math.ceil(usersState.total / usersState.limit))}
+                    </span>
+                    <button
+                      className="px-3 py-1 border rounded text-sm disabled:opacity-50"
+                      disabled={usersState.page >= Math.ceil(usersState.total / usersState.limit)}
+                      onClick={() => setUsersState(prev => ({ ...prev, page: prev.page + 1 }))}
+                    >
+                      Next
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -605,7 +1571,6 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
                         <option value="visitor">visitor</option>
                         <option value="museum">museum</option>
                         <option value="museum_admin">museum_admin</option>
-                        <option value="organizer">organizer</option>
                         <option value="admin">admin</option>
                         <option value="super_admin">super_admin</option>
                       </select>
@@ -626,57 +1591,304 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
         );
       case 'museum-oversight':
         return (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Museum Oversight</h3>
+          <div className="space-y-6">
+            {/* Museum Statistics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <div className="flex items-center">
+                  <Building2 className="h-8 w-8 text-blue-600" />
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-500">Total Museums</p>
+                    <p className="text-2xl font-semibold text-gray-900">{museumStats.totalMuseums}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <div className="flex items-center">
+                  <CheckCircle className="h-8 w-8 text-green-600" />
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-500">Active</p>
+                    <p className="text-2xl font-semibold text-gray-900">{museumStats.activeMuseums}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <div className="flex items-center">
+                  <Clock className="h-8 w-8 text-yellow-600" />
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-500">Pending</p>
+                    <p className="text-2xl font-semibold text-gray-900">{museumStats.pendingMuseums}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <div className="flex items-center">
+                  <TrendingUp className="h-8 w-8 text-purple-600" />
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-500">Approved</p>
+                    <p className="text-2xl font-semibold text-gray-900">{museumStats.approvedMuseums}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <div className="flex items-center">
+                  <XCircle className="h-8 w-8 text-red-600" />
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-500">Rejected</p>
+                    <p className="text-2xl font-semibold text-gray-900">{museumStats.rejectedMuseums}</p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="p-6">
-              {museumsState.error && <div className="mb-4 text-red-600 text-sm">{museumsState.error}</div>}
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Museum</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Verified</th>
-                      <th className="px-4 py-2"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {museumsState.loading ? (
-                      <tr><td colSpan="5" className="px-4 py-6 text-center text-gray-500">Loading...</td></tr>
-                    ) : museumsState.items.length === 0 ? (
-                      <tr><td colSpan="5" className="px-4 py-6 text-center text-gray-500">No museums found</td></tr>
-                    ) : (
-                      museumsState.items.map(m => (
-                        <tr key={m._id}>
-                          <td className="px-4 py-2 text-sm text-gray-900">{m.name}</td>
-                          <td className="px-4 py-2 text-sm text-gray-600">{m.email}</td>
-                          <td className="px-4 py-2 text-sm text-gray-600">{m.museumInfo?.name || '-'}</td>
-                          <td className="px-4 py-2 text-sm">{m.museumInfo?.verified ? 'Yes' : 'No'}</td>
-                          <td className="px-4 py-2 text-right space-x-3">
-                            {m.museumInfo?.verified ? (
-                              <button className="text-yellow-700 hover:text-yellow-800 text-sm" onClick={() => setMuseumVerification(m._id, false)}>Reject</button>
-                            ) : (
-                              <button className="text-green-700 hover:text-green-800 text-sm" onClick={() => setMuseumVerification(m._id, true)}>Approve</button>
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+
+            {/* Enhanced Museum Oversight */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-900">Museum Oversight</h3>
+                  <button
+                    className="flex items-center px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onClick={() => {
+                      loadMuseums();
+                      loadMuseumStats();
+                    }}
+                    disabled={museumsState.loading}
+                  >
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    {museumsState.loading ? 'Refreshing...' : 'Refresh'}
+                  </button>
+                </div>
               </div>
 
-              {/* Pagination */}
-              <div className="flex items-center justify-between mt-4">
-                <div className="text-sm text-gray-600">
-                  Page {museumsState.page} of {Math.max(1, Math.ceil(museumsState.total / museumsState.limit))}
+              {/* Enhanced Filters and Search */}
+              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                    <input
+                      type="text"
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                      placeholder="Search by name, description..."
+                      value={museumsState.searchTerm}
+                      onChange={(e) => setMuseumsState(prev => ({ ...prev, searchTerm: e.target.value, page: 1 }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                      value={museumsState.status}
+                      onChange={(e) => setMuseumsState(prev => ({ ...prev, status: e.target.value, page: 1 }))}
+                    >
+                      <option value="">All status</option>
+                      <option value="pending">Pending</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                      <option value="suspended">Suspended</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Verified</label>
+                    <select
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                      value={museumsState.verified}
+                      onChange={(e) => setMuseumsState(prev => ({ ...prev, verified: e.target.value, page: 1 }))}
+                    >
+                      <option value="">All</option>
+                      <option value="true">Verified</option>
+                      <option value="false">Unverified</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Region</label>
+                    <select
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                      value={museumsState.region}
+                      onChange={(e) => setMuseumsState(prev => ({ ...prev, region: e.target.value, page: 1 }))}
+                    >
+                      <option value="">All regions</option>
+                      <option value="Addis Ababa">Addis Ababa</option>
+                      <option value="Oromia">Oromia</option>
+                      <option value="Amhara">Amhara</option>
+                      <option value="Tigray">Tigray</option>
+                      <option value="SNNPR">SNNPR</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                    <select
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                      value={`${museumsState.sortBy}-${museumsState.sortOrder}`}
+                      onChange={(e) => {
+                        const [sortBy, sortOrder] = e.target.value.split('-');
+                        setMuseumsState(prev => ({ ...prev, sortBy, sortOrder, page: 1 }));
+                      }}
+                    >
+                      <option value="createdAt-desc">Newest First</option>
+                      <option value="createdAt-asc">Oldest First</option>
+                      <option value="name-asc">Name A-Z</option>
+                      <option value="name-desc">Name Z-A</option>
+                      <option value="status-asc">Status A-Z</option>
+                      <option value="status-desc">Status Z-A</option>
+                    </select>
+                  </div>
                 </div>
-                <div className="space-x-2">
-                  <button className="px-3 py-1 border rounded text-sm disabled:opacity-50" disabled={museumsState.page <= 1} onClick={() => setMuseumsState(prev => ({ ...prev, page: prev.page - 1 }))}>Prev</button>
-                  <button className="px-3 py-1 border rounded text-sm disabled:opacity-50" disabled={museumsState.page >= Math.ceil(museumsState.total / museumsState.limit)} onClick={() => setMuseumsState(prev => ({ ...prev, page: prev.page + 1 }))}>Next</button>
+              </div>
+
+              {/* Bulk Operations Bar */}
+              {museumBulkOperations.selectedMuseums.length > 0 && (
+                <div className="px-6 py-3 bg-blue-50 border-b border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-blue-700">
+                      {museumBulkOperations.selectedMuseums.length} museum(s) selected
+                    </span>
+                    <div className="flex items-center space-x-2">
+                      <select
+                        className="border border-gray-300 rounded px-2 py-1 text-sm"
+                        value={museumBulkOperations.action}
+                        onChange={(e) => setMuseumBulkOperations(prev => ({ ...prev, action: e.target.value }))}
+                      >
+                        <option value="">Select action...</option>
+                        <option value="approve">Approve</option>
+                        <option value="reject">Reject</option>
+                        <option value="suspend">Suspend</option>
+                        <option value="activate">Activate</option>
+                        <option value="deactivate">Deactivate</option>
+                        <option value="verify">Verify</option>
+                        <option value="unverify">Unverify</option>
+                        <option value="delete">Delete</option>
+                      </select>
+                      <button
+                        className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
+                        onClick={() => handleMuseumBulkAction(museumBulkOperations.action, museumBulkOperations.selectedMuseums)}
+                        disabled={museumBulkOperations.loading}
+                      >
+                        {museumBulkOperations.loading ? 'Processing...' : 'Apply'}
+                      </button>
+                      <button
+                        className="px-3 py-1 border border-gray-300 rounded text-sm"
+                        onClick={() => setMuseumBulkOperations(prev => ({ ...prev, selectedMuseums: [], action: '' }))}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="p-6">
+                {museumsState.error && (
+                  <div className="mb-4 text-red-600 text-sm">{museumsState.error}</div>
+                )}
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-2 text-left">
+                          <input
+                            type="checkbox"
+                            checked={museumBulkOperations.selectedMuseums.length === museumsState.items.length && museumsState.items.length > 0}
+                            onChange={handleSelectAllMuseums}
+                            className="rounded border-gray-300"
+                          />
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Verified</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {museumsState.loading ? (
+                        <tr><td colSpan="7" className="px-4 py-6 text-center text-gray-500">Loading...</td></tr>
+                      ) : museumsState.items.length === 0 ? (
+                        <tr><td colSpan="7" className="px-4 py-6 text-center text-gray-500">No museums found</td></tr>
+                      ) : (
+                        museumsState.items.map(m => (
+                          <tr key={m._id} className="hover:bg-gray-50">
+                            <td className="px-4 py-2">
+                              <input
+                                type="checkbox"
+                                checked={museumBulkOperations.selectedMuseums.includes(m._id)}
+                                onChange={() => handleSelectMuseum(m._id)}
+                                className="rounded border-gray-300"
+                              />
+                            </td>
+                            <td className="px-4 py-2 text-sm text-gray-900">{m.name}</td>
+                            <td className="px-4 py-2 text-sm text-gray-600">{m.location?.address || '-'}</td>
+                            <td className="px-4 py-2">
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${m.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                m.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                  m.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                    'bg-gray-100 text-gray-800'
+                                }`}>
+                                {m.status || 'Unknown'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2">
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${m.verified ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'
+                                }`}>
+                                {m.verified ? 'Verified' : 'Unverified'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2 text-sm text-gray-500">
+                              {m.createdAt ? new Date(m.createdAt).toLocaleDateString() : 'N/A'}
+                            </td>
+                            <td className="px-4 py-2 text-right space-x-2">
+                              <button
+                                className="text-blue-600 hover:text-blue-700 text-sm"
+                                onClick={() => {
+                                  if (m.status === 'approved') {
+                                    handleMuseumRejection(m._id, m.name);
+                                  } else {
+                                    handleMuseumBulkAction('approve', [m._id]);
+                                  }
+                                }}
+                              >
+                                {m.status === 'approved' ? 'Reject' : 'Approve'}
+                              </button>
+                              <button
+                                className="text-red-600 hover:text-red-700 text-sm"
+                                onClick={() => handleMuseumDelete(m._id, m.name)}
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Enhanced Pagination */}
+                <div className="flex items-center justify-between mt-4">
+                  <div className="text-sm text-gray-600">
+                    Showing {((museumsState.page - 1) * museumsState.limit) + 1} to {Math.min(museumsState.page * museumsState.limit, museumsState.total)} of {museumsState.total} museums
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      className="px-3 py-1 border rounded text-sm disabled:opacity-50"
+                      disabled={museumsState.page <= 1}
+                      onClick={() => setMuseumsState(prev => ({ ...prev, page: prev.page - 1 }))}
+                    >
+                      Previous
+                    </button>
+                    <span className="px-3 py-1 text-sm">
+                      Page {museumsState.page} of {Math.max(1, Math.ceil(museumsState.total / museumsState.limit))}
+                    </span>
+                    <button
+                      className="px-3 py-1 border rounded text-sm disabled:opacity-50"
+                      disabled={museumsState.page >= Math.ceil(museumsState.total / museumsState.limit)}
+                      onClick={() => setMuseumsState(prev => ({ ...prev, page: prev.page + 1 }))}
+                    >
+                      Next
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -841,11 +2053,217 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
         );
       case 'platform-analytics':
         return <AnalyticsDashboard />;
-      
+
+      case 'performance-analytics':
+        return <PerformanceAnalytics />;
+
+      case 'performance-metrics':
+        return <PerformanceMetricsDashboard />;
+
       case 'heritage-sites':
-        return <HeritageSiteManager />;
-      
-      
+        return (
+          <div className="space-y-6">
+            {/* Title */}
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Heritage Sites Management</h2>
+              <p className="text-gray-600">Manage Ethiopian cultural and heritage sites</p>
+            </div>
+
+            {/* Heritage Sites Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <div className="flex items-center">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <MapPin className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-2xl font-bold text-gray-900">{heritageSitesStats.totalSites || 0}</p>
+                    <p className="text-sm text-gray-600">Total Sites</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <div className="flex items-center">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-2xl font-bold text-gray-900">{heritageSitesStats.activeSites || 0}</p>
+                    <p className="text-sm text-gray-600">Active Sites</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <div className="flex items-center">
+                  <div className="p-2 bg-yellow-100 rounded-lg">
+                    <Award className="h-6 w-6 text-yellow-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-2xl font-bold text-gray-900">{heritageSitesStats.unescoSites || 0}</p>
+                    <p className="text-sm text-gray-600">UNESCO Sites</p>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Heritage Sites Management Section */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <div>
+                  <button
+                    className="flex items-center px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onClick={() => {
+                      loadHeritageSites();
+                      loadHeritageSitesStats();
+                    }}
+                    disabled={heritageSitesState.loading}
+                  >
+                    <RefreshCw className={`w-4 h-4 mr-1 ${heritageSitesState.loading ? 'animate-spin' : ''}`} />
+                    {heritageSitesState.loading ? 'Refreshing...' : 'Refresh'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6">
+                {heritageSitesState.error && (
+                  <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-center">
+                      <AlertTriangle className="h-5 w-5 text-red-400 mr-2" />
+                      <div>
+                        <h4 className="text-sm font-medium text-red-800">Connection Error</h4>
+                        <p className="text-sm text-red-700 mt-1">
+                          {heritageSitesState.error.includes('Failed to fetch')
+                            ? 'Server is not running. Please start the server to view heritage sites.'
+                            : heritageSitesState.error
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <HeritageSiteManager onDataChange={() => {
+                  loadHeritageSitesStats();
+                }} />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'rental-requests':
+        return (
+          <div className="space-y-6">
+            <RentalRequestManager />
+          </div>
+        );
+
+      case 'education-overview':
+        return (
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">Education Overview</h3>
+                <p className="text-sm text-gray-600">Educational content statistics and management</p>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="flex items-center">
+                      <GraduationCap className="h-8 w-8 text-blue-600" />
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-blue-600">Total Courses</p>
+                        <p className="text-2xl font-bold text-blue-900">24</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <div className="flex items-center">
+                      <Users2 className="h-8 w-8 text-green-600" />
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-green-600">Active Students</p>
+                        <p className="text-2xl font-bold text-green-900">156</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-yellow-50 p-4 rounded-lg">
+                    <div className="flex items-center">
+                      <FileText className="h-8 w-8 text-yellow-600" />
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-yellow-600">Assignments</p>
+                        <p className="text-2xl font-bold text-yellow-900">89</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-lg">
+                    <div className="flex items-center">
+                      <Presentation className="h-8 w-8 text-purple-600" />
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-purple-600">Educational Tours</p>
+                        <p className="text-2xl font-bold text-purple-900">12</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'course-management':
+        return (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Course Management</h3>
+              <p className="text-sm text-gray-600">Manage educational courses across the platform</p>
+            </div>
+            <div className="p-6">
+              <div className="text-center py-12">
+                <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">Course management interface will be implemented here</p>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'assignment-management':
+        return (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Assignment Management</h3>
+              <p className="text-sm text-gray-600">Oversee assignments and grading system</p>
+            </div>
+            <div className="p-6">
+              <div className="text-center py-12">
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">Assignment management interface will be implemented here</p>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'student-management':
+        return (
+          <SuperAdminProgressManagement />
+        );
+
+      case 'educational-tours':
+        return (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Educational Tours</h3>
+              <p className="text-sm text-gray-600">Manage educational tour programs</p>
+            </div>
+            <div className="p-6">
+              <div className="text-center py-12">
+                <Presentation className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">Educational tours management interface will be implemented here</p>
+              </div>
+            </div>
+          </div>
+        );
+
       case 'approval-feedback':
         return (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -930,8 +2348,8 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
             </div>
           </div>
         );
-      
-      
+
+
       case 'security':
         return (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -1045,7 +2463,7 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
             </div>
           </div>
         );
-      
+
       case 'audit-logs':
         return (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -1164,6 +2582,7 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
             </div>
           </div>
         );
+
       default:
         return renderDashboardContent();
     }
@@ -1176,9 +2595,9 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
         {/* Logo and User Info */}
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center space-x-3 mb-4">
-            <img 
-              src={logo} 
-              alt="Heritage 360 Logo" 
+            <img
+              src={logo}
+              alt="Heritage 360 Logo"
               className="w-12 h-12 rounded-lg object-cover"
             />
             <div>
@@ -1192,11 +2611,11 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
         <div className="flex-1 overflow-y-auto">
           {sidebarItems.map((section) => (
             <div key={section.category} className="p-4">
-              <div 
+              <div
                 className="flex items-center justify-between cursor-pointer mb-3"
-                onClick={() => setExpandedSections(prev => ({ 
-                  ...prev, 
-                  [section.category]: !prev[section.category] 
+                onClick={() => setExpandedSections(prev => ({
+                  ...prev,
+                  [section.category]: !prev[section.category]
                 }))}
               >
                 <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">
@@ -1208,7 +2627,7 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
                   <ChevronDown className="h-4 w-4 text-gray-400" />
                 )}
               </div>
-              
+
               {expandedSections[section.category] && (
                 <nav className="space-y-1">
                   {section.items.map((item) => {
@@ -1216,12 +2635,17 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
                     return (
                       <button
                         key={item.id}
-                        onClick={() => setActiveSection(item.id)}
-                        className={`w-full flex items-center space-x-3 px-3 py-2 text-left rounded-lg transition-colors ${
-                          activeSection === item.id
-                            ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
-                            : 'text-gray-700 hover:bg-gray-50'
-                        }`}
+                        onClick={() => {
+                          if (item.link) {
+                            navigate(item.link);
+                          } else {
+                            setActiveSection(item.id);
+                          }
+                        }}
+                        className={`w-full flex items-center space-x-3 px-3 py-2 text-left rounded-lg transition-colors ${activeSection === item.id
+                          ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
+                          : 'text-gray-700 hover:bg-gray-50'
+                          }`}
                       >
                         <Icon className="h-5 w-5" />
                         <span className="font-medium">{item.label}</span>
@@ -1237,9 +2661,9 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
         {/* User Profile */}
         <div className="p-4 border-t border-gray-200">
           <div className="flex items-center space-x-3 mb-3">
-            <img 
-              src={logo} 
-              alt="Super Admin" 
+            <img
+              src={logo}
+              alt="Super Admin"
               className="w-10 h-10 rounded-full object-cover"
             />
             <div className="flex-1">
@@ -1247,7 +2671,7 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
               <p className="text-xs text-gray-600">{user?.email || 'admin@heritage360.et'}</p>
             </div>
           </div>
-          <LogoutButton 
+          <LogoutButton
             variant="sidebar"
             className="w-full text-red-600 hover:bg-red-50"
             showConfirmModal={true}
@@ -1261,6 +2685,128 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
           {renderContent()}
         </div>
       </div>
+
+      {/* Museum Rejection Modal */}
+      {rejectionModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center mb-4">
+              <div className="flex-shrink-0">
+                <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-lg font-medium text-gray-900">Reject Museum</h3>
+              </div>
+            </div>
+            <div className="mb-4">
+              <p className="text-sm text-gray-500 mb-3">
+                Are you sure you want to reject <strong>{rejectionModal.museumName}</strong>?
+                Please provide a reason for rejection.
+              </p>
+              <textarea
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                rows="3"
+                placeholder="Enter reason for rejection..."
+                value={rejectionModal.reason}
+                onChange={(e) => setRejectionModal(prev => ({ ...prev, reason: e.target.value }))}
+              />
+            </div>
+            <div className="flex justify-end space-x-3">
+              <button
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                onClick={() => setRejectionModal({ isOpen: false, museumId: null, museumName: '', reason: '' })}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 text-sm font-medium text-white bg-yellow-600 border border-transparent rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                onClick={confirmMuseumRejection}
+                disabled={!rejectionModal.reason.trim()}
+              >
+                Reject Museum
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* User Deletion Modal */}
+      {userDeleteModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center mb-4">
+              <div className="flex-shrink-0">
+                <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-lg font-medium text-gray-900">Delete User</h3>
+              </div>
+            </div>
+            <div className="mb-4">
+              <p className="text-sm text-gray-500">
+                Are you sure you want to delete user <strong>{userDeleteModal.userName}</strong> ({userDeleteModal.userEmail})?
+                This action cannot be undone and will permanently remove the user and all their data.
+              </p>
+            </div>
+            <div className="flex justify-end space-x-3">
+              <button
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                onClick={() => setUserDeleteModal({ isOpen: false, userId: null, userName: '', userEmail: '' })}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                onClick={confirmUserDeletion}
+              >
+                Delete User
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Museum Deletion Modal */}
+      {deleteModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center mb-4">
+              <div className="flex-shrink-0">
+                <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-lg font-medium text-gray-900">Delete Museum</h3>
+              </div>
+            </div>
+            <div className="mb-4">
+              <p className="text-sm text-gray-500">
+                Are you sure you want to delete <strong>{deleteModal.museumName}</strong>?
+                This action cannot be undone and will permanently remove the museum and all its data.
+              </p>
+            </div>
+            <div className="flex justify-end space-x-3">
+              <button
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                onClick={() => setDeleteModal({ isOpen: false, museumId: null, museumName: '', action: '' })}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                onClick={confirmMuseumDelete}
+              >
+                Delete Museum
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

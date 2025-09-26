@@ -1,4 +1,4 @@
-import { api } from '../utils/api.js';
+import api from '../utils/api.js';
 
 class HeritageService {
   constructor() {
@@ -13,7 +13,7 @@ class HeritageService {
    */
   async getHeritageSites(filters = {}) {
     const cacheKey = `heritage_sites_${JSON.stringify(filters)}`;
-    
+
     if (this.cache.has(cacheKey)) {
       const cached = this.cache.get(cacheKey);
       if (Date.now() - cached.timestamp < this.cacheExpiry) {
@@ -26,9 +26,9 @@ class HeritageService {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
-      
+
       let sites = response.sites || response.data || response;
-      
+
       // Apply filters
       if (filters.type) {
         sites = sites.filter(site => site.type === filters.type);
@@ -39,13 +39,13 @@ class HeritageService {
       if (filters.unesco) {
         sites = sites.filter(site => site.isUnescoSite === filters.unesco);
       }
-      
+
       // Cache result
       this.cache.set(cacheKey, {
         data: sites,
         timestamp: Date.now()
       });
-      
+
       return sites;
     } catch (error) {
       // Return mock data for Ethiopian heritage sites
@@ -99,7 +99,7 @@ class HeritageService {
           image: 'https://picsum.photos/400/300?random=104'
         }
       ];
-      
+
       return mockSites;
     }
   }
@@ -125,7 +125,7 @@ class HeritageService {
    */
   async getCulturalTraditions() {
     const cacheKey = 'cultural_traditions';
-    
+
     if (this.cache.has(cacheKey)) {
       const cached = this.cache.get(cacheKey);
       if (Date.now() - cached.timestamp < this.cacheExpiry) {
@@ -136,12 +136,12 @@ class HeritageService {
     try {
       const response = await api.request('/heritage/traditions');
       const traditions = response.traditions || response.data || response;
-      
+
       this.cache.set(cacheKey, {
         data: traditions,
         timestamp: Date.now()
       });
-      
+
       return traditions;
     } catch (error) {
       // Return mock cultural traditions data
@@ -177,7 +177,7 @@ class HeritageService {
           image: 'https://picsum.photos/400/300?random=203'
         }
       ];
-      
+
       return mockTraditions;
     }
   }
@@ -188,7 +188,7 @@ class HeritageService {
    */
   async getHistoricalPeriods() {
     const cacheKey = 'historical_periods';
-    
+
     if (this.cache.has(cacheKey)) {
       const cached = this.cache.get(cacheKey);
       if (Date.now() - cached.timestamp < this.cacheExpiry) {
@@ -199,12 +199,12 @@ class HeritageService {
     try {
       const response = await api.request('/heritage/periods');
       const periods = response.periods || response.data || response;
-      
+
       this.cache.set(cacheKey, {
         data: periods,
         timestamp: Date.now()
       });
-      
+
       return periods;
     } catch (error) {
       // Return mock historical periods
@@ -234,7 +234,7 @@ class HeritageService {
           significance: 'Maintained independence except brief Italian occupation'
         }
       ];
-      
+
       return mockPeriods;
     }
   }
@@ -245,7 +245,7 @@ class HeritageService {
    */
   async getLanguageHeritage() {
     const cacheKey = 'language_heritage';
-    
+
     if (this.cache.has(cacheKey)) {
       const cached = this.cache.get(cacheKey);
       if (Date.now() - cached.timestamp < this.cacheExpiry) {
@@ -256,12 +256,12 @@ class HeritageService {
     try {
       const response = await api.request('/heritage/languages');
       const languages = response.languages || response.data || response;
-      
+
       this.cache.set(cacheKey, {
         data: languages,
         timestamp: Date.now()
       });
-      
+
       return languages;
     } catch (error) {
       // Return mock language data
@@ -294,7 +294,7 @@ class HeritageService {
           description: 'Spoken in Tigray region'
         }
       ];
-      
+
       return mockLanguages;
     }
   }
@@ -305,7 +305,7 @@ class HeritageService {
    */
   async getTraditionalArts() {
     const cacheKey = 'traditional_arts';
-    
+
     if (this.cache.has(cacheKey)) {
       const cached = this.cache.get(cacheKey);
       if (Date.now() - cached.timestamp < this.cacheExpiry) {
@@ -316,12 +316,12 @@ class HeritageService {
     try {
       const response = await api.request('/heritage/arts');
       const arts = response.arts || response.data || response;
-      
+
       this.cache.set(cacheKey, {
         data: arts,
         timestamp: Date.now()
       });
-      
+
       return arts;
     } catch (error) {
       // Return mock arts data
@@ -351,7 +351,7 @@ class HeritageService {
           significance: 'Cultural identity and storytelling'
         }
       ];
-      
+
       return mockArts;
     }
   }
@@ -402,7 +402,7 @@ class HeritageService {
           topics: ['Coffee ceremony', 'Traditional festivals', 'Social customs']
         }
       ];
-      
+
       return mockResources;
     }
   }
@@ -429,7 +429,7 @@ class HeritageService {
    */
   async getHeritageTimeline() {
     const cacheKey = 'heritage_timeline';
-    
+
     if (this.cache.has(cacheKey)) {
       const cached = this.cache.get(cacheKey);
       if (Date.now() - cached.timestamp < this.cacheExpiry) {
@@ -440,12 +440,12 @@ class HeritageService {
     try {
       const response = await api.request('/heritage/timeline');
       const timeline = response.timeline || response.data || response;
-      
+
       this.cache.set(cacheKey, {
         data: timeline,
         timestamp: Date.now()
       });
-      
+
       return timeline;
     } catch (error) {
       // Return mock timeline data
@@ -475,7 +475,7 @@ class HeritageService {
           significance: 'Beginning of Ethiopian Orthodox Christianity'
         }
       ];
-      
+
       return mockTimeline;
     }
   }

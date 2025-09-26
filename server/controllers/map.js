@@ -260,27 +260,52 @@ const ethiopianHeritageSites = [
 // Get all heritage sites
 const getHeritageSites = async (req, res) => {
   try {
-    const { category, region, type } = req.query;
-    
-    let sites = [...ethiopianHeritageSites];
-    
-    // Apply filters
+    const { category, region, type, designation } = req.query;
+
+    // Build query
+    const query = { status: 'active', verified: true };
+
     if (category) {
-      sites = sites.filter(site => site.category === category);
+      query.category = category;
     }
-    
+
     if (region) {
-      sites = sites.filter(site => site.region === region);
+      query['location.region'] = region;
     }
-    
+
     if (type) {
-      sites = sites.filter(site => site.type === type);
+      query.type = type;
     }
-    
+
+    if (designation) {
+      query.designation = designation;
+    }
+
+    // Fetch from database
+    const sites = await HeritageSite.find(query)
+      .select('name description location coordinates type category designation significance media.coverImage')
+      .sort({ featured: -1, 'tourism.annualVisitors': -1 })
+      .limit(100);
+
+    // Transform data for frontend compatibility
+    const transformedSites = sites.map(site => ({
+      id: site._id,
+      name: site.name,
+      description: site.description,
+      region: site.location.region,
+      category: site.designation,
+      lat: site.location.coordinates.latitude,
+      lng: site.location.coordinates.longitude,
+      type: site.type,
+      designation: site.designation,
+      significance: site.significance,
+      coverImage: site.media?.coverImage
+    }));
+
     res.json({
       success: true,
-      data: sites,
-      total: sites.length
+      data: transformedSites,
+      total: transformedSites.length
     });
   } catch (error) {
     console.error('Error fetching heritage sites:', error);
@@ -296,14 +321,14 @@ const getHeritageSite = async (req, res) => {
   try {
     const { id } = req.params;
     const site = ethiopianHeritageSites.find(s => s.id === parseInt(id));
-    
+
     if (!site) {
       return res.status(404).json({
         success: false,
         message: 'Heritage site not found'
       });
     }
-    
+
     res.json({
       success: true,
       data: site
@@ -321,31 +346,31 @@ const getHeritageSite = async (req, res) => {
 const getNearbyHeritageSites = async (req, res) => {
   try {
     const { lat, lng, radius = 100 } = req.query; // radius in km
-    
+
     if (!lat || !lng) {
       return res.status(400).json({
         success: false,
         message: 'Latitude and longitude are required'
       });
     }
-    
+
     const userLat = parseFloat(lat);
     const userLng = parseFloat(lng);
     const searchRadius = parseFloat(radius);
-    
+
     // Calculate distance using Haversine formula
     const calculateDistance = (lat1, lng1, lat2, lng2) => {
       const R = 6371; // Earth's radius in km
       const dLat = (lat2 - lat1) * Math.PI / 180;
       const dLng = (lng2 - lng1) * Math.PI / 180;
-      const a = 
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
         Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLng/2) * Math.sin(dLng/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       return R * c;
     };
-    
+
     const nearbySites = ethiopianHeritageSites
       .map(site => ({
         ...site,
@@ -353,7 +378,7 @@ const getNearbyHeritageSites = async (req, res) => {
       }))
       .filter(site => site.distance <= searchRadius)
       .sort((a, b) => a.distance - b.distance);
-    
+
     res.json({
       success: true,
       data: nearbySites,
@@ -374,7 +399,7 @@ const getSiteFilters = async (req, res) => {
     const categories = [...new Set(ethiopianHeritageSites.map(site => site.category))];
     const regions = [...new Set(ethiopianHeritageSites.map(site => site.region))];
     const types = [...new Set(ethiopianHeritageSites.map(site => site.type))];
-    
+
     res.json({
       success: true,
       data: {
@@ -396,14 +421,14 @@ const getSiteFilters = async (req, res) => {
 const searchHeritageSites = async (req, res) => {
   try {
     const { query } = req.query;
-    
+
     if (!query) {
       return res.status(400).json({
         success: false,
         message: 'Search query is required'
       });
     }
-    
+
     const searchTerm = query.toLowerCase();
     const results = ethiopianHeritageSites.filter(site =>
       site.name.toLowerCase().includes(searchTerm) ||
@@ -411,7 +436,7 @@ const searchHeritageSites = async (req, res) => {
       site.region.toLowerCase().includes(searchTerm) ||
       site.category.toLowerCase().includes(searchTerm)
     );
-    
+
     res.json({
       success: true,
       data: results,

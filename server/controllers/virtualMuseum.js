@@ -1,6 +1,10 @@
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const Booking = require('../models/Booking');
+const Artifact = require('../models/Artifact');
+const Museum = require('../models/Museum');
+const { uploadArtifactImages, upload3DModels } = require('../config/fileUpload');
 
 // Mock data for virtual museum artifacts
 const mockArtifacts = [
@@ -125,42 +129,108 @@ const mockVirtualTours = [
 // Get all artifacts
 const getArtifacts = async (req, res) => {
   try {
-    const { search, category, period, origin, museum, has3D } = req.query;
+    const { 
+      search, 
+      category, 
+      period, 
+      origin, 
+      museum, 
+      has3D,
+      featured,
+      status = 'active',
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      page = 1,
+      limit = 12
+    } = req.query;
+
+    // Build query filters
+    const filters = { status: status };
     
-    let artifacts = [...mockArtifacts];
-    
-    // Apply filters
     if (search) {
-      artifacts = artifacts.filter(artifact => 
-        artifact.name.toLowerCase().includes(search.toLowerCase()) ||
-        artifact.description.toLowerCase().includes(search.toLowerCase())
-      );
+      filters.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { tags: { $in: [new RegExp(search, 'i')] } },
+        { 'physicalCharacteristics.material': { $regex: search, $options: 'i' } },
+        { 'culturalSignificance.historicalContext': { $regex: search, $options: 'i' } }
+      ];
     }
     
     if (category) {
-      artifacts = artifacts.filter(artifact => artifact.category === category);
+      filters.category = category;
     }
     
     if (period) {
-      artifacts = artifacts.filter(artifact => artifact.period === period);
+      filters['historicalContext.period'] = period;
     }
     
     if (origin) {
-      artifacts = artifacts.filter(artifact => artifact.origin === origin);
+      filters['historicalContext.origin'] = origin;
     }
     
-    if (museum) {
-      artifacts = artifacts.filter(artifact => artifact.museum === museum);
+    if (museum && mongoose.isValidObjectId(museum)) {
+      filters.museum = museum;
     }
     
     if (has3D === 'true') {
-      artifacts = artifacts.filter(artifact => artifact.has3DModel === true);
+      filters['media.threeDModels.0'] = { $exists: true };
     }
     
+    if (featured === 'true') {
+      filters.featured = true;
+    }
+
+    // Build sort object
+    const sortOptions = {};
+    sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    // Execute query with pagination
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    const [artifacts, totalCount] = await Promise.all([
+      Artifact.find(filters)
+        .populate('museum', 'name location')
+        .sort(sortOptions)
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+      Artifact.countDocuments(filters)
+    ]);
+
+    // Transform artifacts to match frontend expectations
+    const transformedArtifacts = artifacts.map(artifact => ({
+      id: artifact._id,
+      name: artifact.name,
+      description: artifact.description,
+      image: artifact.media?.images?.[0]?.url || '/api/placeholder/300/200',
+      category: artifact.category,
+      period: artifact.historicalContext?.period,
+      origin: artifact.historicalContext?.origin,
+      museum: artifact.museum?.name || 'Unknown Museum',
+      has3DModel: artifact.media?.threeDModels?.length > 0,
+      views: artifact.analytics?.views || 0,
+      likes: artifact.analytics?.likes || 0,
+      rating: artifact.analytics?.averageRating || 0,
+      isFavorited: false, // Will be set based on user's favorites
+      featured: artifact.featured
+    }));
+
+    const totalPages = Math.ceil(totalCount / limitNum);
+
     res.json({
       success: true,
-      data: artifacts,
-      total: artifacts.length
+      data: transformedArtifacts,
+      pagination: {
+        currentPage: pageNum,
+        totalPages,
+        totalItems: totalCount,
+        hasNext: pageNum < totalPages,
+        hasPrev: pageNum > 1
+      },
+      total: totalCount
     });
   } catch (error) {
     console.error('Error fetching artifacts:', error);
@@ -175,7 +245,17 @@ const getArtifacts = async (req, res) => {
 const getArtifact = async (req, res) => {
   try {
     const { id } = req.params;
-    const artifact = mockArtifacts.find(a => a.id === parseInt(id));
+    
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid artifact ID'
+      });
+    }
+
+    const artifact = await Artifact.findById(id)
+      .populate('museum', 'name location contact')
+      .lean();
     
     if (!artifact) {
       return res.status(404).json({
@@ -184,12 +264,46 @@ const getArtifact = async (req, res) => {
       });
     }
     
-    // Increment view count (in a real app, this would update the database)
-    artifact.views += 1;
+    // Increment view count
+    await Artifact.findByIdAndUpdate(
+      id, 
+      { $inc: { 'analytics.views': 1 } },
+      { upsert: false }
+    );
+    
+    // Transform artifact to match frontend expectations
+    const transformedArtifact = {
+      id: artifact._id,
+      name: artifact.name,
+      description: artifact.description,
+      image: artifact.media?.images?.[0]?.url || '/api/placeholder/300/200',
+      images: artifact.media?.images || [],
+      category: artifact.category,
+      period: artifact.historicalContext?.period,
+      origin: artifact.historicalContext?.origin,
+      museum: artifact.museum?.name || 'Unknown Museum',
+      museumInfo: artifact.museum,
+      has3DModel: artifact.media?.threeDModels?.length > 0,
+      threeDModels: artifact.media?.threeDModels || [],
+      views: (artifact.analytics?.views || 0) + 1,
+      likes: artifact.analytics?.likes || 0,
+      rating: artifact.analytics?.averageRating || 0,
+      isFavorited: false, // Will be set based on user's favorites
+      featured: artifact.featured,
+      tags: artifact.tags || [],
+      physicalCharacteristics: artifact.physicalCharacteristics,
+      culturalSignificance: artifact.culturalSignificance,
+      historicalContext: artifact.historicalContext,
+      condition: artifact.condition,
+      location: artifact.location,
+      rentalInfo: artifact.rentalInfo,
+      createdAt: artifact.createdAt,
+      updatedAt: artifact.updatedAt
+    };
     
     res.json({
       success: true,
-      data: artifact
+      data: transformedArtifact
     });
   } catch (error) {
     console.error('Error fetching artifact:', error);
@@ -332,7 +446,14 @@ const toggleFavorite = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
     
-    const artifact = mockArtifacts.find(a => a.id === parseInt(id));
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid artifact ID'
+      });
+    }
+
+    const artifact = await Artifact.findById(id);
     if (!artifact) {
       return res.status(404).json({
         success: false,
@@ -340,23 +461,57 @@ const toggleFavorite = async (req, res) => {
       });
     }
     
-    // In a real app, toggle favorite in user's profile or favorites collection
-    // For now, just toggle the mock property
-    artifact.isFavorited = !artifact.isFavorited;
-    
-    if (artifact.isFavorited) {
-      artifact.likes += 1;
-    } else {
-      artifact.likes -= 1;
+    // Get user to check current favorites
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
     }
+
+    // Initialize favorites array if it doesn't exist
+    if (!user.favorites) {
+      user.favorites = [];
+    }
+
+    // Check if artifact is already favorited
+    const favoriteIndex = user.favorites.findIndex(fav => fav.toString() === id);
+    const isFavorited = favoriteIndex !== -1;
+
+    if (isFavorited) {
+      // Remove from favorites
+      user.favorites.splice(favoriteIndex, 1);
+      // Decrement likes count
+      await Artifact.findByIdAndUpdate(
+        id, 
+        { $inc: { 'analytics.likes': -1 } },
+        { upsert: false }
+      );
+    } else {
+      // Add to favorites
+      user.favorites.push(id);
+      // Increment likes count
+      await Artifact.findByIdAndUpdate(
+        id, 
+        { $inc: { 'analytics.likes': 1 } },
+        { upsert: false }
+      );
+    }
+
+    // Save user favorites
+    await user.save();
+
+    // Get updated artifact to return current like count
+    const updatedArtifact = await Artifact.findById(id, 'analytics.likes');
     
     res.json({
       success: true,
-      message: artifact.isFavorited ? 'Added to favorites' : 'Removed from favorites',
+      message: !isFavorited ? 'Added to favorites' : 'Removed from favorites',
       data: {
-        artifactId: artifact.id,
-        isFavorited: artifact.isFavorited,
-        totalLikes: artifact.likes
+        artifactId: id,
+        isFavorited: !isFavorited,
+        totalLikes: updatedArtifact?.analytics?.likes || 0
       }
     });
   } catch (error) {
@@ -371,18 +526,33 @@ const toggleFavorite = async (req, res) => {
 // Get artifact categories (for filters)
 const getArtifactCategories = async (req, res) => {
   try {
-    const categories = [...new Set(mockArtifacts.map(artifact => artifact.category))];
-    const periods = [...new Set(mockArtifacts.map(artifact => artifact.period))];
-    const origins = [...new Set(mockArtifacts.map(artifact => artifact.origin))];
-    const museums = [...new Set(mockArtifacts.map(artifact => artifact.museum))];
+    // Aggregate distinct values from the database
+    const [categoriesData, periodsData, originsData, museumsData] = await Promise.all([
+      Artifact.distinct('category', { status: 'active' }),
+      Artifact.distinct('historicalContext.period', { status: 'active' }),
+      Artifact.distinct('historicalContext.origin', { status: 'active' }),
+      Artifact.find({ status: 'active' })
+        .populate('museum', 'name')
+        .distinct('museum')
+        .then(museums => 
+          Museum.find({ _id: { $in: museums } }, 'name')
+            .then(museumDocs => museumDocs.map(m => m.name))
+        )
+    ]);
+    
+    // Filter out null/undefined values
+    const categories = categoriesData.filter(cat => cat && cat.trim());
+    const periods = periodsData.filter(period => period && period.trim());
+    const origins = originsData.filter(origin => origin && origin.trim());
+    const museums = museumsData.filter(museum => museum && museum.trim());
     
     res.json({
       success: true,
       data: {
-        categories,
-        periods,
-        origins,
-        museums
+        categories: categories.sort(),
+        periods: periods.sort(),
+        origins: origins.sort(),
+        museums: museums.sort()
       }
     });
   } catch (error) {

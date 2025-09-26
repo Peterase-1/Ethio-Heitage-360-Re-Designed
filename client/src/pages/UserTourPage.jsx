@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   MapPin, 
   Clock, 
@@ -13,22 +13,22 @@ import {
   Share2,
   ArrowLeft
 } from "lucide-react";
-import { Button } from "../ui/button";
-import { Card, CardContent, CardHeader } from "../ui/card";
-import { Input } from "../ui/input";
-import { Badge } from "../ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader } from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import { Badge } from "../components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "../ui/dialog";
-import { Textarea } from "../ui/textarea";
-import { Label } from "../ui/label";
-import { useDashboard } from "../../context/DashboardContext";
+} from "../components/ui/dialog";
+import { Textarea } from "../components/ui/textarea";
+import { Label } from "../components/ui/label";
+import { useDashboard } from "../context/DashboardContext";
 import { toast } from "sonner";
 
 function BookingModal({ tour, isOpen, onClose }) {
@@ -342,7 +342,9 @@ function MessageModal({ tour, isOpen, onClose }) {
 }
 
 export default function UserTourPage() {
-  const { tourPackages } = useDashboard();
+  const { loadPublicTours } = useDashboard();
+  const [tourPackages, setTourPackages] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [regionFilter, setRegionFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -351,6 +353,24 @@ export default function UserTourPage() {
   const [selectedTour, setSelectedTour] = useState(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
+
+  // Load public tours on mount
+  useEffect(() => {
+    const fetchTours = async () => {
+      try {
+        setLoading(true);
+        const tours = await loadPublicTours();
+        setTourPackages(tours || []);
+      } catch (error) {
+        console.error('Failed to load tours:', error);
+        setTourPackages([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTours();
+  }, [loadPublicTours]);
 
   // Filter tours
   const filteredTours = tourPackages

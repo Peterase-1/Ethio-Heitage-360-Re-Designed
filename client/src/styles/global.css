@@ -44,7 +44,7 @@
 
 :root {
   --radius: 0.625rem;
-  /* Ethiopian Heritage Light Mode Colors - White, Black, Brown only */
+  /* Ethiopian Heritage Enhanced Colors - Maintaining Brown Theme with Educational Enhancements */
   --background: oklch(98% 0 0); /* Pure White */
   --foreground: oklch(0.15 0.02 45); /* Dark Brown (almost black) */
   --card: oklch(100% 0 0); /* Pure White for cards */
@@ -76,6 +76,18 @@
   --sidebar-accent-foreground: oklch(0.15 0.02 45);
   --sidebar-border: oklch(90% 0 0);
   --sidebar-ring: oklch(0.35 0.04 45);
+  
+  /* Educational Enhancement Colors - Ethiopian Heritage Inspired */
+  --educational-primary: oklch(0.40 0.05 45); /* Warm Ethiopian Brown */
+  --educational-secondary: oklch(0.28 0.04 35); /* Coffee Brown */
+  --educational-accent: oklch(0.45 0.06 50); /* Golden Brown */
+  --educational-success: oklch(0.45 0.08 120); /* Ethiopian Green (subtle) */
+  --educational-warning: oklch(0.60 0.12 85); /* Ethiopian Gold */
+  --educational-info: oklch(0.50 0.04 240); /* Teal Blue (Ethiopian Highlands) */
+  --educational-progress: oklch(0.42 0.05 45); /* Progress Brown */
+  --educational-course-bg: oklch(97% 0.01 45); /* Warm White */
+  --educational-course-border: oklch(0.88 0.02 45); /* Soft Brown Border */
+  --educational-hover: oklch(0.32 0.04 45); /* Darker Brown on Hover */
 }
 
 .dark {
@@ -111,6 +123,18 @@
   --sidebar-accent-foreground: oklch(0.95 0 0);
   --sidebar-border: oklch(0.2 0 0);
   --sidebar-ring: oklch(0.25 0.02 45);
+  
+  /* Educational Enhancement Colors - Dark Mode */
+  --educational-primary: oklch(0.35 0.04 45); /* Lighter Brown for Dark Mode */
+  --educational-secondary: oklch(0.30 0.03 35); /* Coffee Brown */
+  --educational-accent: oklch(0.40 0.05 50); /* Golden Brown */
+  --educational-success: oklch(0.40 0.06 120); /* Muted Green */
+  --educational-warning: oklch(0.55 0.10 85); /* Muted Gold */
+  --educational-info: oklch(0.45 0.03 240); /* Muted Blue */
+  --educational-progress: oklch(0.38 0.04 45); /* Progress Brown */
+  --educational-course-bg: oklch(0.08 0 0); /* Very Dark */
+  --educational-course-border: oklch(0.18 0 0); /* Dark Border */
+  --educational-hover: oklch(0.28 0.03 45); /* Lighter Brown on Hover */
 }
 
 @layer base {

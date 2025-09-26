@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Debug Login</title>
 </head>
+
 <body>
     <h1>Login Test</h1>
-    
+
     <form id="loginForm">
         <div>
             <label>Email:</label>
@@ -19,21 +21,21 @@
         </div>
         <button type="submit">Login</button>
     </form>
-    
+
     <div id="result"></div>
 
     <script>
-        const API_BASE_URL = 'http://localhost:5000/api';
-        
+        const API_BASE_URL = 'http://localhost:5001/api';
+
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const resultDiv = document.getElementById('result');
-            
+
             console.log('Attempting login with:', { email, password: '***' });
-            
+
             try {
                 const response = await fetch(`${API_BASE_URL}/auth/login`, {
                     method: 'POST',
@@ -42,25 +44,25 @@
                     },
                     body: JSON.stringify({ email, password })
                 });
-                
+
                 console.log('Response status:', response.status);
                 console.log('Response headers:', [...response.headers.entries()]);
-                
+
                 const data = await response.json();
                 console.log('Response data:', data);
-                
+
                 if (!response.ok) {
                     resultDiv.innerHTML = `<p style="color: red;">Error: ${data.message}</p>`;
                     return;
                 }
-                
+
                 resultDiv.innerHTML = `<p style="color: green;">Login successful!</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
-                
+
                 // Store token if provided
                 if (data.token) {
                     localStorage.setItem('token', data.token);
                 }
-                
+
             } catch (error) {
                 console.error('Login error:', error);
                 resultDiv.innerHTML = `<p style="color: red;">Network error: ${error.message}</p>`;
@@ -68,4 +70,5 @@
         });
     </script>
 </body>
+
 </html>

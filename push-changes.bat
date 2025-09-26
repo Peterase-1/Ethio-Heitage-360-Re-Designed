@@ -1,0 +1,9 @@
+@echo off
+echo Adding changes...
+git add .
+echo Committing changes...
+git commit -m "Merge SuperAdminDashboard: Add educational features with heritage sites"
+echo Pushing to remote...
+git push origin main
+echo Done!
+pause

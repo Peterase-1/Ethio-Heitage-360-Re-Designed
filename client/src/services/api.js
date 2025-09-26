@@ -1,5 +1,5 @@
 // API configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 class ApiService {
   constructor() {
@@ -8,7 +8,7 @@ class ApiService {
 
   // Get auth token from localStorage
   getAuthToken() {
-    return localStorage.getItem('authToken');
+    return localStorage.getItem('token');
   }
 
   // Set default headers

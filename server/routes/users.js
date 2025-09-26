@@ -7,7 +7,7 @@ const {
   ROLES,
   PERMISSIONS
 } = require('../middleware/auth');
-const userController = require('../controllers/userController');
+const userController = require('../controllers/usersController');
 const { validateRequest } = require('../middleware/validation');
 const { body, param, query } = require('express-validator');
 

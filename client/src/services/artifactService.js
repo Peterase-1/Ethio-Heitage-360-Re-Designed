@@ -1,4 +1,4 @@
-import { api } from '../utils/api.js';
+import api from '../utils/api.js';
 
 class ArtifactService {
   constructor() {
@@ -13,7 +13,7 @@ class ArtifactService {
    */
   async getArtifacts(filters = {}) {
     const cacheKey = `artifacts_${JSON.stringify(filters)}`;
-    
+
     // Check cache first
     if (this.cache.has(cacheKey)) {
       const cached = this.cache.get(cacheKey);
@@ -25,13 +25,13 @@ class ArtifactService {
     try {
       const response = await api.getArtifacts(filters);
       const artifacts = response.artifacts || response.data || response;
-      
+
       // Cache the result
       this.cache.set(cacheKey, {
         data: artifacts,
         timestamp: Date.now()
       });
-      
+
       return artifacts;
     } catch (error) {
       console.error('Get artifacts error:', error);
@@ -46,7 +46,7 @@ class ArtifactService {
    */
   async getArtifactById(id) {
     const cacheKey = `artifact_${id}`;
-    
+
     // Check cache first
     if (this.cache.has(cacheKey)) {
       const cached = this.cache.get(cacheKey);
@@ -58,13 +58,13 @@ class ArtifactService {
     try {
       const response = await api.getArtifactById(id);
       const artifact = response.artifact || response.data || response;
-      
+
       // Cache the result
       this.cache.set(cacheKey, {
         data: artifact,
         timestamp: Date.now()
       });
-      
+
       return artifact;
     } catch (error) {
       console.error('Get artifact by ID error:', error);
@@ -80,10 +80,10 @@ class ArtifactService {
   async createArtifact(artifactData) {
     try {
       const response = await api.createArtifact(artifactData);
-      
+
       // Clear cache to force refresh
       this.clearCache();
-      
+
       return response.artifact || response.data || response;
     } catch (error) {
       console.error('Create artifact error:', error);
@@ -100,10 +100,10 @@ class ArtifactService {
   async updateArtifact(id, artifactData) {
     try {
       const response = await api.updateArtifact(id, artifactData);
-      
+
       // Clear cache to force refresh
       this.clearCache();
-      
+
       return response.artifact || response.data || response;
     } catch (error) {
       console.error('Update artifact error:', error);
@@ -119,10 +119,10 @@ class ArtifactService {
   async deleteArtifact(id) {
     try {
       const response = await api.deleteArtifact(id);
-      
+
       // Clear cache to force refresh
       this.clearCache();
-      
+
       return response;
     } catch (error) {
       console.error('Delete artifact error:', error);
@@ -141,7 +141,7 @@ class ArtifactService {
       ...filters,
       search: query
     };
-    
+
     return this.getArtifacts(searchFilters);
   }
 
@@ -156,7 +156,7 @@ class ArtifactService {
       ...filters,
       category
     };
-    
+
     return this.getArtifacts(categoryFilters);
   }
 
@@ -171,7 +171,7 @@ class ArtifactService {
       ...filters,
       museum: museumId
     };
-    
+
     return this.getArtifacts(museumFilters);
   }
 
@@ -185,7 +185,7 @@ class ArtifactService {
       featured: true,
       limit
     };
-    
+
     return this.getArtifacts(filters);
   }
 
@@ -200,7 +200,7 @@ class ArtifactService {
       sortOrder: 'desc',
       limit
     };
-    
+
     return this.getArtifacts(filters);
   }
 
@@ -215,7 +215,7 @@ class ArtifactService {
       ...filters,
       period
     };
-    
+
     return this.getArtifacts(periodFilters);
   }
 
@@ -328,7 +328,7 @@ class ArtifactService {
    */
   async getCategories() {
     const cacheKey = 'artifact_categories';
-    
+
     // Check cache first
     if (this.cache.has(cacheKey)) {
       const cached = this.cache.get(cacheKey);
@@ -340,13 +340,13 @@ class ArtifactService {
     try {
       const response = await api.request('/virtual-museum/artifacts/categories');
       const categories = response.categories || response.data || response;
-      
+
       // Cache the result
       this.cache.set(cacheKey, {
         data: categories,
         timestamp: Date.now()
       });
-      
+
       return categories;
     } catch (error) {
       console.error('Get categories error:', error);

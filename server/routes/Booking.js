@@ -1,11 +1,15 @@
 const express = require('express');
 const router = express.Router();
+const bookingsController = require('../controllers/bookingsController');
+const { auth } = require('../middleware/auth');
+const { validateRequest } = require('../middleware/validation');
+const { body, param, query } = require('express-validator');
+
+// Legacy imports for backward compatibility
 const mongoose = require('mongoose');
 const Booking = require('../models/Booking');
 const TourPackage = require('../models/TourPackage');
-const Message = require('../models/Message');
 const Notification = require('../models/Notification');
-const { auth } = require('../middleware/auth');
 
 // Get all bookings for an organizer
 router.get('/organizer/:organizerId', auth, async (req, res) => {
@@ -334,5 +338,77 @@ router.delete('/:id', auth, async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
+// New controller-based routes
+
+// POST /api/bookings - Create booking using new controller
+router.post('/v2', 
+  [
+    body('tourPackageId').isMongoId().withMessage('Valid tour package ID is required'),
+    body('customerName').notEmpty().withMessage('Customer name is required'),
+    body('customerEmail').isEmail().withMessage('Valid email is required'),
+    body('guests').isInt({ min: 1 }).withMessage('Number of guests must be at least 1'),
+    body('tourDate').isISO8601().withMessage('Valid tour date is required')
+  ],
+  validateRequest,
+  bookingsController.createBooking
+);
+
+// GET /api/bookings/v2 - Get all bookings using new controller
+router.get('/v2', 
+  [
+    query('page').optional().isInt({ min: 1 }).withMessage('Page must be positive'),
+    query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be 1-100'),
+    query('status').optional().isIn(['pending', 'confirmed', 'cancelled', 'completed', 'refunded'])
+  ],
+  validateRequest,
+  bookingsController.getAllBookings
+);
+
+// GET /api/bookings/v2/:id - Get booking by ID using new controller  
+router.get('/v2/:id',
+  [param('id').isMongoId().withMessage('Valid booking ID is required')],
+  validateRequest,
+  auth,
+  bookingsController.getBookingById
+);
+
+// PATCH /api/bookings/v2/:id/confirm - Confirm booking
+router.patch('/v2/:id/confirm',
+  [param('id').isMongoId().withMessage('Valid booking ID is required')],
+  validateRequest,
+  auth,
+  bookingsController.confirmBooking
+);
+
+// PATCH /api/bookings/v2/:id/cancel - Cancel booking
+router.patch('/v2/:id/cancel',
+  [
+    param('id').isMongoId().withMessage('Valid booking ID is required'),
+    body('reason').optional().isString().withMessage('Reason must be a string')
+  ],
+  validateRequest,
+  auth,
+  bookingsController.cancelBooking
+);
+
+// PATCH /api/bookings/v2/:id/payment - Process payment
+router.patch('/v2/:id/payment',
+  [
+    param('id').isMongoId().withMessage('Valid booking ID is required'),
+    body('amount').isNumeric().withMessage('Valid amount is required'),
+    body('method').isIn(['credit_card', 'bank_transfer', 'cash', 'mobile_money']),
+    body('transactionId').optional().isString()
+  ],
+  validateRequest,
+  auth,
+  bookingsController.processPayment
+);
+
+// GET /api/bookings/v2/stats - Get booking statistics
+router.get('/v2/stats',
+  auth,
+  bookingsController.getBookingStats
+);
 
 module.exports = router;

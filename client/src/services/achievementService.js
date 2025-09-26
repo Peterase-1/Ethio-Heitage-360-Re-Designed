@@ -1,4 +1,4 @@
-import { api } from '../utils/api.js';
+import api from '../utils/api.js';
 
 class AchievementService {
   constructor() {
@@ -14,7 +14,7 @@ class AchievementService {
     try {
       const response = await api.request('/user/achievements');
       const serverAchievements = response.achievements || response.data || response;
-      
+
       // Merge with local achievements
       const localAchievements = this.getLocalAchievements();
       return this.mergeAchievements(serverAchievements, localAchievements);
@@ -50,15 +50,15 @@ class AchievementService {
         method: 'POST',
         body: { activityType, activityData }
       });
-      
+
       const newAchievements = response.newAchievements || response.data || [];
-      
+
       // Store locally and notify listeners
       if (newAchievements.length > 0) {
         this.addLocalAchievements(newAchievements);
         this.notifyListeners('achievements_unlocked', newAchievements);
       }
-      
+
       return newAchievements;
     } catch (error) {
       console.error('Check achievements error:', error);
@@ -172,7 +172,7 @@ class AchievementService {
    */
   subscribe(callback) {
     this.listeners.push(callback);
-    
+
     return () => {
       const index = this.listeners.indexOf(callback);
       if (index > -1) {
@@ -220,7 +220,7 @@ class AchievementService {
     try {
       const existing = this.getLocalAchievements();
       const merged = [...existing];
-      
+
       achievements.forEach(newAchievement => {
         if (!merged.some(a => a.id === newAchievement.id)) {
           merged.push({
@@ -229,7 +229,7 @@ class AchievementService {
           });
         }
       });
-      
+
       localStorage.setItem(this.localStorageKey, JSON.stringify(merged));
     } catch (error) {
       console.error('Add local achievements error:', error);
@@ -244,14 +244,14 @@ class AchievementService {
    */
   mergeAchievements(serverAchievements, localAchievements) {
     const merged = [...(serverAchievements || [])];
-    
+
     // Add local achievements that don't exist on server
     localAchievements.forEach(localAchievement => {
       if (!merged.some(serverAchievement => serverAchievement.id === localAchievement.id)) {
         merged.push(localAchievement);
       }
     });
-    
+
     // Sort by earned date (most recent first)
     return merged.sort((a, b) => new Date(b.earnedAt) - new Date(a.earnedAt));
   }
@@ -266,14 +266,14 @@ class AchievementService {
     const newAchievements = [];
     const currentAchievements = this.getLocalAchievements();
     const availableAchievements = this.getMockAvailableAchievements();
-    
+
     // Check each available achievement
     availableAchievements.forEach(achievement => {
       // Skip if already earned
       if (currentAchievements.some(a => a.id === achievement.id)) {
         return;
       }
-      
+
       // Check achievement conditions
       if (this.checkAchievementConditions(achievement, activityType, activityData)) {
         const unlockedAchievement = {
@@ -284,11 +284,11 @@ class AchievementService {
         newAchievements.push(unlockedAchievement);
       }
     });
-    
+
     if (newAchievements.length > 0) {
       this.addLocalAchievements(newAchievements);
     }
-    
+
     return newAchievements;
   }
 
@@ -304,28 +304,28 @@ class AchievementService {
     switch (achievement.id) {
       case 'first_visit':
         return activityType === 'page_visit';
-      
+
       case 'first_artifact_view':
         return activityType === 'artifact_view';
-      
+
       case 'first_tour_booking':
         return activityType === 'tour_booking';
-      
+
       case 'first_lesson_complete':
         return activityType === 'lesson_complete';
-      
+
       case 'history_buff':
-        return activityType === 'lesson_complete' && 
-               this.getCompletedLessonsCount('history') >= 5;
-      
+        return activityType === 'lesson_complete' &&
+          this.getCompletedLessonsCount('history') >= 5;
+
       case 'artifact_hunter':
-        return activityType === 'artifact_view' && 
-               this.getViewedArtifactsCount() >= 10;
-      
+        return activityType === 'artifact_view' &&
+          this.getViewedArtifactsCount() >= 10;
+
       case 'social_butterfly':
-        return activityType === 'comment_post' || 
-               activityType === 'review_submit';
-      
+        return activityType === 'comment_post' ||
+          activityType === 'review_submit';
+
       default:
         return false;
     }
@@ -340,7 +340,7 @@ class AchievementService {
   generateShareContent(achievement, platform) {
     const baseText = `I just unlocked "${achievement.name}" on Ethiopian Heritage 360! ${achievement.description}`;
     const url = 'https://ethiopianheritage360.com';
-    
+
     const shareContent = {
       twitter: {
         text: baseText + ' #EthiopianHeritage #Achievement',
@@ -360,7 +360,7 @@ class AchievementService {
         text: baseText + ' ' + url
       }
     };
-    
+
     return shareContent[platform] || { text: baseText, url: url };
   }
 
@@ -375,7 +375,7 @@ class AchievementService {
     try {
       const progress = JSON.parse(localStorage.getItem('ethio_heritage_learning_progress') || '{}');
       const lessons = progress.lessons || {};
-      return Object.values(lessons).filter(lesson => 
+      return Object.values(lessons).filter(lesson =>
         lesson.status === 'completed' && lesson.category === category
       ).length;
     } catch (error) {

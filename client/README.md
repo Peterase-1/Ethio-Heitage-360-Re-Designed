@@ -1,6 +1,6 @@
-# Tour Organizer Dashboard
+# Ethiopian Heritage 360° - Cultural Heritage Platform
 
-A professional tour management dashboard built with React, Tailwind CSS, and modern UI components.
+A comprehensive React-based platform for exploring Ethiopian cultural heritage through virtual museums, interactive maps, educational content, and immersive experiences.
 
 ## 🚀 Quick Start
 
@@ -17,20 +17,37 @@ npm install
 npm run dev
 ```
 
-### Access the Dashboard
+### Access the Application
 Open your browser and navigate to:
 ```
-http://localhost:5173/tour-organizer
+http://localhost:5173
 ```
 
-## 🎯 Features
+## 🎯 Core Features
 
-### Dashboard Overview
-- **Welcome Section**: Personalized greeting with gradient background
-- **Summary Cards**: Key metrics (Total Tours, Upcoming Bookings, Completed Tours, Pending Requests)
-- **Quick Actions**: One-click access to common tasks
-- **Recent Activities**: Real-time activity feed
-- **Calendar View**: Interactive calendar with tour events
+### 🏛️ Virtual Museums
+- **3D Artifact Viewing**: Interactive 3D models using Three.js
+- **Virtual Exhibitions**: Curated collections of Ethiopian heritage
+- **AR/VR Support**: Immersive experiences for compatible devices
+- **High-Resolution Images**: Detailed artifact photography
+
+### 🗺️ Interactive Heritage Map
+- **GPS Integration**: Discover heritage sites across Ethiopia
+- **Detailed Site Information**: Historical context and visiting details
+- **Route Planning**: Navigation assistance to heritage locations
+- **Multi-layer Mapping**: Different views and data layers
+
+### 📚 Educational Content
+- **Comprehensive Courses**: Learn about Ethiopian culture and history
+- **Interactive Study Guides**: Engaging learning materials
+- **Progress Tracking**: Monitor learning achievements
+- **Certification System**: Earn certificates upon course completion
+
+### 🌍 Multi-language Support
+- **English** (Default)
+- **Amharic** (አማርኛ)
+- **Oromo** (Afaan Oromoo)
+- **Tigrinya** (ትግርኛ)
 
 ### Navigation
 - **Collapsible Sidebar**: Responsive navigation with icons

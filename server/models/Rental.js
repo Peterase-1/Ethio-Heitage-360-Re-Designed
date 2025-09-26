@@ -6,7 +6,7 @@ const rentalSchema = new mongoose.Schema({
     type: String,
     unique: true,
     required: true,
-    default: function() {
+    default: function () {
       return 'REQ-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
     }
   },
@@ -25,7 +25,62 @@ const rentalSchema = new mongoose.Schema({
     ref: 'User',
     required: [true, 'Renter is required']
   },
-  
+
+  // NEW: Rental direction - who is requesting from whom
+  rentalDirection: {
+    type: String,
+    enum: ['museum_to_superadmin', 'superadmin_to_museum'],
+    required: true,
+    default: 'museum_to_superadmin'
+  },
+
+  // NEW: For 3D digitization and virtual museum
+  isForVirtualMuseum: {
+    type: Boolean,
+    default: false
+  },
+
+  virtualMuseumDetails: {
+    purpose: {
+      type: String,
+      enum: ['3d_modeling', 'virtual_exhibition', 'educational_content', 'research', 'other'],
+      default: '3d_modeling'
+    },
+    expectedCompletionDate: Date,
+    modelRequirements: String,
+    qualityStandard: {
+      type: String,
+      enum: ['standard', 'high', 'museum_grade'],
+      default: 'standard'
+    },
+    technicalSpecs: {
+      resolution: String,
+      format: String,
+      textureQuality: String,
+      animationRequired: { type: Boolean, default: false }
+    }
+  },
+
+  // NEW: 3D Model information (uploaded by Super Admin)
+  modelInfo: {
+    modelId: String,
+    modelUrl: String,
+    thumbnailUrl: String,
+    fileSize: Number,
+    uploadDate: Date,
+    uploadBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    isApproved: { type: Boolean, default: false },
+    approvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    approvedDate: Date,
+    notes: String
+  },
+
   // Renter Information
   renterInfo: {
     name: {
@@ -65,7 +120,7 @@ const rentalSchema = new mongoose.Schema({
   },
   rentalType: {
     type: String,
-    enum: ['exhibition', 'research', 'educational', 'commercial', 'other'],
+    enum: ['exhibition', 'research', 'educational', 'commercial', 'other', 'virtual_museum'],
     required: [true, 'Rental type is required']
   },
   purpose: {
@@ -185,7 +240,10 @@ const rentalSchema = new mongoose.Schema({
       'completed',
       'overdue',
       'cancelled',
-      'dispute'
+      'dispute',
+      'digitization_in_progress',
+      'model_uploaded',
+      'virtual_museum_ready'
     ],
     default: 'pending_review'
   },
@@ -334,7 +392,7 @@ rentalSchema.index({ 'requestedDuration.startDate': 1, 'requestedDuration.endDat
 rentalSchema.index({ status: 1, createdAt: -1 });
 
 // Virtual for total duration
-rentalSchema.virtual('totalDays').get(function() {
+rentalSchema.virtual('totalDays').get(function () {
   if (this.actualDuration.startDate && this.actualDuration.endDate) {
     return Math.ceil((this.actualDuration.endDate - this.actualDuration.startDate) / (1000 * 60 * 60 * 24));
   }
@@ -342,7 +400,7 @@ rentalSchema.virtual('totalDays').get(function() {
 });
 
 // Virtual for days remaining
-rentalSchema.virtual('daysRemaining').get(function() {
+rentalSchema.virtual('daysRemaining').get(function () {
   if (this.status === 'active' && this.actualDuration.endDate) {
     const today = new Date();
     const endDate = new Date(this.actualDuration.endDate);
@@ -353,7 +411,7 @@ rentalSchema.virtual('daysRemaining').get(function() {
 });
 
 // Virtual for overdue status
-rentalSchema.virtual('isOverdue').get(function() {
+rentalSchema.virtual('isOverdue').get(function () {
   if (this.status === 'active' && this.actualDuration.endDate) {
     return new Date() > new Date(this.actualDuration.endDate);
   }
@@ -361,31 +419,31 @@ rentalSchema.virtual('isOverdue').get(function() {
 });
 
 // Static methods
-rentalSchema.statics.findByStatus = function(status) {
+rentalSchema.statics.findByStatus = function (status) {
   return this.find({ status }).populate('artifact museum renter');
 };
 
-rentalSchema.statics.findOverdue = function() {
+rentalSchema.statics.findOverdue = function () {
   return this.find({
     status: 'active',
     'actualDuration.endDate': { $lt: new Date() }
   }).populate('artifact museum renter');
 };
 
-rentalSchema.statics.findPendingApproval = function() {
+rentalSchema.statics.findPendingApproval = function () {
   return this.find({
     status: 'pending_review'
   }).populate('artifact museum renter');
 };
 
 // Pre-save middleware
-rentalSchema.pre('save', function(next) {
+rentalSchema.pre('save', function (next) {
   // Calculate duration if not set
   if (this.requestedDuration.startDate && this.requestedDuration.endDate && !this.requestedDuration.duration) {
     const diffTime = Math.abs(this.requestedDuration.endDate - this.requestedDuration.startDate);
     this.requestedDuration.duration = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
-  
+
   // Calculate total amount
   if (this.pricing.dailyRate && this.requestedDuration.duration) {
     this.pricing.totalAmount = this.pricing.dailyRate * this.requestedDuration.duration;
@@ -394,7 +452,7 @@ rentalSchema.pre('save', function(next) {
   // Risk Assessment
   const isHighValue = this.pricing.totalAmount > this.riskAssessment.valueThreshold;
   const isInternational = this.renterInfo.address.country !== 'Ethiopia';
-  
+
   this.riskAssessment.isHighValue = isHighValue;
   this.riskAssessment.isInternational = isInternational;
   this.riskAssessment.requiresSuperAdminApproval = isHighValue || isInternational;
@@ -403,12 +461,12 @@ rentalSchema.pre('save', function(next) {
   if (this.riskAssessment.requiresSuperAdminApproval && this.approvals.superAdmin.status === 'not_required') {
     this.approvals.superAdmin.status = 'pending';
   }
-  
+
   next();
 });
 
 // Method to add timeline entry
-rentalSchema.methods.addTimelineEntry = function(event, description, user) {
+rentalSchema.methods.addTimelineEntry = function (event, description, user) {
   this.timeline.push({
     event,
     description,
@@ -419,7 +477,7 @@ rentalSchema.methods.addTimelineEntry = function(event, description, user) {
 };
 
 // Method to add communication
-rentalSchema.methods.addCommunication = function(from, to, message, type = 'message') {
+rentalSchema.methods.addCommunication = function (from, to, message, type = 'message') {
   this.communications.push({
     from,
     to,
@@ -431,16 +489,16 @@ rentalSchema.methods.addCommunication = function(from, to, message, type = 'mess
 };
 
 // Method to approve by museum admin
-rentalSchema.methods.approveByMuseumAdmin = async function(adminUserId, comments = '', conditions = '') {
+rentalSchema.methods.approveByMuseumAdmin = async function (adminUserId, comments = '', conditions = '') {
   this.approvals.museumAdmin.status = 'approved';
   this.approvals.museumAdmin.approvedBy = adminUserId;
   this.approvals.museumAdmin.approvedAt = new Date();
   this.approvals.museumAdmin.comments = comments;
   this.approvals.museumAdmin.conditions = conditions;
-  
+
   // Add timeline entry
   await this.addTimelineEntry('museum_admin_approved', 'Approved by museum admin', adminUserId);
-  
+
   // If super admin approval is not required, approve the rental
   if (!this.riskAssessment.requiresSuperAdminApproval) {
     this.status = 'approved';
@@ -449,61 +507,61 @@ rentalSchema.methods.approveByMuseumAdmin = async function(adminUserId, comments
     this.status = 'pending_review';
     await this.addTimelineEntry('escalated', 'Escalated to super admin for approval', adminUserId);
   }
-  
+
   return this.save();
 };
 
 // Method to reject by museum admin
-rentalSchema.methods.rejectByMuseumAdmin = async function(adminUserId, comments = '') {
+rentalSchema.methods.rejectByMuseumAdmin = async function (adminUserId, comments = '') {
   this.approvals.museumAdmin.status = 'rejected';
   this.approvals.museumAdmin.approvedBy = adminUserId;
   this.approvals.museumAdmin.approvedAt = new Date();
   this.approvals.museumAdmin.comments = comments;
   this.status = 'rejected';
-  
+
   await this.addTimelineEntry('rejected', 'Rejected by museum admin: ' + comments, adminUserId);
   return this.save();
 };
 
 // Method to approve by super admin
-rentalSchema.methods.approveBySuperAdmin = async function(superAdminUserId, comments = '', specialConditions = '') {
+rentalSchema.methods.approveBySuperAdmin = async function (superAdminUserId, comments = '', specialConditions = '') {
   this.approvals.superAdmin.status = 'approved';
   this.approvals.superAdmin.approvedBy = superAdminUserId;
   this.approvals.superAdmin.approvedAt = new Date();
   this.approvals.superAdmin.comments = comments;
   this.approvals.superAdmin.specialConditions = specialConditions;
   this.status = 'approved';
-  
+
   await this.addTimelineEntry('super_admin_approved', 'Final approval by super admin', superAdminUserId);
   await this.addTimelineEntry('approved', 'Rental fully approved', superAdminUserId);
-  
+
   return this.save();
 };
 
 // Method to reject by super admin
-rentalSchema.methods.rejectBySuperAdmin = async function(superAdminUserId, comments = '') {
+rentalSchema.methods.rejectBySuperAdmin = async function (superAdminUserId, comments = '') {
   this.approvals.superAdmin.status = 'rejected';
   this.approvals.superAdmin.approvedBy = superAdminUserId;
   this.approvals.superAdmin.approvedAt = new Date();
   this.approvals.superAdmin.comments = comments;
   this.status = 'rejected';
-  
+
   await this.addTimelineEntry('rejected', 'Rejected by super admin: ' + comments, superAdminUserId);
   return this.save();
 };
 
 // Method to escalate to super admin
-rentalSchema.methods.escalateToSuperAdmin = async function(adminUserId, reason = '') {
+rentalSchema.methods.escalateToSuperAdmin = async function (adminUserId, reason = '') {
   this.approvals.museumAdmin.approvalLevel = 'escalate';
   this.approvals.superAdmin.status = 'pending';
   this.status = 'pending_review';
-  
+
   await this.addTimelineEntry('escalated', 'Escalated to super admin: ' + reason, adminUserId);
   return this.save();
 };
 
 // Static method to find rentals requiring museum admin approval
-rentalSchema.statics.findPendingMuseumAdminApproval = function(museumId) {
+rentalSchema.statics.findPendingMuseumAdminApproval = function (museumId) {
   return this.find({
     museum: museumId,
     'approvals.museumAdmin.status': 'pending',
@@ -512,7 +570,7 @@ rentalSchema.statics.findPendingMuseumAdminApproval = function(museumId) {
 };
 
 // Static method to find rentals requiring super admin approval
-rentalSchema.statics.findPendingSuperAdminApproval = function() {
+rentalSchema.statics.findPendingSuperAdminApproval = function () {
   return this.find({
     'approvals.superAdmin.status': 'pending',
     status: 'pending_review'
@@ -520,7 +578,7 @@ rentalSchema.statics.findPendingSuperAdminApproval = function() {
 };
 
 // Static method to get rental statistics for museum
-rentalSchema.statics.getMuseumStats = async function(museumId) {
+rentalSchema.statics.getMuseumStats = async function (museumId) {
   const stats = await this.aggregate([
     { $match: { museum: new mongoose.Types.ObjectId(museumId) } },
     {
@@ -537,15 +595,15 @@ rentalSchema.statics.getMuseumStats = async function(museumId) {
       }
     }
   ]);
-  
+
   return stats[0] || {
-    total: 0, pending: 0, approved: 0, active: 0, 
+    total: 0, pending: 0, approved: 0, active: 0,
     completed: 0, rejected: 0, totalRevenue: 0, averageValue: 0
   };
 };
 
 // Static method to get platform-wide rental statistics
-rentalSchema.statics.getPlatformStats = async function() {
+rentalSchema.statics.getPlatformStats = async function () {
   const stats = await this.aggregate([
     {
       $group: {
@@ -563,7 +621,7 @@ rentalSchema.statics.getPlatformStats = async function() {
       }
     }
   ]);
-  
+
   return stats[0] || {
     total: 0, pending: 0, approved: 0, active: 0, completed: 0, rejected: 0,
     highValue: 0, international: 0, totalRevenue: 0, averageValue: 0
@@ -571,12 +629,12 @@ rentalSchema.statics.getPlatformStats = async function() {
 };
 
 // Method to check if rental needs super admin approval
-rentalSchema.methods.needsSuperAdminApproval = function() {
+rentalSchema.methods.needsSuperAdminApproval = function () {
   return this.riskAssessment.requiresSuperAdminApproval;
 };
 
 // Virtual for approval status summary
-rentalSchema.virtual('approvalStatusSummary').get(function() {
+rentalSchema.virtual('approvalStatusSummary').get(function () {
   if (this.approvals.superAdmin.status === 'approved') return 'fully_approved';
   if (this.approvals.superAdmin.status === 'rejected') return 'rejected_super_admin';
   if (this.approvals.museumAdmin.status === 'rejected') return 'rejected_museum_admin';

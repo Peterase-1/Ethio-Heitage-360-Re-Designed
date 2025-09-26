@@ -2,15 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import api from '../utils/api';
 import LogoutButton from '../components/common/LogoutButton';
-import { 
-  Building2, 
-  Users, 
-  Package, 
-  Calendar, 
-  TrendingUp, 
-  Bell, 
+import {
+  Building2,
+  Users,
+  Package,
+  Calendar,
+  TrendingUp,
+  Bell,
   Settings,
-  FileCheck, 
+  FileCheck,
   DollarSign,
   BarChart3,
   Home,
@@ -142,51 +142,51 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
   });
 
   // Modals state
-  const [artifactModal, setArtifactModal] = useState({ 
-    open: false, 
-    mode: 'create', 
-    data: { 
-      name: '', 
-      description: '', 
-      category: '', 
-      period: '', 
+  const [artifactModal, setArtifactModal] = useState({
+    open: false,
+    mode: 'create',
+    data: {
+      name: '',
+      description: '',
+      category: '',
+      period: '',
       images: [],
       isAvailableForRental: false,
       rentalPrice: 0
-    }, 
-    submitting: false, 
-    error: '' 
+    },
+    submitting: false,
+    error: ''
   });
 
-  const [staffModal, setStaffModal] = useState({ 
-    open: false, 
-    mode: 'create', 
-    data: { 
-      name: '', 
-      email: '', 
-      role: 'curator', 
+  const [staffModal, setStaffModal] = useState({
+    open: false,
+    mode: 'create',
+    data: {
+      name: '',
+      email: '',
+      role: 'curator',
       permissions: [],
-      isActive: true 
-    }, 
-    submitting: false, 
-    error: '' 
+      isActive: true
+    },
+    submitting: false,
+    error: ''
   });
 
-  const [eventModal, setEventModal] = useState({ 
-    open: false, 
-    mode: 'create', 
-    data: { 
-      title: '', 
-      description: '', 
-      date: '', 
-      time: '', 
-      duration: '', 
+  const [eventModal, setEventModal] = useState({
+    open: false,
+    mode: 'create',
+    data: {
+      title: '',
+      description: '',
+      date: '',
+      time: '',
+      duration: '',
       capacity: 0,
       price: 0,
       isPublic: true
-    }, 
-    submitting: false, 
-    error: '' 
+    },
+    submitting: false,
+    error: ''
   });
 
   const [virtualSubmissionModal, setVirtualSubmissionModal] = useState({
@@ -242,18 +242,19 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
       setMuseumProfile(prev => ({ ...prev, loading: true, error: '' }));
       try {
         const response = await api.getMuseumProfile();
-        if (response.museum) {
-          setMuseumProfile(prev => ({ 
-            ...prev, 
-            ...response.museum, 
-            loading: false 
+        if (response.data) {
+          const museumData = response.data.museum || response.data;
+          setMuseumProfile(prev => ({
+            ...prev,
+            ...museumData,
+            loading: false
           }));
         } else {
           setMuseumProfile(prev => ({ ...prev, loading: false }));
         }
       } catch (error) {
-        setMuseumProfile(prev => ({ 
-          ...prev, 
+        setMuseumProfile(prev => ({
+          ...prev,
           loading: false,
           error: 'Failed to load museum profile. Please check your connection and try again.'
         }));
@@ -405,7 +406,7 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button 
+          <button
             onClick={() => setActiveSection('artifact-management')}
             className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all"
           >
@@ -415,7 +416,7 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
               <div className="text-sm text-gray-500">Add new item to collection</div>
             </div>
           </button>
-          <button 
+          <button
             onClick={() => setActiveSection('event-management')}
             className="p-4 border border-gray-200 rounded-lg hover:border-green-300 hover:shadow-sm transition-all"
           >
@@ -425,7 +426,7 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
               <div className="text-sm text-gray-500">Schedule new exhibition</div>
             </div>
           </button>
-          <button 
+          <button
             onClick={() => setActiveSection('virtual-submissions')}
             className="p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:shadow-sm transition-all"
           >
@@ -601,20 +602,20 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
           <p className="text-gray-600 mt-1">Manage your museum's artifact collection</p>
         </div>
         <button
-          onClick={() => setArtifactModal({ 
-            open: true, 
-            mode: 'create', 
-            data: { 
-              name: '', 
-              description: '', 
-              category: '', 
-              period: '', 
+          onClick={() => setArtifactModal({
+            open: true,
+            mode: 'create',
+            data: {
+              name: '',
+              description: '',
+              category: '',
+              period: '',
               images: [],
               isAvailableForRental: false,
               rentalPrice: 0
-            }, 
-            submitting: false, 
-            error: '' 
+            },
+            submitting: false,
+            error: ''
           })}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
         >
@@ -633,10 +634,10 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
                 type="text"
                 placeholder="Search artifacts..."
                 value={artifactsState.searchTerm}
-                onChange={(e) => setArtifactsState(prev => ({ 
-                  ...prev, 
-                  searchTerm: e.target.value, 
-                  page: 1 
+                onChange={(e) => setArtifactsState(prev => ({
+                  ...prev,
+                  searchTerm: e.target.value,
+                  page: 1
                 }))}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
@@ -644,10 +645,10 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
           </div>
           <select
             value={artifactsState.category}
-            onChange={(e) => setArtifactsState(prev => ({ 
-              ...prev, 
-              category: e.target.value, 
-              page: 1 
+            onChange={(e) => setArtifactsState(prev => ({
+              ...prev,
+              category: e.target.value,
+              page: 1
             }))}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
@@ -720,25 +721,24 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
                       {artifact.isAvailableForRental ? `₹${artifact.rentalPrice.toLocaleString()}` : 'Not for rent'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        artifact.status === 'approved' 
-                          ? 'bg-green-100 text-green-800' 
-                          : artifact.status === 'pending'
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${artifact.status === 'approved'
+                        ? 'bg-green-100 text-green-800'
+                        : artifact.status === 'pending'
                           ? 'bg-yellow-100 text-yellow-800'
                           : 'bg-red-100 text-red-800'
-                      }`}>
+                        }`}>
                         {artifact.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex space-x-2">
                         <button
-                          onClick={() => setArtifactModal({ 
-                            open: true, 
-                            mode: 'edit', 
-                            data: artifact, 
-                            submitting: false, 
-                            error: '' 
+                          onClick={() => setArtifactModal({
+                            open: true,
+                            mode: 'edit',
+                            data: artifact,
+                            submitting: false,
+                            error: ''
                           })}
                           className="text-blue-600 hover:text-blue-900"
                         >
@@ -777,9 +777,9 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
             </div>
             <div className="flex space-x-2">
               <button
-                onClick={() => setArtifactsState(prev => ({ 
-                  ...prev, 
-                  page: Math.max(1, prev.page - 1) 
+                onClick={() => setArtifactsState(prev => ({
+                  ...prev,
+                  page: Math.max(1, prev.page - 1)
                 }))}
                 disabled={artifactsState.page === 1}
                 className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
@@ -787,9 +787,9 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
                 Previous
               </button>
               <button
-                onClick={() => setArtifactsState(prev => ({ 
-                  ...prev, 
-                  page: prev.page + 1 
+                onClick={() => setArtifactsState(prev => ({
+                  ...prev,
+                  page: prev.page + 1
                 }))}
                 disabled={artifactsState.page * artifactsState.limit >= artifactsState.total}
                 className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
@@ -965,16 +965,18 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen" style={{ backgroundColor: 'white' }}>
       {/* Sidebar */}
       <div className="w-80 bg-white shadow-lg flex flex-col">
         {/* Header */}
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center space-x-3">
-            <Building2 className="h-8 w-8 text-blue-600" />
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#8B5A3C' }}>
+              <Building2 className="h-8 w-8 text-white" />
+            </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Museum Admin</h2>
-              <p className="text-sm text-gray-500">{user?.name || 'Museum Administrator'}</p>
+              <h2 className="text-lg font-semibold text-black">Museum Admin</h2>
+              <p className="text-sm text-black" style={{ opacity: 0.7 }}>{user?.name || 'Museum Administrator'}</p>
             </div>
           </div>
         </div>
@@ -986,7 +988,7 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
               <div key={section.category}>
                 <button
                   onClick={() => toggleSection(section.category)}
-                  className="w-full flex items-center justify-between p-3 text-left text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100"
+                  className="w-full flex items-center justify-between p-3 text-left text-sm font-medium text-black rounded-lg hover:bg-gray-100"
                 >
                   <span>{section.category}</span>
                   {expandedSections[section.category] ? (
@@ -995,25 +997,29 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
                     <ChevronDown className="h-4 w-4" />
                   )}
                 </button>
-                
+
                 {expandedSections[section.category] && (
                   <div className="ml-4 space-y-1">
                     {section.items.map((item) => (
                       <button
                         key={item.id}
                         onClick={() => setActiveSection(item.id)}
-                        className={`w-full flex items-start space-x-3 p-3 rounded-lg text-left transition-colors ${
-                          activeSection === item.id
-                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                        }`}
+                        className={`w-full flex items-start space-x-3 p-3 rounded-lg text-left transition-colors ${activeSection === item.id
+                          ? 'text-white border'
+                          : 'text-black hover:bg-gray-50 hover:text-black'
+                          }`}
+                        style={{
+                          backgroundColor: activeSection === item.id ? '#8B5A3C' : 'transparent',
+                          borderColor: activeSection === item.id ? '#8B5A3C' : 'transparent'
+                        }}
                       >
-                        <item.icon className={`h-5 w-5 flex-shrink-0 mt-0.5 ${
-                          activeSection === item.id ? 'text-blue-600' : 'text-gray-400'
-                        }`} />
+                        <item.icon className={`h-5 w-5 flex-shrink-0 mt-0.5 ${activeSection === item.id ? 'text-white' : 'text-gray-400'
+                          }`} />
                         <div className="flex-1">
                           <div className="text-sm font-medium">{item.label}</div>
-                          <div className="text-xs text-gray-500 mt-1 leading-tight">
+                          <div className="text-xs mt-1 leading-tight" style={{
+                            color: activeSection === item.id ? 'rgba(255, 255, 255, 0.8)' : '#666'
+                          }}>
                             {item.description}
                           </div>
                         </div>
@@ -1042,7 +1048,7 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 {artifactModal.mode === 'create' ? 'Add New Artifact' : 'Edit Artifact'}
               </h3>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
@@ -1056,7 +1062,7 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                   <textarea
@@ -1069,7 +1075,7 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
@@ -1089,7 +1095,7 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
                       <option value="Jewelry">Jewelry</option>
                     </select>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Period</label>
                     <input
@@ -1104,7 +1110,7 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
                     />
                   </div>
                 </div>
-                
+
                 <div className="flex items-center space-x-4">
                   <label className="flex items-center space-x-2">
                     <input
@@ -1118,7 +1124,7 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
                     />
                     <span className="text-sm text-gray-700">Available for rental</span>
                   </label>
-                  
+
                   {artifactModal.data.isAvailableForRental && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Rental Price (₹)</label>
@@ -1141,7 +1147,7 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
                   <p className="text-sm text-red-800">{artifactModal.error}</p>
                 </div>
               )}
-              
+
               <div className="flex justify-end space-x-3 mt-6">
                 <button
                   onClick={() => setArtifactModal({ ...artifactModal, open: false })}
@@ -1156,16 +1162,16 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
                       setArtifactModal(prev => ({ ...prev, error: 'Please fill all required fields' }));
                       return;
                     }
-                    
+
                     setArtifactModal(prev => ({ ...prev, submitting: true, error: '' }));
-                    
+
                     try {
                       if (artifactModal.mode === 'create') {
                         // Simulate API call
-                        const newArtifact = { 
-                          ...data, 
-                          _id: Date.now().toString(), 
-                          status: 'pending' 
+                        const newArtifact = {
+                          ...data,
+                          _id: Date.now().toString(),
+                          status: 'pending'
                         };
                         setArtifactsState(prev => ({
                           ...prev,
@@ -1179,13 +1185,13 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
                           items: prev.items.map(a => a._id === data._id ? data : a)
                         }));
                       }
-                      
+
                       setArtifactModal({ ...artifactModal, open: false });
                     } catch (error) {
-                      setArtifactModal(prev => ({ 
-                        ...prev, 
-                        submitting: false, 
-                        error: 'Failed to save artifact' 
+                      setArtifactModal(prev => ({
+                        ...prev,
+                        submitting: false,
+                        error: 'Failed to save artifact'
                       }));
                     }
                   }}
@@ -1208,7 +1214,7 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Submit Virtual Museum Exhibition
               </h3>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Exhibition Title</label>
@@ -1222,7 +1228,7 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                   <textarea
@@ -1235,7 +1241,7 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Notes to Super Admin</label>
                   <textarea
@@ -1250,7 +1256,7 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
                   />
                 </div>
               </div>
-              
+
               <div className="flex justify-end space-x-3 mt-6">
                 <button
                   onClick={() => setVirtualSubmissionModal({ ...virtualSubmissionModal, open: false })}
@@ -1265,19 +1271,19 @@ const MuseumAdminDashboard = ({ darkMode, toggleDarkMode }) => {
                       setVirtualSubmissionModal(prev => ({ ...prev, error: 'Please fill all required fields' }));
                       return;
                     }
-                    
+
                     setVirtualSubmissionModal(prev => ({ ...prev, submitting: true, error: '' }));
-                    
+
                     try {
                       // Simulate submission
                       await new Promise(resolve => setTimeout(resolve, 1000));
                       alert('Virtual museum submission sent to Super Admin for review!');
                       setVirtualSubmissionModal({ ...virtualSubmissionModal, open: false });
                     } catch (error) {
-                      setVirtualSubmissionModal(prev => ({ 
-                        ...prev, 
-                        submitting: false, 
-                        error: 'Failed to submit' 
+                      setVirtualSubmissionModal(prev => ({
+                        ...prev,
+                        submitting: false,
+                        error: 'Failed to submit'
                       }));
                     }
                   }}

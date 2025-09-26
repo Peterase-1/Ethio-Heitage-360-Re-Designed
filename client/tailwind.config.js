@@ -40,6 +40,17 @@ export default {
         border: 'var(--border)',
         input: 'var(--input)',
         ring: 'var(--ring)',
+        // Educational Enhancement Colors
+        'edu-primary': 'var(--educational-primary)',
+        'edu-secondary': 'var(--educational-secondary)',
+        'edu-accent': 'var(--educational-accent)',
+        'edu-success': 'var(--educational-success)',
+        'edu-warning': 'var(--educational-warning)',
+        'edu-info': 'var(--educational-info)',
+        'edu-progress': 'var(--educational-progress)',
+        'edu-course-bg': 'var(--educational-course-bg)',
+        'edu-course-border': 'var(--educational-course-border)',
+        'edu-hover': 'var(--educational-hover)',
       },
       borderColor: {
         DEFAULT: 'var(--border)',

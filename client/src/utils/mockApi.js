@@ -55,7 +55,7 @@ const MOCK_USERS = [
     verified: true,
     createdAt: new Date().toISOString()
   },
-  
+
   // Museum Administrators (from ADMIN_CREDENTIALS.md)
   {
     id: 7,
@@ -97,7 +97,7 @@ const MOCK_USERS = [
     verified: true,
     createdAt: new Date().toISOString()
   },
-  
+
   // Tour Organizers
   {
     id: 11,
@@ -126,7 +126,7 @@ const MOCK_USERS = [
     verified: true,
     createdAt: new Date().toISOString()
   },
-  
+
   // Educators
   {
     id: 14,
@@ -146,7 +146,7 @@ const MOCK_USERS = [
     verified: true,
     createdAt: new Date().toISOString()
   },
-  
+
   // Visitors
   {
     id: 16,
@@ -396,6 +396,190 @@ const MOCK_USER_BOOKINGS = [
     status: 'upcoming',
     price: 15000,
     duration: '7 days'
+  }
+];
+
+// Mock courses data for education
+const MOCK_COURSES = [
+  {
+    _id: 'course-1',
+    id: 'course-1',
+    title: 'Ethiopian History Fundamentals',
+    description: 'Explore the rich history of Ethiopia from ancient civilizations to modern day. Learn about the Kingdom of Aksum, medieval dynasties, and the formation of modern Ethiopia.',
+    category: 'history',
+    difficulty: 'beginner',
+    estimatedDuration: 240, // 4 hours in minutes
+    instructor: 'Dr. Abebe Kebede',
+    tags: ['history', 'ancient civilizations', 'kingdoms', 'culture'],
+    image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600&h=400&fit=crop',
+    thumbnail: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=300&h=200&fit=crop',
+    rating: 4.8,
+    enrolled: 1250,
+    lessons: 8,
+    objectives: [
+      'Understand the major historical periods of Ethiopian history',
+      'Identify the unique aspects of Ethiopian cultural heritage',
+      'Recognize the influence of different religions on Ethiopian society',
+      'Appreciate the diversity of Ethiopian traditional arts and crafts'
+    ],
+    requirements: [
+      'No prior knowledge required',
+      'Interest in cultural heritage and history',
+      'Basic English proficiency'
+    ],
+    topics: ['Ancient Kingdoms', 'Religious Sites', 'Cultural Practices', 'Traditional Arts'],
+    createdAt: new Date('2025-01-10').toISOString(),
+    status: 'published'
+  },
+  {
+    _id: 'course-2',
+    id: 'course-2',
+    title: 'Rock-Hewn Churches of Lalibela',
+    description: 'Dive deep into the architectural marvels of Lalibela and other rock-hewn churches. Understand their construction techniques, spiritual significance, and UNESCO World Heritage status.',
+    category: 'archaeology',
+    difficulty: 'intermediate',
+    estimatedDuration: 480, // 8 hours
+    instructor: 'Dr. Meron Teshome',
+    tags: ['architecture', 'religious sites', 'UNESCO', 'medieval', 'Christianity'],
+    image: 'https://images.unsplash.com/photo-1571419654798-3d7d9c8a5e9e?w=600&h=400&fit=crop',
+    thumbnail: 'https://images.unsplash.com/photo-1571419654798-3d7d9c8a5e9e?w=300&h=200&fit=crop',
+    rating: 4.9,
+    enrolled: 850,
+    lessons: 12,
+    objectives: [
+      'Analyze the architectural techniques used in rock-hewn construction',
+      'Understand the religious and cultural context of these churches',
+      'Evaluate the preservation challenges and conservation efforts',
+      'Appreciate the artistic and symbolic elements in church design'
+    ],
+    requirements: [
+      'Basic knowledge of Ethiopian history recommended',
+      'Interest in architecture and archaeology',
+      'Understanding of religious symbolism helpful'
+    ],
+    topics: ['Medieval Architecture', 'Religious Art', 'Construction Techniques', 'Pilgrimage Sites'],
+    createdAt: new Date('2025-01-08').toISOString(),
+    status: 'published'
+  },
+  {
+    _id: 'course-3',
+    id: 'course-3',
+    title: 'Ethiopian Cultural Traditions',
+    description: 'Discover the diverse cultural practices and traditions across Ethiopian regions. Learn about festivals, ceremonies, music, dance, and traditional customs that define Ethiopian identity.',
+    category: 'culture',
+    difficulty: 'beginner',
+    estimatedDuration: 180, // 3 hours
+    instructor: 'Professor Almaz Haile',
+    tags: ['culture', 'traditions', 'festivals', 'music', 'dance', 'ceremonies'],
+    image: 'https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=600&h=400&fit=crop',
+    thumbnail: 'https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=300&h=200&fit=crop',
+    rating: 4.7,
+    enrolled: 1100,
+    lessons: 6,
+    objectives: [
+      'Identify major Ethiopian festivals and their significance',
+      'Understand regional variations in cultural practices',
+      'Recognize traditional music and dance forms',
+      'Appreciate the role of customs in community life'
+    ],
+    requirements: [
+      'Open mind and cultural curiosity',
+      'No prior knowledge required',
+      'Interest in anthropology or sociology helpful'
+    ],
+    topics: ['Festivals', 'Ceremonies', 'Music & Dance', 'Regional Customs'],
+    createdAt: new Date('2025-01-05').toISOString(),
+    status: 'published'
+  },
+  {
+    _id: 'course-4',
+    id: 'course-4',
+    title: 'Kingdom of Aksum: Ancient Ethiopian Empire',
+    description: 'Explore the powerful Kingdom of Aksum, one of the great civilizations of the ancient world. Study its trade networks, monumental architecture, and lasting cultural impact.',
+    category: 'history',
+    difficulty: 'intermediate',
+    estimatedDuration: 360, // 6 hours
+    instructor: 'Dr. Tekle Hagos',
+    tags: ['ancient history', 'Aksum', 'trade routes', 'obelisks', 'archaeology'],
+    image: 'https://images.unsplash.com/photo-1571419654798-3d7d9c8a5e9e?w=600&h=400&fit=crop',
+    thumbnail: 'https://images.unsplash.com/photo-1571419654798-3d7d9c8a5e9e?w=300&h=200&fit=crop',
+    rating: 4.8,
+    enrolled: 720,
+    lessons: 10,
+    objectives: [
+      'Trace the rise and expansion of the Aksumite Empire',
+      'Analyze the kingdom\'s role in ancient trade networks',
+      'Examine archaeological evidence from Aksum',
+      'Understand the kingdom\'s influence on modern Ethiopia'
+    ],
+    requirements: [
+      'Basic knowledge of ancient history helpful',
+      'Interest in archaeology and trade history',
+      'Understanding of geographical concepts'
+    ],
+    topics: ['Ancient Trade', 'Monumental Architecture', 'Royal Tombs', 'International Relations'],
+    createdAt: new Date('2025-01-12').toISOString(),
+    status: 'published'
+  },
+  {
+    _id: 'course-5',
+    id: 'course-5',
+    title: 'Ethiopian Coffee Culture and Heritage',
+    description: 'Learn about Ethiopia as the birthplace of coffee and explore the deep cultural significance of coffee in Ethiopian society. Understand traditional preparation methods and ceremonial practices.',
+    category: 'culture',
+    difficulty: 'beginner',
+    estimatedDuration: 150, // 2.5 hours
+    instructor: 'Ato Girma Wolde',
+    tags: ['coffee', 'culture', 'ceremonies', 'agriculture', 'traditions'],
+    image: 'https://images.unsplash.com/photo-1595881823069-64ba5e3cf738?w=600&h=400&fit=crop',
+    thumbnail: 'https://images.unsplash.com/photo-1595881823069-64ba5e3cf738?w=300&h=200&fit=crop',
+    rating: 4.6,
+    enrolled: 980,
+    lessons: 5,
+    objectives: [
+      'Understand the historical origins of coffee cultivation',
+      'Learn traditional coffee preparation methods',
+      'Appreciate the cultural and social aspects of coffee ceremonies',
+      'Recognize the economic importance of coffee to Ethiopia'
+    ],
+    requirements: [
+      'Interest in food culture and traditions',
+      'No prior knowledge required',
+      'Curiosity about agricultural practices'
+    ],
+    topics: ['Coffee Origins', 'Traditional Ceremonies', 'Agricultural Practices', 'Cultural Significance'],
+    createdAt: new Date('2025-01-15').toISOString(),
+    status: 'published'
+  },
+  {
+    _id: 'course-6',
+    id: 'course-6',
+    title: 'Ethiopian Languages and Scripts',
+    description: 'Explore the linguistic diversity of Ethiopia and learn about the ancient Ge\'ez script. Understand the role of language in preserving cultural heritage and religious texts.',
+    category: 'language',
+    difficulty: 'advanced',
+    estimatedDuration: 600, // 10 hours
+    instructor: 'Dr. Berhane Meskel',
+    tags: ['languages', 'scripts', 'Geez', 'linguistics', 'manuscripts'],
+    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=400&fit=crop',
+    thumbnail: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=200&fit=crop',
+    rating: 4.9,
+    enrolled: 450,
+    lessons: 15,
+    objectives: [
+      'Identify major Ethiopian languages and their families',
+      'Read and understand basic Ge\'ez script',
+      'Appreciate the role of languages in cultural preservation',
+      'Analyze historical manuscripts and inscriptions'
+    ],
+    requirements: [
+      'Strong interest in linguistics or languages',
+      'Basic understanding of writing systems',
+      'Patience for detailed study'
+    ],
+    topics: ['Language Families', 'Ge\'ez Script', 'Historical Manuscripts', 'Modern Languages'],
+    createdAt: new Date('2025-01-18').toISOString(),
+    status: 'published'
   }
 ];
 
@@ -704,7 +888,7 @@ const MOCK_CONTENT = [
     category: 'Royal Artifacts'
   },
   {
-    _id: '2', 
+    _id: '2',
     name: 'Ethiopian Heritage Virtual Tour',
     museum: 'National Museum',
     submittedAt: '2025-01-11',
@@ -715,7 +899,7 @@ const MOCK_CONTENT = [
   },
   {
     _id: '3',
-    name: 'Coffee Ceremony Workshop', 
+    name: 'Coffee Ceremony Workshop',
     museum: 'Ethnological Museum',
     submittedAt: '2025-01-10',
     status: 'rejected',
@@ -775,15 +959,30 @@ class MockApiClient {
       return this.getCurrentUser(token);
     }
 
+    // Handle education/course endpoints
+    if (endpoint.startsWith('/education/public/courses') || endpoint.startsWith('/learning/courses')) {
+      return this.getCourses(endpoint, options);
+    }
+
+    if (endpoint.match(/^\/learning\/courses\/([^/]+)$/)) {
+      const courseId = endpoint.match(/^\/learning\/courses\/([^/]+)$/)[1];
+      return this.getCourseById(courseId);
+    }
+
+    if (endpoint.match(/^\/learning\/courses\/([^/]+)\/lessons$/)) {
+      const courseId = endpoint.match(/^\/learning\/courses\/([^/]+)\/lessons$/)[1];
+      return this.getCourseLessons(courseId);
+    }
+
     // For other endpoints, return mock success
     return { success: true, message: 'Mock API response' };
   }
 
   async login(credentials) {
     const { email, password } = credentials;
-    
+
     // Find user by email and password
-    const user = MOCK_USERS.find(u => 
+    const user = MOCK_USERS.find(u =>
       u.email === email && u.password === password
     );
 
@@ -885,22 +1084,78 @@ class MockApiClient {
   }
 
   async getTours() {
-    return { 
+    // Normalize tour data to match what the frontend components expect
+    const normalizedTours = MOCK_TOURS.map(tour => {
+      return {
+        ...tour,
+        // Ensure all required fields are present
+        price: tour.pricing?.adult || 1000,
+        duration: tour.duration?.days ? `${tour.duration.days} days` : '1 day',
+        maxGuests: tour.groupSize?.max || 10,
+        images: tour.media?.images?.map(img => img.url) || [
+          'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600&h=400&fit=crop'
+        ],
+        category: this.mapTourTypeToCategory(tour.type),
+        difficulty: this.mapTourTypeToDifficulty(tour.type),
+        region: this.extractRegionFromLocation(tour.location),
+        status: 'active', // Ensure all mock tours are active
+        createdAt: tour.createdAt || new Date().toISOString()
+      };
+    });
+
+    return {
       success: true,
-      data: MOCK_TOURS,
-      tours: MOCK_TOURS,
+      data: normalizedTours,
+      tours: normalizedTours,
       pagination: {
         page: 1,
         limit: 50,
-        total: MOCK_TOURS.length,
+        total: normalizedTours.length,
         pages: 1
       }
     };
   }
 
+  // Helper methods for tour data normalization
+  mapTourTypeToCategory(type) {
+    const categoryMap = {
+      'religious': 'Religious & Historical',
+      'archaeological': 'Religious & Historical',
+      'historical': 'Religious & Historical',
+      'cultural': 'Cultural & Tribal',
+      'adventure': 'Adventure & Nature',
+      'nature': 'Adventure & Nature',
+      'wildlife': 'Wildlife & Safari'
+    };
+    return categoryMap[type] || 'Cultural & Tribal';
+  }
+
+  mapTourTypeToDifficulty(type) {
+    const difficultyMap = {
+      'religious': 'easy',
+      'archaeological': 'moderate',
+      'historical': 'easy',
+      'cultural': 'easy',
+      'adventure': 'hard',
+      'nature': 'moderate',
+      'wildlife': 'moderate'
+    };
+    return difficultyMap[type] || 'moderate';
+  }
+
+  extractRegionFromLocation(location) {
+    if (!location) return 'amhara';
+    const locationLower = location.toLowerCase();
+    if (locationLower.includes('tigray') || locationLower.includes('axum')) return 'tigray';
+    if (locationLower.includes('afar')) return 'afar';
+    if (locationLower.includes('snnpr') || locationLower.includes('southern')) return 'snnpr';
+    if (locationLower.includes('oromia')) return 'oromia';
+    return 'amhara'; // default
+  }
+
   async createTour(tourData) {
     await delay(500);
-    
+
     const newTour = {
       ...tourData,
       _id: (MOCK_TOURS.length + 1).toString(),
@@ -929,9 +1184,9 @@ class MockApiClient {
         }]
       }
     };
-    
+
     MOCK_TOURS.push(newTour);
-    
+
     return {
       success: true,
       message: 'Tour created successfully',
@@ -967,12 +1222,12 @@ class MockApiClient {
     if (role) {
       filteredUsers = MOCK_USERS.filter(user => user.role === role);
     }
-    
+
     const startIndex = (page - 1) * limit;
     const items = filteredUsers
       .slice(startIndex, startIndex + limit)
       .map(({ password: _, ...user }) => user);
-    
+
     return {
       items,
       total: filteredUsers.length,
@@ -983,13 +1238,13 @@ class MockApiClient {
 
   async createUser(userData) {
     const { email, name, password, role = 'visitor', isActive = true } = userData;
-    
+
     // Check if user already exists
     const existingUser = MOCK_USERS.find(u => u.email === email);
     if (existingUser) {
       throw new Error('User already exists with this email');
     }
-    
+
     const newUser = {
       _id: (MOCK_USERS.length + 1).toString(),
       id: MOCK_USERS.length + 1,
@@ -1001,7 +1256,7 @@ class MockApiClient {
       verified: role !== 'visitor',
       createdAt: new Date().toISOString()
     };
-    
+
     MOCK_USERS.push(newUser);
     const { password: _, ...userWithoutPassword } = newUser;
     return { user: userWithoutPassword };
@@ -1012,12 +1267,12 @@ class MockApiClient {
     if (userIndex === -1) {
       throw new Error('User not found');
     }
-    
+
     // Don't update password if it's empty
     if (userData.password && userData.password.trim() === '') {
       delete userData.password;
     }
-    
+
     MOCK_USERS[userIndex] = { ...MOCK_USERS[userIndex], ...userData };
     const { password: _, ...userWithoutPassword } = MOCK_USERS[userIndex];
     return { user: userWithoutPassword };
@@ -1028,7 +1283,7 @@ class MockApiClient {
     if (userIndex === -1) {
       throw new Error('User not found');
     }
-    
+
     MOCK_USERS.splice(userIndex, 1);
     return { success: true, message: 'User deleted successfully' };
   }
@@ -1038,7 +1293,7 @@ class MockApiClient {
     if (userIndex === -1) {
       throw new Error('User not found');
     }
-    
+
     MOCK_USERS[userIndex].role = role;
     const { password: _, ...userWithoutPassword } = MOCK_USERS[userIndex];
     return { user: userWithoutPassword };
@@ -1060,7 +1315,7 @@ class MockApiClient {
         createdAt: new Date().toISOString()
       },
       {
-        _id: '2', 
+        _id: '2',
         name: 'Ethnological Museum',
         email: 'ethnomuseum@ethioheritage360.com',
         museumInfo: {
@@ -1073,7 +1328,7 @@ class MockApiClient {
       },
       {
         _id: '3',
-        name: 'Regional Heritage Center', 
+        name: 'Regional Heritage Center',
         email: 'heritage@center.com',
         museumInfo: {
           name: 'Regional Heritage Center',
@@ -1084,10 +1339,10 @@ class MockApiClient {
         createdAt: new Date().toISOString()
       }
     ];
-    
+
     const startIndex = (page - 1) * limit;
     const items = mockMuseums.slice(startIndex, startIndex + limit);
-    
+
     return {
       items,
       total: mockMuseums.length,
@@ -1172,15 +1427,15 @@ class MockApiClient {
         createdAt: new Date().toISOString()
       }
     ];
-    
+
     let filteredArtifacts = mockArtifacts;
     if (status) {
       filteredArtifacts = mockArtifacts.filter(artifact => artifact.status === status);
     }
-    
+
     const startIndex = (page - 1) * limit;
     const items = filteredArtifacts.slice(startIndex, startIndex + limit);
-    
+
     return {
       items,
       total: filteredArtifacts.length,
@@ -1253,7 +1508,7 @@ class MockApiClient {
         details: 'Successful login from IP: 192.168.1.1'
       },
       {
-        id: '2', 
+        id: '2',
         timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
         activity: 'Artifact uploaded',
         user: 'museum@example.com',
@@ -1269,10 +1524,10 @@ class MockApiClient {
         details: 'Heritage Center museum verified'
       }
     ];
-    
+
     const startIndex = (page - 1) * limit;
     const items = mockLogs.slice(startIndex, startIndex + limit);
-    
+
     return {
       logs: items,
       total: mockLogs.length,
@@ -1320,7 +1575,7 @@ class MockApiClient {
         ]
       }
     };
-    
+
     return mockAnalytics;
   }
 
@@ -1379,24 +1634,37 @@ class MockApiClient {
     return { success: true, message: 'Museum profile updated successfully' };
   }
 
+  async uploadMuseumLogo(logoFile) {
+    await delay(1000);
+    return {
+      success: true,
+      message: 'Logo uploaded successfully',
+      logo: {
+        url: 'https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=400&h=300&fit=crop&crop=center',
+        filename: logoFile.name,
+        uploadedAt: new Date().toISOString()
+      }
+    };
+  }
+
   async getMuseumArtifacts({ page = 1, limit = 20, category, search } = {}) {
     let filteredArtifacts = [...MOCK_MUSEUM_ARTIFACTS];
-    
+
     if (category) {
       filteredArtifacts = filteredArtifacts.filter(artifact => artifact.category === category);
     }
-    
+
     if (search) {
       const searchLower = search.toLowerCase();
-      filteredArtifacts = filteredArtifacts.filter(artifact => 
+      filteredArtifacts = filteredArtifacts.filter(artifact =>
         artifact.name.toLowerCase().includes(searchLower) ||
         artifact.description.toLowerCase().includes(searchLower)
       );
     }
-    
+
     const startIndex = (page - 1) * limit;
     const items = filteredArtifacts.slice(startIndex, startIndex + limit);
-    
+
     return {
       items,
       total: filteredArtifacts.length,
@@ -1419,7 +1687,7 @@ class MockApiClient {
   async updateMuseumArtifact(id, artifactData) {
     const index = MOCK_MUSEUM_ARTIFACTS.findIndex(a => a._id === id);
     if (index === -1) throw new Error('Artifact not found');
-    
+
     MOCK_MUSEUM_ARTIFACTS[index] = { ...MOCK_MUSEUM_ARTIFACTS[index], ...artifactData };
     return { artifact: MOCK_MUSEUM_ARTIFACTS[index] };
   }
@@ -1427,7 +1695,7 @@ class MockApiClient {
   async deleteMuseumArtifact(id) {
     const index = MOCK_MUSEUM_ARTIFACTS.findIndex(a => a._id === id);
     if (index === -1) throw new Error('Artifact not found');
-    
+
     MOCK_MUSEUM_ARTIFACTS.splice(index, 1);
     return { success: true, message: 'Artifact deleted successfully' };
   }
@@ -1436,8 +1704,8 @@ class MockApiClient {
     return {
       analytics: {
         visitors: { total: 12543, growth: 15.2 },
-        artifacts: { 
-          total: 247, 
+        artifacts: {
+          total: 247,
           popular: [
             { name: 'Ancient Ethiopian Crown', views: 1234 },
             { name: 'Traditional Coffee Set', views: 987 },
@@ -1475,11 +1743,11 @@ class MockApiClient {
         submittedAt: new Date('2025-01-08').toISOString()
       }
     ];
-    
+
     let filtered = status ? mockSubmissions.filter(s => s.status === status) : mockSubmissions;
     const startIndex = (page - 1) * limit;
     const items = filtered.slice(startIndex, startIndex + limit);
-    
+
     return { items, total: filtered.length, page, limit };
   }
 
@@ -1508,88 +1776,88 @@ class MockApiClient {
 
   async getVirtualExhibits({ search, category, museum } = {}) {
     let filtered = [...MOCK_VIRTUAL_EXHIBITS];
-    
+
     if (search) {
       const searchLower = search.toLowerCase();
-      filtered = filtered.filter(exhibit => 
+      filtered = filtered.filter(exhibit =>
         exhibit.title.toLowerCase().includes(searchLower) ||
         exhibit.description.toLowerCase().includes(searchLower)
       );
     }
-    
+
     if (category) {
       filtered = filtered.filter(exhibit => exhibit.category === category);
     }
-    
+
     if (museum) {
       filtered = filtered.filter(exhibit => exhibit.museum === museum);
     }
-    
+
     return { exhibits: filtered };
   }
 
   async getHeritageSites({ search, region } = {}) {
     let filtered = [...MOCK_HERITAGE_SITES];
-    
+
     if (search) {
       const searchLower = search.toLowerCase();
-      filtered = filtered.filter(site => 
+      filtered = filtered.filter(site =>
         site.name.toLowerCase().includes(searchLower) ||
         site.description.toLowerCase().includes(searchLower)
       );
     }
-    
+
     if (region) {
       filtered = filtered.filter(site => site.region === region);
     }
-    
+
     return { sites: filtered };
   }
 
   async getUserArtifacts({ page = 1, limit = 20, search, category, museum } = {}) {
     let filtered = [...MOCK_MUSEUM_ARTIFACTS.filter(a => a.status === 'approved')];
-    
+
     if (search) {
       const searchLower = search.toLowerCase();
-      filtered = filtered.filter(artifact => 
+      filtered = filtered.filter(artifact =>
         artifact.name.toLowerCase().includes(searchLower) ||
         artifact.description.toLowerCase().includes(searchLower)
       );
     }
-    
+
     if (category) {
       filtered = filtered.filter(artifact => artifact.category === category);
     }
-    
+
     if (museum) {
       filtered = filtered.filter(artifact => artifact.museum === museum);
     }
-    
+
     const startIndex = (page - 1) * limit;
     const items = filtered.slice(startIndex, startIndex + limit);
-    
+
     return { items, total: filtered.length, page, limit };
   }
 
   async getUpcomingEvents({ search, date, museum } = {}) {
     let filtered = [...MOCK_EVENTS];
-    
+
     if (search) {
       const searchLower = search.toLowerCase();
-      filtered = filtered.filter(event => 
+      filtered = filtered.filter(event =>
         event.title.toLowerCase().includes(searchLower) ||
         event.description.toLowerCase().includes(searchLower)
       );
     }
-    
+
     if (date) {
       filtered = filtered.filter(event => event.date === date);
     }
-    
+
     if (museum) {
       filtered = filtered.filter(event => event.museum === museum);
     }
-    
+
     return { events: filtered };
   }
 
@@ -1677,6 +1945,653 @@ class MockApiClient {
           createdAt: new Date('2025-01-10').toISOString()
         }
       ]
+    };
+  }
+
+  // Heritage Site CRUD Operations
+  async createHeritageSite(data) {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const newSite = {
+          id: Date.now(),
+          ...data,
+          createdAt: new Date().toISOString(),
+          status: 'active',
+          verified: true
+        };
+        resolve({
+          success: true,
+          message: 'Heritage site created successfully',
+          data: newSite
+        });
+      }, 1000);
+    });
+  }
+
+  async updateHeritageSite(siteId, data) {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          success: true,
+          message: 'Heritage site updated successfully',
+          data: { id: siteId, ...data }
+        });
+      }, 1000);
+    });
+  }
+
+  async deleteHeritageSite(siteId) {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          success: true,
+          message: 'Heritage site deleted successfully'
+        });
+      }, 1000);
+    });
+  }
+
+  async getHeritageSite(siteId) {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          success: true,
+          data: {
+            id: siteId,
+            name: 'Sample Heritage Site',
+            description: 'A sample heritage site',
+            status: 'active',
+            verified: true
+          }
+        });
+      }, 1000);
+    });
+  }
+
+  // Course-specific methods
+  async getCourses(endpoint, options = {}) {
+    await delay(300);
+
+    // Parse query parameters from endpoint if present
+    const url = new URL(endpoint, 'http://localhost');
+    const category = url.searchParams.get('category');
+    const difficulty = url.searchParams.get('difficulty');
+    const search = url.searchParams.get('search');
+    const page = parseInt(url.searchParams.get('page')) || 1;
+    const limit = parseInt(url.searchParams.get('limit')) || 20;
+
+    let filteredCourses = [...MOCK_COURSES];
+
+    // Apply filters
+    if (category && category !== 'all') {
+      filteredCourses = filteredCourses.filter(course => course.category === category);
+    }
+
+    if (difficulty && difficulty !== 'all') {
+      filteredCourses = filteredCourses.filter(course => course.difficulty === difficulty);
+    }
+
+    if (search) {
+      const searchLower = search.toLowerCase();
+      filteredCourses = filteredCourses.filter(course =>
+        course.title.toLowerCase().includes(searchLower) ||
+        course.description.toLowerCase().includes(searchLower) ||
+        course.instructor.toLowerCase().includes(searchLower) ||
+        course.tags.some(tag => tag.toLowerCase().includes(searchLower))
+      );
+    }
+
+    // Pagination
+    const startIndex = (page - 1) * limit;
+    const paginatedCourses = filteredCourses.slice(startIndex, startIndex + limit);
+
+    return {
+      success: true,
+      data: paginatedCourses,
+      courses: paginatedCourses,
+      pagination: {
+        page,
+        limit,
+        total: filteredCourses.length,
+        pages: Math.ceil(filteredCourses.length / limit),
+        hasNext: page < Math.ceil(filteredCourses.length / limit),
+        hasPrev: page > 1
+      },
+      filters: {
+        categories: ['history', 'culture', 'archaeology', 'language'],
+        difficulties: ['beginner', 'intermediate', 'advanced']
+      }
+    };
+  }
+
+  async getCourseById(courseId) {
+    await delay(300);
+
+    const course = MOCK_COURSES.find(c => c._id === courseId || c.id === courseId);
+
+    if (!course) {
+      throw new Error('Course not found');
+    }
+
+    // Return course with additional details that might be needed for course detail page
+    const enrichedCourse = {
+      ...course,
+      // Add some computed fields
+      completionRate: Math.floor(Math.random() * 30) + 70, // Random completion rate between 70-100%
+      prerequisites: course.requirements || [],
+      syllabus: course.topics || [],
+      // Mock lesson structure
+      lessons: Array.from({ length: course.lessons }, (_, i) => ({
+        id: `lesson-${i + 1}`,
+        title: `${course.topics[i % course.topics.length]} - Part ${Math.floor(i / course.topics.length) + 1}`,
+        duration: Math.floor(course.estimatedDuration / course.lessons),
+        type: i % 3 === 0 ? 'video' : i % 3 === 1 ? 'reading' : 'quiz',
+        completed: false
+      })),
+      // Mock instructor details
+      instructorDetails: {
+        name: course.instructor,
+        bio: `Expert in ${course.category} with over 10 years of experience in Ethiopian heritage studies.`,
+        image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+        credentials: ['PhD in Ethiopian Studies', 'Published Researcher', 'Heritage Consultant']
+      },
+      // Mock reviews
+      reviews: [
+        {
+          id: '1',
+          user: 'Sarah M.',
+          rating: 5,
+          comment: 'Excellent course! Very informative and well-structured.',
+          date: new Date('2025-01-15').toISOString()
+        },
+        {
+          id: '2',
+          user: 'Ahmed K.',
+          rating: 4,
+          comment: 'Great content, learned a lot about Ethiopian culture.',
+          date: new Date('2025-01-12').toISOString()
+        }
+      ]
+    };
+
+    return {
+      success: true,
+      data: enrichedCourse,
+      course: enrichedCourse
+    };
+  }
+
+  async getCourseLessons(courseId) {
+    await delay(300);
+
+    const course = MOCK_COURSES.find(c => c._id === courseId || c.id === courseId);
+
+    if (!course) {
+      throw new Error('Course not found');
+    }
+
+    // Generate detailed lessons based on course topics
+    const lessons = course.topics.flatMap((topic, topicIndex) => {
+      const lessonsPerTopic = Math.ceil(course.lessons / course.topics.length);
+      return Array.from({ length: lessonsPerTopic }, (_, lessonIndex) => {
+        const globalIndex = topicIndex * lessonsPerTopic + lessonIndex;
+        if (globalIndex >= course.lessons) return null;
+
+        return {
+          id: `lesson-${globalIndex + 1}`,
+          courseId: course._id,
+          title: `${topic} - Part ${lessonIndex + 1}`,
+          description: `Detailed exploration of ${topic.toLowerCase()} in Ethiopian heritage.`,
+          duration: Math.floor(course.estimatedDuration / course.lessons),
+          type: globalIndex % 3 === 0 ? 'video' : globalIndex % 3 === 1 ? 'reading' : 'quiz',
+          order: globalIndex + 1,
+          content: {
+            videoUrl: globalIndex % 3 === 0 ? 'https://example.com/video.mp4' : null,
+            readingMaterial: globalIndex % 3 === 1 ? 'Sample reading content...' : null,
+            quizQuestions: globalIndex % 3 === 2 ? [
+              {
+                id: 'q1',
+                question: `What is the significance of ${topic}?`,
+                options: ['Option A', 'Option B', 'Option C', 'Option D'],
+                correctAnswer: 0
+              }
+            ] : null
+          },
+          completed: false,
+          accessible: globalIndex < 3 // First 3 lessons are accessible
+        };
+      }).filter(Boolean);
+    });
+
+    return {
+      success: true,
+      data: lessons,
+      lessons,
+      course: {
+        id: course._id,
+        title: course.title,
+        totalLessons: lessons.length
+      }
+    };
+  }
+
+  // Course enrollment and progress tracking
+  async enrollInCourse(courseId) {
+    await delay(500);
+
+    const course = MOCK_COURSES.find(c => c._id === courseId || c.id === courseId);
+    if (!course) {
+      throw new Error('Course not found');
+    }
+
+    return {
+      success: true,
+      message: 'Successfully enrolled in course',
+      enrollment: {
+        courseId,
+        enrolledAt: new Date().toISOString(),
+        progress: 0,
+        completed: false
+      }
+    };
+  }
+
+  async getCourseProgress(courseId) {
+    await delay(200);
+
+    return {
+      success: true,
+      progress: {
+        courseId,
+        completedLessons: 2,
+        totalLessons: 8,
+        percentage: 25,
+        lastAccessed: new Date().toISOString(),
+        timeSpent: 120 // minutes
+      }
+    };
+  }
+
+  async updateLessonProgress(courseId, lessonId, completed = true) {
+    await delay(300);
+
+    return {
+      success: true,
+      message: 'Lesson progress updated',
+      progress: {
+        lessonId,
+        completed,
+        completedAt: completed ? new Date().toISOString() : null
+      }
+    };
+  }
+
+  // Course management for educators
+  async createCourse(courseData) {
+    await delay(1000);
+
+    const newCourse = {
+      ...courseData,
+      _id: `course-${MOCK_COURSES.length + 1}`,
+      id: `course-${MOCK_COURSES.length + 1}`,
+      status: 'draft',
+      enrolled: 0,
+      rating: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    MOCK_COURSES.push(newCourse);
+
+    return {
+      success: true,
+      message: 'Course created successfully',
+      data: newCourse,
+      course: newCourse
+    };
+  }
+
+  async updateCourse(courseId, courseData) {
+    await delay(500);
+
+    const courseIndex = MOCK_COURSES.findIndex(c => c._id === courseId || c.id === courseId);
+    if (courseIndex === -1) {
+      throw new Error('Course not found');
+    }
+
+    MOCK_COURSES[courseIndex] = {
+      ...MOCK_COURSES[courseIndex],
+      ...courseData,
+      updatedAt: new Date().toISOString()
+    };
+
+    return {
+      success: true,
+      message: 'Course updated successfully',
+      data: MOCK_COURSES[courseIndex],
+      course: MOCK_COURSES[courseIndex]
+    };
+  }
+
+  async deleteCourse(courseId) {
+    await delay(500);
+
+    const courseIndex = MOCK_COURSES.findIndex(c => c._id === courseId || c.id === courseId);
+    if (courseIndex === -1) {
+      throw new Error('Course not found');
+    }
+
+    const deletedCourse = MOCK_COURSES.splice(courseIndex, 1)[0];
+
+    return {
+      success: true,
+      message: 'Course deleted successfully',
+      course: deletedCourse
+    };
+  }
+
+  // Rental Request Functions
+  async getAllRentalRequests(params = {}) {
+    console.log('🔍 Mock API: getAllRentalRequests called with params:', params);
+
+    // Mock rental requests data
+    const mockRentalRequests = [
+      {
+        _id: 'rental_001',
+        requestId: 'REQ-2024-001',
+        requestType: 'museum_to_super',
+        status: 'pending',
+        artifact: {
+          _id: 'artifact_001',
+          name: 'Ancient Ethiopian Cross',
+          category: 'Religious Artifacts',
+          images: ['cross1.jpg']
+        },
+        museum: {
+          _id: 'museum_001',
+          name: 'National Museum of Ethiopia',
+          location: { city: 'Addis Ababa', country: 'Ethiopia' }
+        },
+        requestedBy: {
+          _id: 'user_001',
+          name: 'Museum Admin',
+          email: 'admin@museum.com',
+          role: 'museum_admin'
+        },
+        rentalDetails: {
+          duration: 30,
+          startDate: '2024-10-01',
+          endDate: '2024-10-31',
+          rentalFee: 50000,
+          currency: 'ETB'
+        },
+        description: 'Request for temporary display of ancient cross',
+        specialRequirements: 'Climate controlled environment required',
+        createdAt: '2024-09-25T10:00:00Z',
+        approvals: []
+      },
+      {
+        _id: 'rental_002',
+        requestId: 'REQ-2024-002',
+        requestType: 'super_to_museum',
+        status: 'approved',
+        artifact: {
+          _id: 'artifact_002',
+          name: 'Lalibela Rock Church Model',
+          category: 'Architectural Models',
+          images: ['lalibela1.jpg']
+        },
+        museum: {
+          _id: 'museum_002',
+          name: 'Lalibela Heritage Museum',
+          location: { city: 'Lalibela', country: 'Ethiopia' }
+        },
+        requestedBy: {
+          _id: 'user_002',
+          name: 'Super Admin',
+          email: 'super@admin.com',
+          role: 'super_admin'
+        },
+        rentalDetails: {
+          duration: 60,
+          startDate: '2024-11-01',
+          endDate: '2024-12-31',
+          rentalFee: 75000,
+          currency: 'ETB'
+        },
+        description: 'Request for educational display',
+        specialRequirements: 'Educational materials included',
+        createdAt: '2024-09-20T14:30:00Z',
+        approvals: [
+          {
+            approver: 'user_003',
+            role: 'museum_admin',
+            status: 'approved',
+            comments: 'Approved for educational purposes',
+            approvedAt: '2024-09-22T09:15:00Z'
+          }
+        ]
+      }
+    ];
+
+    // Apply filters
+    let filteredRequests = [...mockRentalRequests];
+
+    if (params.status && params.status !== 'all' && params.status !== 'undefined') {
+      filteredRequests = filteredRequests.filter(req => req.status === params.status);
+    }
+
+    if (params.requestType && params.requestType !== 'all' && params.requestType !== 'undefined') {
+      filteredRequests = filteredRequests.filter(req => req.requestType === params.requestType);
+    }
+
+    if (params.search && params.search.trim()) {
+      const searchTerm = params.search.toLowerCase();
+      filteredRequests = filteredRequests.filter(req =>
+        req.requestId.toLowerCase().includes(searchTerm) ||
+        req.description.toLowerCase().includes(searchTerm) ||
+        req.artifact.name.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    console.log('📋 Mock API: Returning', filteredRequests.length, 'rental requests');
+    return {
+      success: true,
+      data: filteredRequests,
+      total: filteredRequests.length
+    };
+  }
+
+  async getRentalRequestById(id) {
+    console.log('🔍 Mock API: getRentalRequestById called with id:', id);
+
+    const mockRequest = {
+      _id: id,
+      requestId: 'REQ-2024-001',
+      requestType: 'museum_to_super',
+      status: 'pending',
+      artifact: {
+        _id: 'artifact_001',
+        name: 'Ancient Ethiopian Cross',
+        category: 'Religious Artifacts',
+        images: ['cross1.jpg']
+      },
+      museum: {
+        _id: 'museum_001',
+        name: 'National Museum of Ethiopia',
+        location: { city: 'Addis Ababa', country: 'Ethiopia' }
+      },
+      requestedBy: {
+        _id: 'user_001',
+        name: 'Museum Admin',
+        email: 'admin@museum.com',
+        role: 'museum_admin'
+      },
+      rentalDetails: {
+        duration: 30,
+        startDate: '2024-10-01',
+        endDate: '2024-10-31',
+        rentalFee: 50000,
+        currency: 'ETB'
+      },
+      description: 'Request for temporary display of ancient cross',
+      specialRequirements: 'Climate controlled environment required',
+      createdAt: '2024-09-25T10:00:00Z',
+      approvals: []
+    };
+
+    return {
+      success: true,
+      data: mockRequest
+    };
+  }
+
+  async createRentalRequest(requestData) {
+    console.log('🔍 Mock API: createRentalRequest called with data:', requestData);
+
+    const newRequest = {
+      _id: 'rental_' + Date.now(),
+      requestId: 'REQ-2024-' + Math.floor(Math.random() * 1000),
+      ...requestData,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      approvals: []
+    };
+
+    return {
+      success: true,
+      data: newRequest,
+      message: 'Rental request created successfully'
+    };
+  }
+
+  async updateRentalRequestStatus(id, statusData) {
+    console.log('🔍 Mock API: updateRentalRequestStatus called with id:', id, 'data:', statusData);
+
+    return {
+      success: true,
+      data: {
+        _id: id,
+        status: statusData.status,
+        ...statusData
+      },
+      message: `Rental request ${statusData.status} successfully`
+    };
+  }
+
+  async getRentalStatistics() {
+    console.log('🔍 Mock API: getRentalStatistics called');
+
+    return {
+      success: true,
+      data: {
+        totalRequests: 15,
+        pendingRequests: 5,
+        approvedRequests: 8,
+        rejectedRequests: 2,
+        totalRevenue: 450000,
+        revenueByMonth: [
+          { month: 'September', revenue: 150000 },
+          { month: 'October', revenue: 200000 },
+          { month: 'November', revenue: 100000 }
+        ],
+        requestsByStatus: {
+          pending: 5,
+          approved: 8,
+          rejected: 2,
+          completed: 0
+        }
+      }
+    };
+  }
+
+  // Rental Artifacts Functions
+  async getRentalArtifacts() {
+    console.log('🔍 Mock API: getRentalArtifacts called');
+
+    // Mock artifacts available for rental
+    const mockRentalArtifacts = [
+      {
+        _id: 'artifact_001',
+        name: 'Ancient Ethiopian Cross',
+        description: 'A beautifully crafted cross from the 12th century',
+        category: 'Religious Artifacts',
+        images: ['cross1.jpg', 'cross2.jpg'],
+        status: 'available',
+        museum: {
+          _id: 'museum_001',
+          name: 'National Museum of Ethiopia',
+          location: { city: 'Addis Ababa', country: 'Ethiopia' }
+        },
+        rentalPrice: 50000,
+        isAvailableForRental: true
+      },
+      {
+        _id: 'artifact_002',
+        name: 'Lalibela Rock Church Model',
+        description: 'Detailed model of the famous rock-hewn churches',
+        category: 'Architectural Models',
+        images: ['lalibela1.jpg', 'lalibela2.jpg'],
+        status: 'available',
+        museum: {
+          _id: 'museum_002',
+          name: 'Lalibela Heritage Museum',
+          location: { city: 'Lalibela', country: 'Ethiopia' }
+        },
+        rentalPrice: 75000,
+        isAvailableForRental: true
+      },
+      {
+        _id: 'artifact_003',
+        name: 'Aksum Obelisk Replica',
+        description: 'Replica of the famous Aksumite obelisk',
+        category: 'Monuments',
+        images: ['obelisk1.jpg', 'obelisk2.jpg'],
+        status: 'available',
+        museum: {
+          _id: 'museum_003',
+          name: 'Aksum Museum',
+          location: { city: 'Aksum', country: 'Ethiopia' }
+        },
+        rentalPrice: 60000,
+        isAvailableForRental: true
+      },
+      {
+        _id: 'artifact_004',
+        name: 'Ethiopian Manuscript',
+        description: 'Ancient Ge\'ez manuscript from the 14th century',
+        category: 'Manuscripts',
+        images: ['manuscript1.jpg', 'manuscript2.jpg'],
+        status: 'available',
+        museum: {
+          _id: 'museum_001',
+          name: 'National Museum of Ethiopia',
+          location: { city: 'Addis Ababa', country: 'Ethiopia' }
+        },
+        rentalPrice: 40000,
+        isAvailableForRental: true
+      },
+      {
+        _id: 'artifact_005',
+        name: 'Traditional Ethiopian Pottery',
+        description: 'Collection of traditional pottery from different regions',
+        category: 'Pottery',
+        images: ['pottery1.jpg', 'pottery2.jpg'],
+        status: 'available',
+        museum: {
+          _id: 'museum_004',
+          name: 'Ethnographic Museum',
+          location: { city: 'Addis Ababa', country: 'Ethiopia' }
+        },
+        rentalPrice: 30000,
+        isAvailableForRental: true
+      }
+    ];
+
+    console.log('📋 Mock API: Returning', mockRentalArtifacts.length, 'rental artifacts');
+    return {
+      success: true,
+      data: mockRentalArtifacts
     };
   }
 }

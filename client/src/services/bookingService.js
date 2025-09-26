@@ -1,4 +1,4 @@
-import { api } from '../utils/api.js';
+import api from '../utils/api.js';
 
 class BookingService {
   constructor() {
@@ -54,16 +54,16 @@ class BookingService {
       }
 
       const booking = response.booking || response.data || response;
-      
+
       // Clear user bookings cache to force refresh
       this.clearUserBookingsCache();
-      
+
       // Increment counter
       this.bookingCounter++;
-      
+
       // Emit booking creation event
       this.emitEvent('booking-created', booking);
-      
+
       return booking;
     } catch (error) {
       console.error('Create booking error:', error);
@@ -78,7 +78,7 @@ class BookingService {
    */
   async getUserBookings(filters = {}) {
     const cacheKey = `user_bookings_${JSON.stringify(filters)}`;
-    
+
     // Check cache first
     if (this.cache.has(cacheKey)) {
       const cached = this.cache.get(cacheKey);
@@ -98,18 +98,18 @@ class BookingService {
         const queryParams = new URLSearchParams(filters).toString();
         response = await api.request(`/user/bookings${queryParams ? `?${queryParams}` : ''}`);
       }
-      
+
       const bookings = response.bookings || response.data || response || [];
-      
+
       // Update booking counter
       this.bookingCounter = bookings.length;
-      
+
       // Cache the result
       this.cache.set(cacheKey, {
         data: bookings,
         timestamp: Date.now()
       });
-      
+
       return bookings;
     } catch (error) {
       console.error('Get user bookings error:', error);
@@ -125,7 +125,7 @@ class BookingService {
    */
   async getBookingById(bookingId) {
     const cacheKey = `booking_${bookingId}`;
-    
+
     // Check cache first
     if (this.cache.has(cacheKey)) {
       const cached = this.cache.get(cacheKey);
@@ -137,13 +137,13 @@ class BookingService {
     try {
       const response = await api.request(`/bookings/${bookingId}`);
       const booking = response.booking || response.data || response;
-      
+
       // Cache the result
       this.cache.set(cacheKey, {
         data: booking,
         timestamp: Date.now()
       });
-      
+
       return booking;
     } catch (error) {
       console.error('Get booking by ID error:', error);
@@ -163,16 +163,16 @@ class BookingService {
         method: 'PUT',
         body: updateData
       });
-      
+
       const booking = response.booking || response.data || response;
-      
+
       // Clear cache to force refresh
       this.clearUserBookingsCache();
       this.cache.delete(`booking_${bookingId}`);
-      
+
       // Emit update event
       this.emitEvent('booking-updated', booking);
-      
+
       return booking;
     } catch (error) {
       console.error('Update booking error:', error);
@@ -200,17 +200,17 @@ class BookingService {
           body: { reason }
         });
       }
-      
+
       // Clear cache to force refresh
       this.clearUserBookingsCache();
       this.cache.delete(`booking_${bookingId}`);
-      
+
       // Decrement counter
       this.bookingCounter = Math.max(0, this.bookingCounter - 1);
-      
+
       // Emit cancellation event
       this.emitEvent('booking-cancelled', { bookingId, reason });
-      
+
       return response;
     } catch (error) {
       console.error('Cancel booking error:', error);
@@ -234,7 +234,7 @@ class BookingService {
         // Fallback to direct API call
         response = await api.request(`/bookings/${bookingId}/confirmation`);
       }
-      
+
       return response.confirmation || response.data || response;
     } catch (error) {
       console.error('Get booking confirmation error:', error);
@@ -254,9 +254,9 @@ class BookingService {
         upcoming: true,
         limit
       };
-      
+
       const bookings = await this.getUserBookings(filters);
-      
+
       // Filter for upcoming dates
       const now = new Date();
       return bookings
@@ -282,7 +282,7 @@ class BookingService {
   async getBookingStats() {
     try {
       const bookings = await this.getUserBookings();
-      
+
       const stats = {
         total: bookings.length,
         confirmed: bookings.filter(b => b.status === 'confirmed').length,
@@ -291,7 +291,7 @@ class BookingService {
         upcoming: 0,
         past: 0
       };
-      
+
       const now = new Date();
       bookings.forEach(booking => {
         if (booking.selectedDate) {
@@ -303,7 +303,7 @@ class BookingService {
           }
         }
       });
-      
+
       return stats;
     } catch (error) {
       console.error('Get booking stats error:', error);
@@ -327,11 +327,11 @@ class BookingService {
   async searchBookings(query, filters = {}) {
     try {
       const bookings = await this.getUserBookings(filters);
-      
+
       if (!query) return bookings;
-      
+
       const lowerQuery = query.toLowerCase();
-      return bookings.filter(booking => 
+      return bookings.filter(booking =>
         booking.tour?.title?.toLowerCase().includes(lowerQuery) ||
         booking.tour?.location?.toLowerCase().includes(lowerQuery) ||
         booking.contactInfo?.name?.toLowerCase().includes(lowerQuery) ||
@@ -390,7 +390,7 @@ class BookingService {
   /**
    * Event management methods
    */
-  
+
   /**
    * Emit event
    * @param {string} event - Event type
@@ -437,7 +437,7 @@ class BookingService {
    */
   initializeRealTimeUpdates(webSocketService) {
     console.log('BookingService: Initializing real-time updates');
-    
+
     // Subscribe to WebSocket events
     webSocketService.on('bookingCreated', (data) => {
       console.log('BookingService: Booking created via WebSocket', data);
@@ -445,14 +445,14 @@ class BookingService {
       this.clearUserBookingsCache();
       this.emitEvent('booking-created', data.booking);
     });
-    
+
     webSocketService.on('bookingUpdated', (data) => {
       console.log('BookingService: Booking updated via WebSocket', data);
       this.clearUserBookingsCache();
       this.cache.delete(`booking_${data.booking.id}`);
       this.emitEvent('booking-updated', data.booking);
     });
-    
+
     webSocketService.on('bookingCancelled', (data) => {
       console.log('BookingService: Booking cancelled via WebSocket', data);
       this.bookingCounter = Math.max(0, this.bookingCounter - 1);

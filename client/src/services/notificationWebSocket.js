@@ -19,8 +19,8 @@ class NotificationWebSocketService {
     }
 
     try {
-      const serverUrl = import.meta.env.VITE_WEBSOCKET_URL || import.meta.env.REACT_APP_WEBSOCKET_URL || 'http://localhost:5000';
-      
+      const serverUrl = import.meta.env.VITE_WEBSOCKET_URL || import.meta.env.REACT_APP_WEBSOCKET_URL || 'http://localhost:5001';
+
       this.socket = io(`${serverUrl}/notifications`, {
         auth: {
           token: token
@@ -31,7 +31,7 @@ class NotificationWebSocketService {
       });
 
       this.setupEventHandlers();
-      
+
       console.log('Notification WebSocket connecting...');
     } catch (error) {
       console.error('Error connecting to notification WebSocket:', error);
@@ -55,7 +55,7 @@ class NotificationWebSocketService {
       console.log('Disconnected from notification WebSocket:', reason);
       this.connected = false;
       this.emit('disconnected', reason);
-      
+
       // Auto-reconnect unless it was a manual disconnect
       if (reason !== 'io client disconnect') {
         this.handleReconnect();
@@ -114,9 +114,9 @@ class NotificationWebSocketService {
 
     this.reconnectAttempts++;
     const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxReconnectDelay);
-    
+
     console.log(`Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-    
+
     setTimeout(() => {
       if (!this.connected && this.socket) {
         console.log('Attempting to reconnect...');
@@ -130,14 +130,14 @@ class NotificationWebSocketService {
     try {
       // Only play sound if notification has sound enabled and user hasn't disabled sounds
       const soundEnabled = this.getSoundPreference();
-      
+
       if (!soundEnabled || !notification.sound) {
         return;
       }
 
       // Create audio element
       const audio = new Audio();
-      
+
       // Use different sounds for different types
       if (isSystem || notification.priority === 'urgent' || notification.priority === 'critical') {
         audio.src = '/sounds/urgent-notification.mp3';
@@ -313,7 +313,7 @@ class NotificationWebSocketService {
       browserNotification.onclick = () => {
         window.focus();
         browserNotification.close();
-        
+
         // If notification has an action URL, navigate to it
         if (notification.action?.url) {
           window.location.href = notification.action.url;
@@ -338,11 +338,11 @@ class NotificationWebSocketService {
       const originalTitle = document.title;
       let flashCount = 0;
       const maxFlashes = 6;
-      
+
       const flashInterval = setInterval(() => {
         document.title = flashCount % 2 === 0 ? '🔔 New Notification!' : originalTitle;
         flashCount++;
-        
+
         if (flashCount >= maxFlashes) {
           clearInterval(flashInterval);
           document.title = originalTitle;
@@ -361,20 +361,20 @@ class NotificationWebSocketService {
       const link = document.querySelector('link[rel~="icon"]') || document.createElement('link');
       link.type = 'image/x-icon';
       link.rel = 'shortcut icon';
-      
+
       const originalHref = link.href || '/favicon.ico';
-      
+
       // Create notification favicon (you would need to create this)
       const notificationFavicon = '/notification-favicon.ico';
-      
+
       let flashCount = 0;
       const maxFlashes = 3;
-      
+
       const faviconInterval = setInterval(() => {
         link.href = flashCount % 2 === 0 ? notificationFavicon : originalHref;
         document.head.appendChild(link);
         flashCount++;
-        
+
         if (flashCount >= maxFlashes) {
           clearInterval(faviconInterval);
           link.href = originalHref;

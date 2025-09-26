@@ -72,6 +72,18 @@ class NotificationSocketService {
     socket.on('join-notification-room', (room) => this.handleJoinRoom(socket, room));
     socket.on('leave-notification-room', (room) => this.handleLeaveRoom(socket, room));
     
+    // Enhanced real-time features
+    socket.on('user-typing', (data) => this.handleUserTyping(socket, data));
+    socket.on('user-stopped-typing', (data) => this.handleUserStoppedTyping(socket, data));
+    socket.on('user-activity', (data) => this.handleUserActivity(socket, data));
+    socket.on('join-tour', (tourId) => this.handleJoinTour(socket, tourId));
+    socket.on('leave-tour', (tourId) => this.handleLeaveTour(socket, tourId));
+    socket.on('tour-update', (data) => this.handleTourUpdate(socket, data));
+    socket.on('live-chat-message', (data) => this.handleLiveChatMessage(socket, data));
+    socket.on('request-help', (data) => this.handleHelpRequest(socket, data));
+    socket.on('share-location', (data) => this.handleLocationShare(socket, data));
+    socket.on('artifact-interaction', (data) => this.handleArtifactInteraction(socket, data));
+    
     socket.on('disconnect', () => {
       console.log(`User ${socket.userId} disconnected from notifications`);
       
@@ -314,6 +326,271 @@ class NotificationSocketService {
     }
 
     return stats;
+  }
+
+  // =============== ENHANCED REAL-TIME FEATURES ===============
+
+  // Live chat and messaging
+  handleLiveChatMessage(socket, data) {
+    const { message, roomId, recipientId } = data;
+    
+    const messageData = {
+      id: Date.now().toString(),
+      message,
+      sender: {
+        id: socket.userId,
+        name: socket.userData.fullName || socket.userData.name,
+        avatar: socket.userData.avatar
+      },
+      timestamp: new Date(),
+      type: 'message'
+    };
+
+    if (roomId) {
+      // Send to room (group chat)
+      socket.to(roomId).emit('chat-message', messageData);
+      console.log(`Chat message sent to room ${roomId} by user ${socket.userId}`);
+    } else if (recipientId) {
+      // Send to specific user (private chat)
+      this.notificationNamespace.to(`user:${recipientId}`).emit('private-message', messageData);
+      console.log(`Private message sent to user ${recipientId} from ${socket.userId}`);
+    }
+  }
+
+  // Typing indicators
+  handleUserTyping(socket, data) {
+    const { roomId, recipientId } = data;
+    
+    const typingData = {
+      userId: socket.userId,
+      userName: socket.userData.fullName || socket.userData.name,
+      timestamp: new Date()
+    };
+
+    if (roomId) {
+      socket.to(roomId).emit('user-typing', typingData);
+    } else if (recipientId) {
+      this.notificationNamespace.to(`user:${recipientId}`).emit('user-typing', typingData);
+    }
+  }
+
+  handleUserStoppedTyping(socket, data) {
+    const { roomId, recipientId } = data;
+    
+    const typingData = {
+      userId: socket.userId,
+      timestamp: new Date()
+    };
+
+    if (roomId) {
+      socket.to(roomId).emit('user-stopped-typing', typingData);
+    } else if (recipientId) {
+      this.notificationNamespace.to(`user:${recipientId}`).emit('user-stopped-typing', typingData);
+    }
+  }
+
+  // User activity tracking
+  async handleUserActivity(socket, data) {
+    const { action, details } = data;
+    
+    try {
+      // Update user's last activity and streak
+      const user = await User.findById(socket.userId);
+      if (user) {
+        await user.updateStreak();
+        await user.logActivity(action, details, { ip: socket.handshake.address });
+        
+        // Broadcast activity to followers if it's a significant action
+        if (['view_artifact', 'complete_tour', 'earn_achievement'].includes(action)) {
+          this.broadcastToFollowers(socket.userId, {
+            type: 'user-activity',
+            user: {
+              id: socket.userId,
+              name: user.fullName || user.name,
+              avatar: user.avatar
+            },
+            action,
+            details,
+            timestamp: new Date()
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error handling user activity:', error);
+    }
+  }
+
+  // Live tour features
+  handleJoinTour(socket, tourId) {
+    socket.join(`tour:${tourId}`);
+    socket.currentTour = tourId;
+    
+    // Notify other tour participants
+    socket.to(`tour:${tourId}`).emit('user-joined-tour', {
+      userId: socket.userId,
+      userName: socket.userData.fullName || socket.userData.name,
+      timestamp: new Date()
+    });
+    
+    console.log(`User ${socket.userId} joined tour ${tourId}`);
+  }
+
+  handleLeaveTour(socket, tourId) {
+    socket.leave(`tour:${tourId}`);
+    socket.currentTour = null;
+    
+    // Notify other tour participants
+    socket.to(`tour:${tourId}`).emit('user-left-tour', {
+      userId: socket.userId,
+      userName: socket.userData.fullName || socket.userData.name,
+      timestamp: new Date()
+    });
+    
+    console.log(`User ${socket.userId} left tour ${tourId}`);
+  }
+
+  handleTourUpdate(socket, data) {
+    const { tourId, update } = data;
+    
+    if (socket.currentTour === tourId || socket.userRole === 'guide' || socket.userRole === 'museum_admin') {
+      // Broadcast tour update to all tour participants
+      this.notificationNamespace.to(`tour:${tourId}`).emit('tour-update', {
+        ...update,
+        sender: {
+          id: socket.userId,
+          name: socket.userData.fullName || socket.userData.name
+        },
+        timestamp: new Date()
+      });
+    }
+  }
+
+  // Help and support
+  handleHelpRequest(socket, data) {
+    const { type, message, location, urgency = 'medium' } = data;
+    
+    const helpRequest = {
+      id: Date.now().toString(),
+      user: {
+        id: socket.userId,
+        name: socket.userData.fullName || socket.userData.name,
+        avatar: socket.userData.avatar
+      },
+      type,
+      message,
+      location,
+      urgency,
+      timestamp: new Date()
+    };
+
+    // Send to museum staff and guides
+    if (socket.museumId) {
+      this.notificationNamespace.to(`museum:${socket.museumId}`).emit('help-request', helpRequest);
+    }
+    
+    // Also send to all guides currently online
+    this.notificationNamespace.to('role:guide').emit('help-request', helpRequest);
+    
+    console.log(`Help request from user ${socket.userId}: ${type}`);
+  }
+
+  // Location sharing
+  handleLocationShare(socket, data) {
+    const { coordinates, accuracy, tour } = data;
+    
+    const locationData = {
+      userId: socket.userId,
+      userName: socket.userData.fullName || socket.userData.name,
+      coordinates,
+      accuracy,
+      timestamp: new Date()
+    };
+
+    if (tour && socket.currentTour) {
+      // Share location with tour group
+      socket.to(`tour:${socket.currentTour}`).emit('user-location', locationData);
+    }
+  }
+
+  // Artifact interactions
+  async handleArtifactInteraction(socket, data) {
+    const { artifactId, action, duration } = data;
+    
+    try {
+      const interactionData = {
+        userId: socket.userId,
+        artifactId,
+        action,
+        duration,
+        timestamp: new Date()
+      };
+
+      // Update artifact view count if it's a view action
+      if (action === 'view') {
+        const Artifact = require('../models/Artifact');
+        const artifact = await Artifact.findById(artifactId);
+        if (artifact) {
+          await artifact.incrementViews();
+        }
+
+        // Update user stats
+        const user = await User.findById(socket.userId);
+        if (user) {
+          await user.incrementArtifactViews();
+          await user.addPoints(10, 'Viewed artifact');
+        }
+      }
+
+      // Broadcast to museum analytics
+      if (socket.museumId) {
+        this.notificationNamespace.to(`museum:${socket.museumId}`).emit('artifact-interaction', interactionData);
+      }
+      
+      console.log(`Artifact ${action} by user ${socket.userId}: ${artifactId}`);
+    } catch (error) {
+      console.error('Error handling artifact interaction:', error);
+    }
+  }
+
+  // Broadcast to user's followers
+  async broadcastToFollowers(userId, activityData) {
+    try {
+      const user = await User.findById(userId).populate('social.followers', '_id');
+      if (user && user.social.followers) {
+        user.social.followers.forEach(follower => {
+          this.notificationNamespace.to(`user:${follower._id}`).emit('follower-activity', activityData);
+        });
+      }
+    } catch (error) {
+      console.error('Error broadcasting to followers:', error);
+    }
+  }
+
+  // Real-time analytics updates
+  async broadcastAnalyticsUpdate(museumId, analyticsData) {
+    this.notificationNamespace.to(`museum:${museumId}`).emit('analytics-update', {
+      ...analyticsData,
+      timestamp: new Date()
+    });
+  }
+
+  // System-wide announcements
+  async broadcastAnnouncement(announcement) {
+    this.notificationNamespace.emit('system-announcement', {
+      ...announcement,
+      timestamp: new Date()
+    });
+  }
+
+  // Emergency alerts
+  async sendEmergencyAlert(alert) {
+    this.notificationNamespace.emit('emergency-alert', {
+      ...alert,
+      priority: 'critical',
+      sound: true,
+      persistent: true,
+      timestamp: new Date()
+    });
   }
 }
 

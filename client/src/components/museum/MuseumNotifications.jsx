@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import MuseumAdminSidebar from '../dashboard/MuseumAdminSidebar';
-import { 
-  Box, Typography, Container, Grid, Paper, Button, 
+import {
+  Box, Typography, Container, Grid, Paper, Button,
   List, ListItem, ListItemText, ListItemIcon, Chip, IconButton,
   CircularProgress, Alert, FormControl, InputLabel, Select, MenuItem,
   Switch, FormControlLabel
@@ -15,7 +15,7 @@ import {
   Check,
   X
 } from 'lucide-react';
-import { api } from '../../utils/api.js';
+import api from '../../utils/api.js';
 
 const MuseumNotifications = () => {
   const [notifications, setNotifications] = useState([]);
@@ -44,15 +44,15 @@ const MuseumNotifications = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const params = {
         page: pagination.page,
         limit: pagination.limit,
         ...filters
       };
-      
+
       const response = await api.get('/museum-admin/notifications', { params });
-      
+
       if (response.data.success) {
         setNotifications(response.data.notifications);
         setUnreadCount(response.data.unreadCount);
@@ -76,14 +76,14 @@ const MuseumNotifications = () => {
   const markAsRead = async (id) => {
     try {
       const response = await api.put(`/museum-admin/notifications/${id}/read`);
-      
+
       if (response.data.success) {
         setNotifications(notifications.map(notif => {
           const recipient = notif.recipients?.find(r => r.user === 'current_user');
           if (notif._id === id && recipient && !recipient.readAt) {
             return {
               ...notif,
-              recipients: notif.recipients.map(r => 
+              recipients: notif.recipients.map(r =>
                 r.user === 'current_user' ? { ...r, readAt: new Date() } : r
               )
             };
@@ -101,7 +101,7 @@ const MuseumNotifications = () => {
   const dismissNotification = async (id) => {
     try {
       const response = await api.put(`/museum-admin/notifications/${id}/dismiss`);
-      
+
       if (response.data.success) {
         setNotifications(notifications.filter(notif => notif._id !== id));
         setUnreadCount(prev => {
@@ -136,7 +136,7 @@ const MuseumNotifications = () => {
 
   const priorityColors = {
     low: 'info',
-    medium: 'warning', 
+    medium: 'warning',
     high: 'error',
     critical: 'error',
     urgent: 'error'
@@ -155,7 +155,7 @@ const MuseumNotifications = () => {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <MuseumAdminSidebar />
-      
+
       <div className="flex-1 overflow-auto">
         <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
           <Box sx={{ mb: 4 }}>
@@ -163,10 +163,10 @@ const MuseumNotifications = () => {
               <Bell className="mr-3" size={32} />
               Notifications
               {unreadCount > 0 && (
-                <Chip 
-                  label={unreadCount} 
-                  color="error" 
-                  size="small" 
+                <Chip
+                  label={unreadCount}
+                  color="error"
+                  size="small"
                   sx={{ ml: 2 }}
                 />
               )}
@@ -226,8 +226,8 @@ const MuseumNotifications = () => {
                 />
               </Grid>
               <Grid item xs={12} sm={3}>
-                <Button 
-                  variant="outlined" 
+                <Button
+                  variant="outlined"
                   onClick={fetchNotifications}
                   disabled={loading}
                 >
@@ -252,7 +252,7 @@ const MuseumNotifications = () => {
                 {pagination.total} total notifications
               </Typography>
             </Box>
-            
+
             {loading ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
                 <CircularProgress />
@@ -272,10 +272,10 @@ const MuseumNotifications = () => {
                 {notifications.map((notification) => {
                   const isRead = isNotificationRead(notification);
                   return (
-                    <ListItem 
+                    <ListItem
                       key={notification._id}
-                      sx={{ 
-                        mb: 1, 
+                      sx={{
+                        mb: 1,
                         bgcolor: isRead ? 'transparent' : 'primary.light',
                         borderRadius: 1,
                         opacity: isRead ? 0.7 : 1,
@@ -290,16 +290,16 @@ const MuseumNotifications = () => {
                         primary={
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Typography variant="subtitle1">{notification.title}</Typography>
-                            <Chip 
-                              label={notification.priority} 
-                              color={priorityColors[notification.priority] || 'default'} 
-                              size="small" 
+                            <Chip
+                              label={notification.priority}
+                              color={priorityColors[notification.priority] || 'default'}
+                              size="small"
                             />
                             {notification.category && (
-                              <Chip 
-                                label={notification.category.replace('_', ' ')} 
+                              <Chip
+                                label={notification.category.replace('_', ' ')}
                                 variant="outlined"
-                                size="small" 
+                                size="small"
                               />
                             )}
                           </Box>
@@ -315,7 +315,7 @@ const MuseumNotifications = () => {
                       />
                       <Box sx={{ display: 'flex', gap: 1 }}>
                         {!isRead && (
-                          <IconButton 
+                          <IconButton
                             onClick={() => markAsRead(notification._id)}
                             title="Mark as read"
                             size="small"
@@ -324,7 +324,7 @@ const MuseumNotifications = () => {
                           </IconButton>
                         )}
                         {notification.isDismissible && (
-                          <IconButton 
+                          <IconButton
                             onClick={() => dismissNotification(notification._id)}
                             title="Dismiss"
                             size="small"
@@ -339,11 +339,11 @@ const MuseumNotifications = () => {
                 })}
               </List>
             )}
-            
+
             {/* Pagination */}
             {pagination.pages > 1 && (
               <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-                <Button 
+                <Button
                   disabled={pagination.page === 1}
                   onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
                 >
@@ -352,7 +352,7 @@ const MuseumNotifications = () => {
                 <Typography sx={{ mx: 2, display: 'flex', alignItems: 'center' }}>
                   Page {pagination.page} of {pagination.pages}
                 </Typography>
-                <Button 
+                <Button
                   disabled={pagination.page === pagination.pages}
                   onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
                 >

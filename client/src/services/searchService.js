@@ -1,4 +1,4 @@
-import { api } from '../utils/api.js';
+import api from '../utils/api.js';
 
 class SearchService {
   constructor() {
@@ -234,16 +234,16 @@ class SearchService {
   async searchByImage(imageFile) {
     try {
       const uploadResponse = await api.uploadFile(imageFile, 'search-image');
-      
+
       if (uploadResponse.url) {
         const response = await api.request('/search/by-image', {
           method: 'POST',
           body: { imageUrl: uploadResponse.url }
         });
-        
+
         return response.results || response.data || response;
       }
-      
+
       throw new Error('Failed to upload search image');
     } catch (error) {
       console.error('Image search error:', error);
@@ -333,7 +333,7 @@ class SearchService {
     };
 
     // Remove duplicate if exists
-    this.searchHistory = this.searchHistory.filter(item => 
+    this.searchHistory = this.searchHistory.filter(item =>
       item.query !== query || JSON.stringify(item.options) !== JSON.stringify(options)
     );
 

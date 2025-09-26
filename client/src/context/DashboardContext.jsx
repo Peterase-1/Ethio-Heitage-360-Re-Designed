@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import apiService from "../services/api";
+import { useAuth } from "../hooks/useAuth";
 
 const DashboardContext = createContext(undefined);
 
@@ -12,6 +13,8 @@ export const useDashboard = () => {
 };
 
 export const DashboardProvider = ({ children }) => {
+  const { user } = useAuth();
+  
   // State
   const [tourPackages, setTourPackages] = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -33,27 +36,44 @@ export const DashboardProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Get current user ID (you might need to adjust this based on your auth implementation)
-  const organizerId = currentUser?.id || localStorage.getItem('userId') || '68a39e26bd680dcb7ee5e296'; // Test organizer ID
+  // Get current user ID from authenticated user
+  const organizerId = user?._id || user?.id;
 
   // Load initial dashboard data
   const loadDashboardData = useCallback(async () => {
-    if (!organizerId) return;
+    if (!organizerId) {
+      console.warn('No organizerId available for dashboard data');
+      setError('User not authenticated');
+      return;
+    }
     
     setIsLoading(true);
     setError(null);
     
     try {
-      const data = await apiService.getDashboardData(organizerId);
-      setDashboardData(data);
-      setCurrentUser(data.user);
+      // Since we don't have a specific organizer dashboard endpoint yet,
+      // we'll use mock data and set the current user from auth context
+      setCurrentUser(user);
+      setDashboardData({
+        stats: {
+          totalTours: 0,
+          activeTours: 0,
+          confirmedBookings: 0,
+          pendingBookings: 0,
+          completedBookings: 0,
+          totalRevenue: 0,
+          unreadMessages: 0
+        },
+        upcomingTours: [],
+        recentActivities: []
+      });
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
       setError(error.message);
     } finally {
       setIsLoading(false);
     }
-  }, [organizerId]);
+  }, [organizerId, user]);
 
   // Load tour packages
   const loadTourPackages = useCallback(async (params = {}) => {
@@ -217,6 +237,65 @@ export const DashboardProvider = ({ children }) => {
     }
   }, []);
 
+  // PUBLIC API METHODS FOR CUSTOMERS/USERS
+  
+  // Create booking from user (public)
+  const createBookingFromUser = useCallback(async (bookingData) => {
+    try {
+      // Create booking via public API
+      const response = await apiService.request('/bookings', {
+        method: 'POST',
+        body: JSON.stringify(bookingData)
+      });
+      
+      // Add to local bookings state if it's for current user's tour organizer
+      if (organizerId === bookingData.tourPackageId) {
+        setBookings((prev) => [response, ...prev]);
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('Failed to create booking from user:', error);
+      throw error;
+    }
+  }, [organizerId]);
+
+  // Add customer message (public)
+  const addCustomerMessage = useCallback(async (messageData) => {
+    try {
+      // Send message via public API
+      const response = await apiService.request('/messages', {
+        method: 'POST',
+        body: JSON.stringify(messageData)
+      });
+      
+      return response;
+    } catch (error) {
+      console.error('Failed to add customer message:', error);
+      throw error;
+    }
+  }, []);
+
+  // Load public tours (for user view)
+  const loadPublicTours = useCallback(async (params = {}) => {
+    try {
+      // Get all public/active tours
+      const response = await apiService.request('/tours', {
+        method: 'GET'
+      });
+      
+      // Filter for active tours only
+      const publicTours = (response.tours || response.data || response || [])
+        .filter(tour => tour.status === 'active');
+        
+      return publicTours;
+    } catch (error) {
+      console.error('Failed to load public tours:', error);
+      // Return empty array instead of throwing to prevent crashes
+      return [];
+    }
+  }, []);
+
   // Initial data load
   useEffect(() => {
     if (organizerId) {
@@ -275,6 +354,11 @@ export const DashboardProvider = ({ children }) => {
     markMessageAsRead,
     deleteTourPackage,
     replyToMessage,
+
+    // Public API functions for customers/users
+    createBookingFromUser,
+    addCustomerMessage,
+    loadPublicTours,
 
     // UI State
     showCreateTourModal,

@@ -230,4 +230,3 @@ const seedUsers = async () => {
 
 // Run the seeding function
 seedUsers();
-
