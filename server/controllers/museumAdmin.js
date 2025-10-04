@@ -5,6 +5,7 @@ const Rental = require('../models/Rental');
 const Analytics = require('../models/Analytics');
 const Event = require('../models/Event');
 const Notification = require('../models/Notification');
+const Communication = require('../models/Communication');
 const mongoose = require('mongoose');
 
 // Heritage Site Model (assuming it exists)
@@ -2395,5 +2396,418 @@ module.exports = {
   getHeritageSites,
   suggestHeritageSite,
   getHeritageSiteSuggestions,
-  updateHeritageSiteSuggestion
+  updateHeritageSiteSuggestion,
+
+  // Communications
+  getCommunications,
+  getCommunication,
+  createCommunication,
+  replyToCommunication,
+  markAsRead,
+  archiveCommunication,
+  getUnreadCount,
+  getConversation
 };
+
+// ======================
+// COMMUNICATIONS FUNCTIONS
+// ======================
+
+/**
+ * Get communications for museum admin
+ * @route   GET /api/museum-admin/communications
+ * @access  Museum Admin or Super Admin
+ */
+async function getCommunications(req, res) {
+  try {
+    const { page = 1, limit = 20, type, status, priority, search } = req.query;
+    const skip = (page - 1) * limit;
+
+    // Build query - Museum Admin can see communications where they are sender or recipient
+    const query = {
+      $or: [
+        { from: req.user._id },
+        { to: req.user._id }
+      ]
+    };
+
+    // Apply filters
+    if (type) query.type = type;
+    if (status) query.status = status;
+    if (priority) query.priority = priority;
+    if (search) {
+      query.$and = [
+        {
+          $or: [
+            { subject: { $regex: search, $options: 'i' } },
+            { message: { $regex: search, $options: 'i' } }
+          ]
+        }
+      ];
+    }
+
+    const sort = { createdAt: -1 };
+
+    const communications = await Communication.find(query)
+      .populate('from', 'name email role')
+      .populate('to', 'name email role')
+      .populate('museum', 'name')
+      .sort(sort)
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await Communication.countDocuments(query);
+
+    res.json({
+      success: true,
+      data: communications,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        limit: parseInt(limit),
+        hasNextPage: page < Math.ceil(total / limit),
+        hasPrevPage: page > 1
+      }
+    });
+  } catch (error) {
+    console.error('Error getting communications:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get communications',
+      error: error.message
+    });
+  }
+}
+
+/**
+ * Get specific communication
+ * @route   GET /api/museum-admin/communications/:id
+ * @access  Museum Admin or Super Admin
+ */
+async function getCommunication(req, res) {
+  try {
+    const communication = await Communication.findById(req.params.id)
+      .populate('from', 'name email role')
+      .populate('to', 'name email role')
+      .populate('museum', 'name');
+
+    if (!communication) {
+      return res.status(404).json({
+        success: false,
+        message: 'Communication not found'
+      });
+    }
+
+    // Check if user has access to this communication
+    if (communication.from._id.toString() !== req.user._id.toString() &&
+      communication.to._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: communication
+    });
+  } catch (error) {
+    console.error('Error getting communication:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get communication',
+      error: error.message
+    });
+  }
+}
+
+/**
+ * Create new communication (send to Super Admin)
+ * @route   POST /api/museum-admin/communications
+ * @access  Museum Admin
+ */
+async function createCommunication(req, res) {
+  try {
+    const { type, subject, message, priority = 'medium' } = req.body;
+
+    // Find Super Admin user
+    const superAdmin = await User.findOne({ role: 'super_admin' });
+    if (!superAdmin) {
+      return res.status(400).json({
+        success: false,
+        message: 'Super Admin not found'
+      });
+    }
+
+    // Get museum for the current user
+    const museum = await Museum.findOne({ admin: req.user._id });
+    if (!museum) {
+      return res.status(400).json({
+        success: false,
+        message: 'Museum not found for this admin'
+      });
+    }
+
+    const communication = new Communication({
+      type,
+      from: req.user._id,
+      to: superAdmin._id,
+      museum: museum._id,
+      subject,
+      message,
+      priority
+    });
+
+    await communication.save();
+
+    res.status(201).json({
+      success: true,
+      data: communication
+    });
+  } catch (error) {
+    console.error('Error creating communication:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create communication',
+      error: error.message
+    });
+  }
+}
+
+/**
+ * Reply to communication
+ * @route   POST /api/museum-admin/communications/:id/reply
+ * @access  Museum Admin or Super Admin
+ */
+async function replyToCommunication(req, res) {
+  try {
+    const { message } = req.body;
+
+    const originalCommunication = await Communication.findById(req.params.id);
+    if (!originalCommunication) {
+      return res.status(404).json({
+        success: false,
+        message: 'Communication not found'
+      });
+    }
+
+    // Check if user has access to this communication
+    if (originalCommunication.from._id.toString() !== req.user._id.toString() &&
+      originalCommunication.to._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    // Create reply
+    const reply = new Communication({
+      type: 'response',
+      from: req.user._id,
+      to: originalCommunication.from._id.toString() === req.user._id.toString()
+        ? originalCommunication.to._id
+        : originalCommunication.from._id,
+      museum: originalCommunication.museum,
+      subject: `Re: ${originalCommunication.subject}`,
+      message,
+      threadId: originalCommunication._id,
+      priority: originalCommunication.priority
+    });
+
+    await reply.save();
+
+    // Update original communication status
+    originalCommunication.status = 'replied';
+    await originalCommunication.save();
+
+    res.status(201).json({
+      success: true,
+      data: reply
+    });
+  } catch (error) {
+    console.error('Error replying to communication:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reply to communication',
+      error: error.message
+    });
+  }
+}
+
+/**
+ * Mark communication as read
+ * @route   PUT /api/museum-admin/communications/:id/read
+ * @access  Museum Admin or Super Admin
+ */
+async function markAsRead(req, res) {
+  try {
+    const communication = await Communication.findById(req.params.id);
+    if (!communication) {
+      return res.status(404).json({
+        success: false,
+        message: 'Communication not found'
+      });
+    }
+
+    // Check if user has access to this communication
+    if (communication.from._id.toString() !== req.user._id.toString() &&
+      communication.to._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    // Add to readBy array if not already there
+    const alreadyRead = communication.readBy.some(
+      read => read.user.toString() === req.user._id.toString()
+    );
+
+    if (!alreadyRead) {
+      communication.readBy.push({
+        user: req.user._id,
+        readAt: new Date()
+      });
+      communication.status = 'read';
+      await communication.save();
+    }
+
+    res.json({
+      success: true,
+      data: communication
+    });
+  } catch (error) {
+    console.error('Error marking communication as read:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to mark communication as read',
+      error: error.message
+    });
+  }
+}
+
+/**
+ * Archive communication
+ * @route   PUT /api/museum-admin/communications/:id/archive
+ * @access  Museum Admin or Super Admin
+ */
+async function archiveCommunication(req, res) {
+  try {
+    const communication = await Communication.findById(req.params.id);
+    if (!communication) {
+      return res.status(404).json({
+        success: false,
+        message: 'Communication not found'
+      });
+    }
+
+    // Check if user has access to this communication
+    if (communication.from._id.toString() !== req.user._id.toString() &&
+      communication.to._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    // Add to archivedBy array if not already there
+    const alreadyArchived = communication.archivedBy.includes(req.user._id);
+    if (!alreadyArchived) {
+      communication.archivedBy.push(req.user._id);
+      communication.status = 'archived';
+      await communication.save();
+    }
+
+    res.json({
+      success: true,
+      data: communication
+    });
+  } catch (error) {
+    console.error('Error archiving communication:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to archive communication',
+      error: error.message
+    });
+  }
+}
+
+/**
+ * Get unread communications count
+ * @route   GET /api/museum-admin/communications/unread-count
+ * @access  Museum Admin or Super Admin
+ */
+async function getUnreadCount(req, res) {
+  try {
+    const count = await Communication.countDocuments({
+      $or: [
+        { from: req.user._id },
+        { to: req.user._id }
+      ],
+      status: { $nin: ['read', 'archived'] }
+    });
+
+    res.json({
+      success: true,
+      count
+    });
+  } catch (error) {
+    console.error('Error getting unread count:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get unread count',
+      error: error.message
+    });
+  }
+}
+
+/**
+ * @desc    Get conversation thread for a communication
+ * @route   GET /api/museum-admin/communications/:id/conversation
+ * @access  Museum Admin or Super Admin
+ */
+async function getConversation(req, res) {
+  try {
+    const { id } = req.params;
+
+    // Verify the communication exists and user has access
+    const communication = await Communication.findById(id)
+      .populate('from to', 'name email role')
+      .populate('museum', 'name');
+
+    if (!communication) {
+      return res.status(404).json({
+        success: false,
+        message: 'Communication not found'
+      });
+    }
+
+    // Check if user has access to this communication
+    const hasAccess = communication.from._id.toString() === req.user._id.toString() ||
+      communication.to._id.toString() === req.user._id.toString() ||
+      req.user.role === 'super_admin';
+
+    if (!hasAccess) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    // Get the full conversation thread
+    const conversation = await Communication.getConversation(id);
+
+    res.json({
+      success: true,
+      conversation
+    });
+  } catch (error) {
+    console.error('Error getting conversation:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get conversation',
+      error: error.message
+    });
+  }
+}

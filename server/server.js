@@ -46,6 +46,7 @@ const visitorDashboardRoutes = require('./routes/visitorDashboard'); // Added vi
 const userRoutes = require('./routes/User');
 const rentalsRoutes = require('./routes/rentals');
 const liveSessionsRoutes = require('./routes/liveSessionsRoutes'); // Add live sessions routes
+const communicationsRoutes = require('./routes/communications'); // Add communications routes
 
 // New comprehensive routes
 const educationHubRoutes = require('./routes/educationRoutes');
@@ -60,6 +61,8 @@ const toolsAndResourcesRoutes = require('./routes/toolsAndResourcesRoutes');
 const enhancedProgressRoutes = require('./routes/enhancedProgressRoutes');
 const leaderboardRoutes = require('./routes/leaderboardRoutes');
 const progressTrackerRoutes = require('./routes/progressTrackerRoutes');
+const openaiRoutes = require('./routes/openai');
+const downloadsRoutes = require('./routes/downloads');
 
 // Import middleware
 const { errorHandler } = require('./utils/errorHandler');
@@ -90,6 +93,7 @@ app.use(limiter);
 
 // CORS configuration
 const allowedOrigins = [
+  // Local development
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:5175',
@@ -97,13 +101,33 @@ const allowedOrigins = [
   'http://127.0.0.1:5173',
   'http://127.0.0.1:5174',
   'http://127.0.0.1:5175',
-  'http://127.0.0.1:5176'
+  'http://127.0.0.1:5176',
+  // Production deployments
+  'https://ethioheritage360-ethiopianheritagepf.netlify.app',
+  'https://ethioheritage360-ethiopianheritagepf.netlify.app/',
+  // Allow any Netlify subdomain for this project
+  /https:\/\/.*--ethioheritage360.*\.netlify\.app$/
 ];
 app.use(cors({
   origin: function (origin, callback) {
     // allow requests with no origin (like mobile apps, curl)
     if (!origin) return callback(null, true);
+    
+    // Check string origins
     if (allowedOrigins.includes(origin)) return callback(null, true);
+    
+    // Check regex patterns
+    for (const allowedOrigin of allowedOrigins) {
+      if (allowedOrigin instanceof RegExp && allowedOrigin.test(origin)) {
+        return callback(null, true);
+      }
+    }
+    
+    // For development, be more permissive
+    if (process.env.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+    
     return callback(new Error('CORS not allowed from this origin: ' + origin), false);
   },
   credentials: true,
@@ -208,6 +232,7 @@ app.use('/api/social', require('./routes/socialRoutes')); // Social features
 app.use('/api/system-settings', require('./routes/systemSettings')); // System settings management
 app.use('/api/flashcards', require('./routes/flashcards')); // Flashcards management
 app.use('/api/live-sessions', liveSessionsRoutes); // Live sessions management
+app.use('/api/communications', communicationsRoutes); // Communications management
 
 // Enhanced feature API routes
 app.use('/api/games', gamesRoutes); // Games management and playing
@@ -222,6 +247,12 @@ app.use('/api/admin-progress', require('./routes/adminProgressRoutes')); // Admi
 
 // Platform statistics endpoint
 app.use('/api/platform', userRoutes); // Platform stats available through user routes
+
+// OpenAI Integration routes
+app.use('/api/openai', openaiRoutes); // OpenAI AI-powered features
+
+// Downloads and File Serving routes
+app.use('/api/downloads', downloadsRoutes); // File downloads, exports, backups
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {

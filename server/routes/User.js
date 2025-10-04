@@ -2,6 +2,7 @@ const express = require('express');
 const { auth } = require('../middleware/auth');
 const User = require('../models/User');
 const LearningProgress = require('../models/LearningProgress');
+const { staffUpload, handleUploadErrors, getFileUrl } = require('../config/fileUpload');
 const router = express.Router();
 
 // Apply authentication to all routes
@@ -730,6 +731,66 @@ router.get('/dashboard', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error retrieving dashboard data',
+      error: error.message
+    });
+  }
+});
+
+// POST /api/user/avatar - Upload profile picture/avatar
+router.post('/avatar', staffUpload.single('avatar'), handleUploadErrors, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+    
+    // Generate the full URL for the uploaded file
+    const avatarUrl = getFileUrl(req.file.filename, 'staffAvatars');
+    
+    // Update user avatar in database
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { 
+        avatar: avatarUrl,
+        // Also store just the filename for easier file management
+        avatarFilename: req.file.filename 
+      },
+      { new: true, runValidators: true }
+    ).select('-password');
+    
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Profile picture uploaded successfully',
+      data: {
+        avatar: avatarUrl,
+        filename: req.file.filename,
+        size: req.file.size,
+        user: {
+          id: updatedUser._id,
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName,
+          email: updatedUser.email,
+          avatar: updatedUser.avatar
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error('Avatar upload error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error uploading profile picture',
       error: error.message
     });
   }

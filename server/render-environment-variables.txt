@@ -1,0 +1,52 @@
+CRITICAL ENVIRONMENT VARIABLES TO SET IN RENDER DASHBOARD:
+================================================================
+
+1. MONGODB_URI
+   Value: mongodb+srv://melkamuwako5_db_user:YFweyhElTJBj5sXp@cluster0.x3jfm8p.mongodb.net/ethioheritage360?retryWrites=true&w=majority&appName=Cluster0
+
+2. NODE_ENV
+   Value: production
+
+3. PORT
+   Value: 10000
+
+4. JWT_SECRET (IMPORTANT - Generate a secure one)
+   Value: 19d698dd6851137fa013915a78e87a7a975c7822e6fdda30be004ebf711a07a6
+
+5. JWT_REFRESH_SECRET
+   Value: 9562503526cd94570b3666863a704f4de6c10e97e7f0255406fba00ebe29bcd1
+
+6. JWT_EXPIRE
+   Value: 1h
+
+7. JWT_REFRESH_EXPIRE
+   Value: 30d
+
+8. BCRYPT_SALT_ROUNDS
+   Value: 12
+
+9. DB_NAME
+   Value: ethioheritage360
+
+OPTIONAL (but recommended):
+10. HEALTH_CHECK_ENABLED
+    Value: true
+
+11. MONITORING_ENABLED
+    Value: true
+
+HOW TO UPDATE IN RENDER:
+=======================
+1. Go to https://dashboard.render.com
+2. Select your EthioHeritage360 service
+3. Click on "Environment" tab
+4. Add/Update each variable above
+5. Click "Save Changes"
+6. The service will automatically redeploy
+
+IMPORTANT NOTES:
+===============
+- Make sure there are no spaces in the values
+- The MONGODB_URI should be exactly as shown above
+- After updating, Render will automatically trigger a new deployment
+- Monitor the logs to confirm the connection works

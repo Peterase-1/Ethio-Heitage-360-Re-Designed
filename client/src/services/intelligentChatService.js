@@ -1,5 +1,8 @@
-// Intelligent Chat Service for EthioHeritage360
+// Enhanced Intelligent Chat Service for EthioHeritage360
 // Provides contextual responses about Ethiopian heritage, culture, and platform features
+// Now with OpenAI integration and advanced platform detection
+
+import apiService from '../utils/api.js';
 
 class IntelligentChatService {
   constructor() {
@@ -105,6 +108,25 @@ class IntelligentChatService {
       ]
     };
 
+    // Conversation history
+    this.conversationHistory = [];
+    this.maxHistoryLength = 10;
+    
+    // Platform context detection
+    this.platformContexts = {
+      '/museums': 'museum_exploration',
+      '/artifacts': 'artifact_viewing', 
+      '/tours': 'tour_booking',
+      '/virtual-tours': 'virtual_tour',
+      '/education': 'learning',
+      '/admin/dashboard': 'admin_overview',
+      '/admin/artifacts': 'artifact_management',
+      '/admin/visitors': 'visitor_analytics',
+      '/admin/staff': 'staff_management',
+      '/profile': 'user_profile',
+      '/booking': 'tour_booking'
+    };
+    
     // Common questions and their responses
     this.commonQuestions = {
       "what is lalibela": {
@@ -129,32 +151,68 @@ class IntelligentChatService {
     };
   }
 
+  /**
+   * Enhanced chat response with OpenAI integration and context detection
+   * @param {string} userInput - User's message
+   * @param {string} context - Platform context (auto-detected or provided)
+   * @param {Object} user - User information (role, preferences, etc.)
+   * @param {Array} conversationHistory - Previous conversation messages
+   * @returns {Object} Response with text, suggestions, and metadata
+   */
   async getChatResponse(userInput, context = 'general', user = null, conversationHistory = []) {
     try {
       const lowercaseInput = userInput.toLowerCase();
       
-      // Check for direct matches in common questions
+      // Update conversation history
+      this.updateConversationHistory('user', userInput);
+      
+      // Detect platform context if not provided
+      const detectedContext = this.detectPlatformContext();
+      const finalContext = context !== 'general' ? context : detectedContext;
+      
+      // Check for direct matches first (fast response)
       const directAnswer = this.findDirectAnswer(lowercaseInput);
       if (directAnswer) {
-        return directAnswer;
+        this.updateConversationHistory('assistant', directAnswer.text);
+        return {
+          ...directAnswer,
+          context: finalContext,
+          source: 'knowledge_base'
+        };
       }
 
-      // Context-based responses
-      if (context === 'museumAdmin') {
-        return this.getAdminResponse(lowercaseInput, user);
-      } else if (context === 'user' || context === 'visitor') {
-        return this.getVisitorResponse(lowercaseInput, user);
+      // Try OpenAI for intelligent responses
+      const openAIResponse = await this.getOpenAIResponse(userInput, finalContext, user, this.conversationHistory);
+      if (openAIResponse) {
+        this.updateConversationHistory('assistant', openAIResponse.text);
+        return {
+          ...openAIResponse,
+          context: finalContext,
+          source: 'openai_enhanced'
+        };
       }
 
-      // General heritage and culture responses
-      return this.getGeneralResponse(lowercaseInput, user, conversationHistory);
+      // Fallback to pattern-based responses
+      const fallbackResponse = this.getFallbackResponse(lowercaseInput, finalContext, user);
+      this.updateConversationHistory('assistant', fallbackResponse.text);
+      
+      return {
+        ...fallbackResponse,
+        context: finalContext,
+        source: 'pattern_based'
+      };
       
     } catch (error) {
       console.error('Chat service error:', error);
-      return {
+      const errorResponse = {
         text: "I apologize, but I'm having trouble processing your request right now. Please try rephrasing your question or contact our support team.",
-        suggestions: ["Contact support", "Try asking about heritage sites", "Explore virtual tours"]
+        suggestions: ["Contact support", "Try asking about heritage sites", "Explore virtual tours"],
+        context: context,
+        source: 'error_fallback'
       };
+      
+      this.updateConversationHistory('assistant', errorResponse.text);
+      return errorResponse;
     }
   }
 
@@ -355,31 +413,262 @@ class IntelligentChatService {
     };
   }
 
-  // Get contextual suggestions based on user role and input
+  /**
+   * OpenAI integration for intelligent responses
+   * @param {string} userInput - User's message
+   * @param {string} context - Platform context
+   * @param {Object} user - User information
+   * @param {Array} conversationHistory - Previous messages
+   * @returns {Object|null} OpenAI response or null if unavailable
+   */
+  async getOpenAIResponse(userInput, context, user, conversationHistory) {
+    try {
+      // Prepare context for OpenAI
+      const systemPrompt = this.buildSystemPrompt(context, user);
+      const conversationContext = this.buildConversationContext(conversationHistory);
+      
+      const payload = {
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...conversationContext,
+          { role: 'user', content: userInput }
+        ],
+        context: context,
+        userRole: user?.role || 'visitor',
+        platform: 'EthioHeritage360'
+      };
+
+      // Call backend OpenAI service
+      const response = await apiService.post('/chat/openai', payload);
+      
+      if (response.success && response.data) {
+        return {
+          text: response.data.text,
+          suggestions: response.data.suggestions || this.getContextualSuggestions(context, userInput),
+          intent: response.data.intent,
+          confidence: response.data.confidence
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('OpenAI service error:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Build system prompt for OpenAI based on context and user
+   */
+  buildSystemPrompt(context, user) {
+    const basePrompt = `You are an intelligent assistant for EthioHeritage360, a platform dedicated to Ethiopian cultural heritage preservation and education. You are knowledgeable, culturally respectful, and enthusiastic about Ethiopian history, culture, and heritage sites.
+
+Key Information:
+- Ethiopian heritage sites: Lalibela (rock churches), Aksum (ancient kingdom), Gondar (royal city), Harar (historic city), Simien Mountains
+- Coffee is central to Ethiopian culture - birthplace of coffee with traditional ceremonies
+- Ethiopian calendar has 13 months, 7-8 years behind Gregorian calendar
+- Over 80 languages spoken, Amharic is official, Ge'ez script used
+- Rich religious diversity: Orthodox Christianity (4th century), Islam, traditional beliefs
+- Major festivals: Timkat (Epiphany), Meskel (True Cross), Enkutatash (New Year)
+
+Platform Features:
+- Virtual 3D tours of heritage sites
+- Digital museum with artifacts and historical items
+- Educational courses and cultural learning modules
+- Tour booking system for physical visits
+- Interactive heritage maps and guides`;
+
+    const contextPrompts = {
+      museum_exploration: '\n\nCurrent Context: User is exploring virtual museums and artifact collections.',
+      artifact_viewing: '\n\nCurrent Context: User is viewing specific artifacts and learning about their history.',
+      tour_booking: '\n\nCurrent Context: User is interested in booking tours or travel experiences.',
+      virtual_tour: '\n\nCurrent Context: User is taking or interested in virtual tours of heritage sites.',
+      learning: '\n\nCurrent Context: User is engaged with educational content and learning modules.',
+      admin_overview: '\n\nCurrent Context: Museum administrator viewing dashboard and analytics.',
+      artifact_management: '\n\nCurrent Context: Museum administrator managing artifact uploads and curation.',
+      visitor_analytics: '\n\nCurrent Context: Museum administrator reviewing visitor statistics and engagement.',
+      staff_management: '\n\nCurrent Context: Museum administrator handling staff coordination and roles.'
+    };
+
+    const userPrompts = {
+      museumAdmin: '\n\nUser Role: Museum administrator who needs help with platform management, staff coordination, visitor analytics, and artifact curation.',
+      user: '\n\nUser Role: Registered user interested in Ethiopian culture, heritage tours, and educational content.',
+      visitor: '\n\nUser Role: General visitor exploring the platform and learning about Ethiopian heritage.'
+    };
+
+    return basePrompt + 
+           (contextPrompts[context] || '') + 
+           (userPrompts[user?.role] || userPrompts.visitor) + 
+           '\n\nAlways provide helpful, accurate, and culturally respectful responses. Include practical suggestions for user actions.';
+  }
+
+  /**
+   * Build conversation context for OpenAI from history
+   */
+  buildConversationContext(history) {
+    return history.slice(-6).map(msg => ({
+      role: msg.role === 'user' ? 'user' : 'assistant',
+      content: msg.content
+    }));
+  }
+
+  /**
+   * Detect platform context based on current URL or page
+   */
+  detectPlatformContext() {
+    try {
+      const currentPath = window.location.pathname;
+      
+      // Check for exact matches first
+      if (this.platformContexts[currentPath]) {
+        return this.platformContexts[currentPath];
+      }
+      
+      // Check for partial matches
+      for (const [path, context] of Object.entries(this.platformContexts)) {
+        if (currentPath.includes(path.replace('/', ''))) {
+          return context;
+        }
+      }
+      
+      // Default context based on URL patterns
+      if (currentPath.includes('admin')) {
+        return 'admin_overview';
+      } else if (currentPath.includes('museum')) {
+        return 'museum_exploration';
+      } else if (currentPath.includes('tour')) {
+        return 'tour_booking';
+      } else if (currentPath.includes('learn') || currentPath.includes('education')) {
+        return 'learning';
+      }
+      
+      return 'general';
+    } catch (error) {
+      console.error('Context detection error:', error);
+      return 'general';
+    }
+  }
+
+  /**
+   * Update conversation history
+   */
+  updateConversationHistory(role, content) {
+    this.conversationHistory.push({
+      role,
+      content,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Keep only recent messages
+    if (this.conversationHistory.length > this.maxHistoryLength) {
+      this.conversationHistory = this.conversationHistory.slice(-this.maxHistoryLength);
+    }
+  }
+
+  /**
+   * Clear conversation history
+   */
+  clearConversationHistory() {
+    this.conversationHistory = [];
+  }
+
+  /**
+   * Get fallback response when OpenAI is unavailable
+   */
+  getFallbackResponse(input, context, user) {
+    // Context-based fallback responses
+    if (context === 'museumAdmin' || (user && user.role === 'museumAdmin')) {
+      return this.getAdminResponse(input, user);
+    } else if (context === 'user' || context === 'visitor' || (user && user.role === 'user')) {
+      return this.getVisitorResponse(input, user);
+    }
+
+    // General fallback response
+    return this.getGeneralResponse(input, user, this.conversationHistory);
+  }
+
+  /**
+   * Enhanced contextual suggestions based on current context and input
+   */
   getContextualSuggestions(context, input) {
-    const baseSuggestions = [
+    const contextSuggestions = {
+      museum_exploration: [
+        "Browse artifact collections",
+        "Learn about artifact history",
+        "Search for specific items"
+      ],
+      artifact_viewing: [
+        "View related artifacts",
+        "Learn more about this period",
+        "Save to favorites"
+      ],
+      tour_booking: [
+        "Available virtual tours",
+        "Book physical tours",
+        "Check tour schedules"
+      ],
+      virtual_tour: [
+        "Start 3D heritage tour",
+        "Navigate to different sites",
+        "Access tour guides"
+      ],
+      learning: [
+        "Browse courses available",
+        "Track learning progress",
+        "Join study groups"
+      ],
+      admin_overview: [
+        "View visitor analytics",
+        "Manage artifacts",
+        "Staff coordination"
+      ],
+      artifact_management: [
+        "Upload new artifacts",
+        "Edit descriptions",
+        "Organize collections"
+      ],
+      visitor_analytics: [
+        "View engagement metrics",
+        "Popular content analysis",
+        "Export reports"
+      ]
+    };
+    
+    return contextSuggestions[context] || [
       "Tell me about Ethiopian heritage",
       "How do I use this platform?",
       "Contact support"
     ];
+  }
 
-    if (context === 'user') {
-      return [
-        "Explore virtual tours",
-        "Learn about Ethiopian culture",
-        "Find heritage sites near me"
-      ];
+  /**
+   * Get conversation summary for context
+   */
+  getConversationSummary() {
+    if (this.conversationHistory.length === 0) {
+      return null;
     }
-
-    if (context === 'museumAdmin') {
-      return [
-        "Help with artifact uploads",
-        "Visitor analytics guide",
-        "Staff management tips"
-      ];
-    }
-
-    return baseSuggestions;
+    
+    const recentMessages = this.conversationHistory.slice(-4);
+    const topics = [];
+    
+    recentMessages.forEach(msg => {
+      if (msg.role === 'user') {
+        // Extract key topics from user messages
+        const content = msg.content.toLowerCase();
+        if (content.includes('lalibela') || content.includes('church')) topics.push('Lalibela Churches');
+        if (content.includes('coffee')) topics.push('Ethiopian Coffee');
+        if (content.includes('tour')) topics.push('Tours');
+        if (content.includes('museum')) topics.push('Museums');
+        if (content.includes('artifact')) topics.push('Artifacts');
+      }
+    });
+    
+    return {
+      messageCount: this.conversationHistory.length,
+      recentTopics: [...new Set(topics)],
+      lastMessage: recentMessages[recentMessages.length - 1]
+    };
   }
 }
 

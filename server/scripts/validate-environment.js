@@ -5,8 +5,12 @@
  * Validates that all required environment variables are set and valid
  */
 
-// Load environment variables from .env file
-require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
+// Load environment variables from .env file (if available)
+try {
+    require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
+} catch (error) {
+    console.log('ℹ️  dotenv not available or .env file not found, using system environment variables');
+}
 
 const fs = require('fs');
 const path = require('path');

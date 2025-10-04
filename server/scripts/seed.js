@@ -1,12 +1,40 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const User = require('../models/User');
-const config = require('../config/env');
+require('dotenv').config({ path: '../../backend/.env' });
+
+// User Schema - EXACT copy from server.js
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  role: { 
+    type: String, 
+    enum: ['visitor', 'admin', 'super_admin', 'museum_curator', 'tour_organizer', 'education_coordinator'], 
+    default: 'visitor' 
+  },
+  isActive: { type: Boolean, default: true },
+  lastLogin: { type: Date },
+  createdAt: { type: Date, default: Date.now }
+});
+
+// Hash password before saving
+userSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) return next();
+  this.password = await bcrypt.hash(this.password, 12);
+  next();
+});
+
+// Compare password method
+userSchema.methods.comparePassword = async function(candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
+};
+
+const User = mongoose.model('User', userSchema);
 
 const seedUsers = async () => {
   try {
     // Connect to MongoDB
-    await mongoose.connect(config.MONGODB_URI, {
+    await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
@@ -25,7 +53,7 @@ const seedUsers = async () => {
         name: 'Melkamu Wako',
         email: 'melkamuwako5@admin.com',
         password: 'melkamuwako5',
-        role: 'superAdmin',
+        role: 'super_admin',
         profile: {
           bio: 'Super Administrator of EthioHeritage360 platform'
         },
@@ -36,7 +64,7 @@ const seedUsers = async () => {
             push: true
           }
         },
-        isEmailVerified: true,
+        isVerified: true,
         isActive: true
       },
       {
@@ -45,7 +73,7 @@ const seedUsers = async () => {
         name: 'Abdurazak M',
         email: 'abdurazakm343@admin.com',
         password: 'THpisvaHUbQNMsbX',
-        role: 'superAdmin',
+        role: 'super_admin',
         profile: {
           bio: 'Database Administrator with readWriteAnyDatabase privileges'
         },
@@ -56,7 +84,7 @@ const seedUsers = async () => {
             push: true
           }
         },
-        isEmailVerified: true,
+        isVerified: true,
         isActive: true
       },
       {
@@ -65,7 +93,7 @@ const seedUsers = async () => {
         name: 'Student Pasegid',
         email: 'student.pasegid@admin.com',
         password: 'Fs4HwlXCW4SJvkyN',
-        role: 'superAdmin',
+        role: 'super_admin',
         profile: {
           bio: 'Database Administrator for ethioheritage360 database'
         },
@@ -76,7 +104,7 @@ const seedUsers = async () => {
             push: true
           }
         },
-        isEmailVerified: true,
+        isVerified: true,
         isActive: true
       },
       {
@@ -85,7 +113,7 @@ const seedUsers = async () => {
         name: 'Naol Aboma',
         email: 'naolaboma@admin.com',
         password: 'QR7ICwI5s6VMgAZD',
-        role: 'superAdmin',
+        role: 'super_admin',
         profile: {
           bio: 'Super Administrator with full system access'
         },
@@ -96,7 +124,7 @@ const seedUsers = async () => {
             push: true
           }
         },
-        isEmailVerified: true,
+        isVerified: true,
         isActive: true
       }
     ];
@@ -109,7 +137,7 @@ const seedUsers = async () => {
         name: 'National Museum Admin',
         email: 'museum.admin@ethioheritage360.com',
         password: 'museum123',
-        role: 'museumAdmin',
+        role: 'admin',
         profile: {
           bio: 'Administrator for National Museum of Ethiopia'
         },
@@ -120,7 +148,7 @@ const seedUsers = async () => {
             push: true
           }
         },
-        isEmailVerified: true,
+        isVerified: true,
         isActive: true
       }
     ];
@@ -133,7 +161,7 @@ const seedUsers = async () => {
         name: 'Heritage Tours Ethiopia',
         email: 'organizer@heritagetours.et',
         password: 'organizer123',
-        role: 'user',
+        role: 'tour_organizer',
         profile: {
           bio: 'Professional heritage tour organizer specializing in Ethiopian cultural sites'
         },
@@ -144,7 +172,7 @@ const seedUsers = async () => {
             push: true
           }
         },
-        isEmailVerified: true,
+        isVerified: true,
         isActive: true
       },
       {
@@ -153,7 +181,7 @@ const seedUsers = async () => {
         name: 'Tour Guide Demo',
         email: 'tourguide@demo.com',
         password: 'tourguide123',
-        role: 'user',
+        role: 'visitor',
         profile: {
           bio: 'Demo tour organizer account for testing dashboard access'
         },
@@ -164,7 +192,7 @@ const seedUsers = async () => {
             push: true
           }
         },
-        isEmailVerified: true,
+        isVerified: true,
         isActive: true
       },
       {
@@ -173,7 +201,7 @@ const seedUsers = async () => {
         name: 'Test User',
         email: 'test@example.com',
         password: 'test123456',
-        role: 'user',
+        role: 'visitor',
         profile: {
           bio: 'Test user for development and authentication testing'
         },
@@ -184,7 +212,7 @@ const seedUsers = async () => {
             push: true
           }
         },
-        isEmailVerified: true,
+        isVerified: true,
         isActive: true
       }
     ];

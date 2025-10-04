@@ -13,6 +13,7 @@ import { io } from 'socket.io-client';
 import educationService from '../services/educationService';
 import visitorDashboardService from '../services/visitorDashboardService';
 import useSocket from '../hooks/useSocket';
+import CollectionsWidget from '../components/collections/CollectionsWidget';
 
 // Import actual images
 import museumImg from '../assets/museum.jpg';
@@ -39,7 +40,7 @@ const VisitorDashboard = () => {
   const [filterCategory, setFilterCategory] = useState('all');
   const [showWishlist, setShowWishlist] = useState(false);
   const [wishlistItems, setWishlistItems] = useState([]);
-  const [notifications, setNotifications] = useState([]);
+  const [localNotifications, setLocalNotifications] = useState([]);
   const [achievements, setAchievements] = useState([]);
   const [dashboardData, setDashboardData] = useState(null);
   const [featuredCourses, setFeaturedCourses] = useState([]);
@@ -722,6 +723,9 @@ const VisitorDashboard = () => {
               </div>
             )}
           </div>
+
+          {/* My Collections Widget */}
+          <CollectionsWidget limit={6} showCreateButton={true} />
 
           {/* Your Bookings */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">

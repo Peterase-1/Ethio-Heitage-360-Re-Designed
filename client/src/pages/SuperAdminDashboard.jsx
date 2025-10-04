@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import api from '../utils/api';
 import LogoutButton from '../components/common/LogoutButton';
+import CommunicationsCenter from '../components/admin/CommunicationsCenter';
+import ErrorBoundary from '../components/common/ErrorBoundary';
 import {
   Users,
   Building2,
@@ -275,7 +277,7 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
       category: 'Business Operations',
       items: [
         { id: 'rental-requests', label: 'Rental System', icon: Package, description: 'Manage artifact rental requests between museums and virtual museum' },
-        { id: 'approval-feedback', label: 'Approval Feedback', icon: MessageSquare, description: 'Send comments/clarifications to Museum Admins' }
+        { id: 'communications', label: 'Communications', icon: MessageSquare, description: 'Communicate with Museum Admins and manage messages' }
       ]
     },
     {
@@ -288,12 +290,17 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
   ];
 
   useEffect(() => {
-    // Fetch enhanced dashboard data
-    const loadDashboard = async () => {
+    // Fetch enhanced dashboard data with retry logic
+    const loadDashboard = async (retryCount = 0) => {
+      const maxRetries = 3;
+      
       try {
+        console.log('Loading dashboard data...');
         const res = await api.getSuperAdminDashboard();
+        
         if (res.success && res.dashboard) {
           const dashboard = res.dashboard;
+          console.log('Dashboard data loaded successfully');
 
           // Update stats with enhanced data
           setStats((prev) => ({
@@ -310,23 +317,41 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
 
           // Store enhanced dashboard data for use in components
           setDashboardData(dashboard);
+        } else {
+          throw new Error('Invalid dashboard response format');
         }
       } catch (e) {
-        console.error('Failed to load dashboard data', e);
-        // Fallback to basic stats if enhanced API fails
+        console.error(`Dashboard data load attempt ${retryCount + 1} failed:`, e.message);
+        
+        // Retry logic for network/timeout errors
+        if (retryCount < maxRetries && 
+            (e.message.includes('fetch') || e.message.includes('timeout') || 
+             e.message.includes('502') || e.message.includes('503') ||
+             e.message.includes('Failed to fetch') || e.message.includes('NetworkError'))) {
+          const delay = 2000 * Math.pow(2, retryCount); // Exponential backoff: 2s, 4s, 8s
+          console.log(`Retrying dashboard data load in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})`);
+          setTimeout(() => loadDashboard(retryCount + 1), delay);
+          return;
+        }
+        
+        // If all retries failed or it's a non-retryable error, try fallback
+        console.log('Attempting fallback to basic stats API...');
         try {
           const res = await api.getAdminStats();
           const s = res.stats || {};
+          console.log('Fallback stats loaded successfully');
           setStats((prev) => ({
             ...prev,
             totalUsers: s.totalUsers ?? prev.totalUsers,
             museums: s.totalMuseums ?? prev.museums,
           }));
         } catch (fallbackError) {
-          console.error('Fallback stats also failed', fallbackError);
+          console.error('Fallback stats also failed:', fallbackError.message);
+          // Could set an error state here if needed for UI feedback
         }
       }
     };
+    
     loadDashboard();
   }, []);
 
@@ -483,69 +508,73 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
     loadHeritageSitesStats();
   }, [activeSection]);
 
+  // Load users function - moved outside useEffect to be accessible
+  const loadUsers = async () => {
+    setUsersState(prev => ({ ...prev, loading: true, error: '' }));
+    try {
+      const { page, limit, role, status, searchTerm, sortBy, sortOrder } = usersState;
+
+      // Use enhanced search API if search term is provided, otherwise use regular users API
+      const apiEndpoint = searchTerm ? '/super-admin/users/search' : '/super-admin/users';
+      const queryParams = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
+        ...(role && { role }),
+        ...(status && { status }),
+        ...(searchTerm && { q: searchTerm }),
+        ...(sortBy && { sortBy }),
+        ...(sortOrder && { sortOrder })
+      });
+
+      const res = await api.request(`${apiEndpoint}?${queryParams.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      setUsersState(prev => ({
+        ...prev,
+        items: res.users || [],
+        total: res.pagination?.total || 0,
+        loading: false
+      }));
+    } catch (e) {
+      setUsersState(prev => ({ ...prev, loading: false, error: e.message || 'Failed to load users' }));
+    }
+  };
+
   // Load users when opening User Management or when paging/filter changes
   useEffect(() => {
     if (activeSection !== 'user-management') return;
-    const loadUsers = async () => {
-      setUsersState(prev => ({ ...prev, loading: true, error: '' }));
-      try {
-        const { page, limit, role, status, searchTerm, sortBy, sortOrder } = usersState;
-
-        // Use enhanced search API if search term is provided, otherwise use regular users API
-        const apiEndpoint = searchTerm ? '/super-admin/users/search' : '/super-admin/users';
-        const queryParams = new URLSearchParams({
-          page: String(page),
-          limit: String(limit),
-          ...(role && { role }),
-          ...(status && { status }),
-          ...(searchTerm && { q: searchTerm }),
-          ...(sortBy && { sortBy }),
-          ...(sortOrder && { sortOrder })
-        });
-
-        const res = await api.request(`${apiEndpoint}?${queryParams.toString()}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        setUsersState(prev => ({
-          ...prev,
-          items: res.users || [],
-          total: res.pagination?.total || 0,
-          loading: false
-        }));
-      } catch (e) {
-        setUsersState(prev => ({ ...prev, loading: false, error: e.message || 'Failed to load users' }));
-      }
-    };
     loadUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSection, usersState.page, usersState.limit, usersState.role, usersState.status, usersState.searchTerm, usersState.sortBy, usersState.sortOrder]);
 
+  // Load user statistics function - moved outside useEffect to be accessible
+  const loadUserStats = async () => {
+    setUserStats(prev => ({ ...prev, loading: true, error: '' }));
+    try {
+      const res = await api.getUserStatistics({ timeRange: '30d' });
+      if (res.success) {
+        setUserStats(prev => ({
+          ...prev,
+          totalUsers: res.statistics?.totalUsers || 0,
+          activeUsers: res.statistics?.activeUsers || 0,
+          newUsers: res.statistics?.newUsers || 0,
+          usersByRole: res.statistics?.usersByRole || [],
+          usersByStatus: res.statistics?.usersByStatus || [],
+          userActivity: res.statistics?.userActivity || [],
+          loading: false
+        }));
+      }
+    } catch (e) {
+      setUserStats(prev => ({ ...prev, loading: false, error: e.message || 'Failed to load user statistics' }));
+    }
+  };
+
   // Load user statistics when User Management is active
   useEffect(() => {
     if (activeSection !== 'user-management') return;
-    const loadUserStats = async () => {
-      setUserStats(prev => ({ ...prev, loading: true, error: '' }));
-      try {
-        const res = await api.getUserStatistics({ timeRange: '30d' });
-        if (res.success) {
-          setUserStats(prev => ({
-            ...prev,
-            totalUsers: res.statistics?.totalUsers || 0,
-            activeUsers: res.statistics?.activeUsers || 0,
-            newUsers: res.statistics?.newUsers || 0,
-            usersByRole: res.statistics?.usersByRole || [],
-            usersByStatus: res.statistics?.usersByStatus || [],
-            userActivity: res.statistics?.userActivity || [],
-            loading: false
-          }));
-        }
-      } catch (e) {
-        setUserStats(prev => ({ ...prev, loading: false, error: e.message || 'Failed to load user statistics' }));
-      }
-    };
     loadUserStats();
   }, [activeSection]);
 
@@ -2264,87 +2293,17 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
           </div>
         );
 
-      case 'approval-feedback':
+      case 'communications':
         return (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Approval Feedback System</h3>
-              <p className="text-sm text-gray-600">Send comments/clarifications to Museum Admins for revisions</p>
+              <h3 className="text-lg font-semibold text-gray-900">Communications Center</h3>
+              <p className="text-sm text-gray-600">Manage communications with Museum Admins and track message history</p>
             </div>
             <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-red-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-red-800">Rejections Sent</h4>
-                  <p className="text-2xl font-bold text-red-900">8</p>
-                  <p className="text-sm text-red-700">With feedback</p>
-                </div>
-                <div className="bg-yellow-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-yellow-800">Awaiting Response</h4>
-                  <p className="text-2xl font-bold text-yellow-900">5</p>
-                  <p className="text-sm text-yellow-700">Museums revising content</p>
-                </div>
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-green-800">Resubmissions</h4>
-                  <p className="text-2xl font-bold text-green-900">3</p>
-                  <p className="text-sm text-green-700">Ready for review</p>
-                </div>
-              </div>
-              <div className="mb-6">
-                <h4 className="font-medium text-gray-900 mb-4">Send New Feedback</h4>
-                <div className="border rounded-lg p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Museum</label>
-                      <select className="w-full border rounded px-3 py-2">
-                        <option>Select Museum</option>
-                        <option>National Museum</option>
-                        <option>Ethnological Museum</option>
-                        <option>Addis Ababa Museum</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Content Type</label>
-                      <select className="w-full border rounded px-3 py-2">
-                        <option>Artifact</option>
-                        <option>Virtual Museum</option>
-                        <option>Event Listing</option>
-                        <option>Rental Request</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Feedback Message</label>
-                    <textarea className="w-full border rounded px-3 py-2 h-24" placeholder="Provide detailed feedback for the museum admin to revise and resubmit..."></textarea>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Send Feedback</button>
-                    <button className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50">Save Draft</button>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <h4 className="font-medium text-gray-900 mb-4">Recent Feedback Activity</h4>
-                <div className="space-y-4">
-                  <div className="border rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <h5 className="font-medium text-gray-900">Artifact Image Quality Issue</h5>
-                      <span className="text-xs text-gray-500">2 hours ago</span>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2">To: National Museum</p>
-                    <p className="text-sm text-gray-700 mb-3">The artifact images need higher resolution (minimum 1920x1080) and better lighting. Please retake photos following the guidelines provided.</p>
-                    <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded">Awaiting Response</span>
-                  </div>
-                  <div className="border rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <h5 className="font-medium text-gray-900">Event Date Conflict</h5>
-                      <span className="text-xs text-gray-500">1 day ago</span>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2">To: Ethnological Museum</p>
-                    <p className="text-sm text-gray-700 mb-3">The proposed event date conflicts with a national holiday. Please select an alternative date from the available slots.</p>
-                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">Resolved</span>
-                  </div>
-                </div>
-              </div>
+              <ErrorBoundary>
+                <CommunicationsCenter />
+              </ErrorBoundary>
             </div>
           </div>
         );

@@ -64,7 +64,7 @@ import StaffManagement from './components/museum/StaffManagement'
 import EventManagement from './components/museum/EventManagement'
 import MuseumAnalytics from './components/museum/MuseumAnalytics'
 import MuseumNotifications from './components/museum/MuseumNotifications'
-import MuseumCommunications from './components/museum/MuseumCommunications'
+import MuseumCommunications from './pages/museum/MuseumCommunications'
 import MuseumSettings from './components/museum/MuseumSettings'
 // Super Admin components
 import SuperAdminGamesManagement from './components/admin/SuperAdminGamesManagement'
@@ -285,7 +285,7 @@ function App() {
               <MuseumSettings />
             </ProtectedRoute>
           } />
-          
+
           {/* Super Admin Routes */}
           <Route path="/super-admin/games" element={
             <ProtectedRoute allowedRoles={['superAdmin', 'admin']}>
@@ -307,7 +307,7 @@ function App() {
               <SuperAdminStudentManagement />
             </ProtectedRoute>
           } />
-          
+
           <Route path="/organizer-dashboard" element={
             <ProtectedRoute allowedRoles={['organizer']}>
               <OrganizerDashboard darkMode={darkMode} toggleDarkMode={toggleDarkMode} />

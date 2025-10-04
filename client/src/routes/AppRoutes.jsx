@@ -81,7 +81,7 @@ export default function App() {
       const hasAccess = allowedRoles.some(allowedRole => {
         // Direct match
         if (allowedRole === user.role) return true;
-        
+
         // Handle backend to frontend role mapping
         const roleMap = {
           'superAdmin': ['super_admin', 'superAdmin'],
@@ -96,11 +96,11 @@ export default function App() {
           'organizer': ['organizer', 'tour_admin'],
           'visitor': ['user', 'visitor']
         };
-        
+
         const mappedRoles = roleMap[allowedRole] || [];
         return mappedRoles.includes(user.role);
       });
-      
+
       if (!hasAccess) {
         const redirectRoutes = {
           // Backend role names
@@ -325,7 +325,7 @@ export default function App() {
             </div>
           </ProtectedRoute>
         } />
-        
+
         {/* Games */}
         <Route path="/visitor/games" element={
           <ProtectedRoute allowedRoles={['visitor']}>
@@ -337,14 +337,14 @@ export default function App() {
             <Games />
           </ProtectedRoute>
         } />
-        
+
         {/* Achievements */}
         <Route path="/visitor/achievements" element={
           <ProtectedRoute allowedRoles={['visitor']}>
             <div>Achievements Page</div>
           </ProtectedRoute>
         } />
-        
+
         {/* Community */}
         <Route path="/visitor/leaderboard" element={
           <ProtectedRoute allowedRoles={['visitor']}>
@@ -356,7 +356,7 @@ export default function App() {
             <div>Community Page</div>
           </ProtectedRoute>
         } />
-        
+
         {/* Learning */}
         <Route path="/visitor/flashcards" element={
           <ProtectedRoute allowedRoles={['visitor']}>
@@ -373,7 +373,7 @@ export default function App() {
             <div>Certificates Page</div>
           </ProtectedRoute>
         } />
-        
+
         {/* Analytics */}
         <Route path="/visitor/analytics" element={
           <ProtectedRoute allowedRoles={['visitor']}>
@@ -390,7 +390,7 @@ export default function App() {
             <div>Goals Page</div>
           </ProtectedRoute>
         } />
-        
+
         {/* Other visitor pages */}
         <Route path="/visitor/bookmarks" element={
           <ProtectedRoute allowedRoles={['visitor']}>
@@ -415,7 +415,7 @@ export default function App() {
 
         {/* Profile (all authenticated users) */}
         <Route path="/profile" element={
-          <ProtectedRoute allowedRoles={['super_admin','admin','museum','museum_admin','organizer','visitor']}>
+          <ProtectedRoute allowedRoles={['super_admin', 'admin', 'museum', 'museum_admin', 'organizer', 'visitor']}>
             <>
               <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
               <UserProfile />

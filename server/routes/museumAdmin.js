@@ -479,4 +479,64 @@ router.get('/heritage-sites/suggestions', museumAdminController.getHeritageSiteS
  */
 router.put('/heritage-sites/suggestions/:id', museumAdminController.updateHeritageSiteSuggestion);
 
+// ======================
+// COMMUNICATIONS
+// ======================
+
+/**
+ * @route   GET /api/museum-admin/communications
+ * @desc    Get communications for museum admin
+ * @access  Museum Admin or Super Admin
+ */
+router.get('/communications', museumAdminController.getCommunications);
+
+/**
+ * @route   GET /api/museum-admin/communications/:id
+ * @desc    Get specific communication
+ * @access  Museum Admin or Super Admin
+ */
+router.get('/communications/:id', museumAdminController.getCommunication);
+
+/**
+ * @route   POST /api/museum-admin/communications
+ * @desc    Create new communication (send to Super Admin)
+ * @access  Museum Admin
+ */
+router.post('/communications', museumAdminController.createCommunication);
+
+/**
+ * @route   POST /api/museum-admin/communications/:id/reply
+ * @desc    Reply to communication
+ * @access  Museum Admin or Super Admin
+ */
+router.post('/communications/:id/reply', museumAdminController.replyToCommunication);
+
+/**
+ * @route   PUT /api/museum-admin/communications/:id/read
+ * @desc    Mark communication as read
+ * @access  Museum Admin or Super Admin
+ */
+router.put('/communications/:id/read', museumAdminController.markAsRead);
+
+/**
+ * @route   GET /api/museum-admin/communications/unread-count
+ * @desc    Get unread communications count
+ * @access  Museum Admin or Super Admin
+ */
+router.get('/communications/unread-count', museumAdminController.getUnreadCount);
+
+/**
+ * @route   GET /api/museum-admin/communications/:id/conversation
+ * @desc    Get conversation thread for a communication
+ * @access  Museum Admin or Super Admin
+ */
+router.get('/communications/:id/conversation', museumAdminController.getConversation);
+
+/**
+ * @route   PUT /api/museum-admin/communications/:id/archive
+ * @desc    Archive communication
+ * @access  Museum Admin or Super Admin
+ */
+router.put('/communications/:id/archive', museumAdminController.archiveCommunication);
+
 module.exports = router;

@@ -634,6 +634,132 @@ router.get('/support', async (req, res) => {
   }
 });
 
+// === ENHANCED CHATBOT WITH OPENAI INTEGRATION ===
+
+/**
+ * POST /api/chat/openai
+ * Get intelligent response from OpenAI with cultural context for Ethiopian heritage
+ */
+router.post('/openai', async (req, res) => {
+  try {
+    const { messages, context, userRole, platform } = req.body;
+
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Messages array is required and cannot be empty'
+      });
+    }
+
+    // Check if OpenAI service is available
+    const openAIService = require('../services/openaiService');
+    if (!openAIService.isAvailable()) {
+      return res.status(503).json({
+        success: false,
+        message: 'OpenAI service is currently unavailable',
+        fallback: true
+      });
+    }
+
+    // Prepare the request for OpenAI
+    const openAIRequest = {
+      model: 'gpt-3.5-turbo',
+      messages: messages,
+      max_tokens: 500,
+      temperature: 0.7,
+      presence_penalty: 0.1,
+      frequency_penalty: 0.1
+    };
+
+    // Get response from OpenAI
+    const openAIResponse = await openAIService.getChatCompletion(openAIRequest);
+    
+    if (!openAIResponse || !openAIResponse.choices || openAIResponse.choices.length === 0) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to get response from OpenAI',
+        fallback: true
+      });
+    }
+
+    const responseText = openAIResponse.choices[0].message.content;
+
+    // Enhance response with contextual suggestions
+    const suggestions = generateOpenAIContextualSuggestions(context, userRole, responseText);
+    
+    // Analyze intent and confidence
+    const analysis = analyzeOpenAIResponse(responseText, context);
+
+    res.json({
+      success: true,
+      data: {
+        text: responseText,
+        suggestions: suggestions,
+        intent: analysis.intent,
+        confidence: analysis.confidence,
+        context: context,
+        userRole: userRole,
+        timestamp: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('OpenAI chat error:', error);
+    
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while processing chat request',
+      fallback: true,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+/**
+ * POST /api/chat/context
+ * Get contextual information for enhanced chatbot responses
+ */
+router.post('/context', async (req, res) => {
+  try {
+    const { currentPath, userActivity } = req.body;
+    
+    // Get user if authenticated
+    let user = null;
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (token) {
+      try {
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        user = await User.findById(decoded.userId).select('-password');
+      } catch (error) {
+        console.warn('Invalid token in context request:', error.message);
+      }
+    }
+
+    // Determine user context based on their activity and current page
+    const context = {
+      userRole: user?.role || 'visitor',
+      currentSection: detectSectionFromPath(currentPath),
+      recentActivity: userActivity || [],
+      preferences: user?.preferences || {},
+      platformContext: detectPlatformContextFromPath(currentPath),
+      timestamp: new Date().toISOString()
+    };
+
+    res.json({
+      success: true,
+      context: context
+    });
+
+  } catch (error) {
+    console.error('Context detection error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to detect user context'
+    });
+  }
+});
+
 // === CHATBOT API ENDPOINTS ===
 
 // Handle chatbot questions with intelligent responses
@@ -1087,6 +1213,155 @@ async function saveChatInteraction(userId, question, response) {
 
 function generateConversationId() {
   return 'conv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+// === OPENAI HELPER FUNCTIONS ===
+
+/**
+ * Generate contextual suggestions for OpenAI responses
+ */
+function generateOpenAIContextualSuggestions(context, userRole, responseText) {
+  const contextSuggestions = {
+    museum_exploration: [
+      "Browse artifact collections",
+      "Learn about artifact history", 
+      "Search for specific items"
+    ],
+    artifact_viewing: [
+      "View related artifacts",
+      "Learn more about this period",
+      "Save to favorites"
+    ],
+    tour_booking: [
+      "Available virtual tours",
+      "Book physical tours", 
+      "Check tour schedules"
+    ],
+    virtual_tour: [
+      "Start 3D heritage tour",
+      "Navigate to different sites",
+      "Access tour guides"
+    ],
+    learning: [
+      "Browse courses available",
+      "Track learning progress",
+      "Join study groups"
+    ],
+    admin_overview: [
+      "View visitor analytics",
+      "Manage artifacts",
+      "Staff coordination"
+    ],
+    artifact_management: [
+      "Upload new artifacts",
+      "Edit descriptions", 
+      "Organize collections"
+    ],
+    visitor_analytics: [
+      "View engagement metrics",
+      "Popular content analysis",
+      "Export reports"
+    ]
+  };
+
+  // Get context-specific suggestions
+  let suggestions = contextSuggestions[context] || [
+    "Tell me about Ethiopian heritage",
+    "How do I use this platform?",
+    "Contact support"
+  ];
+
+  // Add role-specific suggestions
+  if (userRole === 'museumAdmin') {
+    suggestions = suggestions.concat([
+      "Help with platform management",
+      "Staff coordination tips"
+    ]);
+  } else if (userRole === 'user') {
+    suggestions = suggestions.concat([
+      "Explore more heritage sites",
+      "Join cultural discussions"
+    ]);
+  }
+
+  // Limit to 3-4 most relevant suggestions
+  return suggestions.slice(0, 4);
+}
+
+/**
+ * Analyze OpenAI response for intent and confidence
+ */
+function analyzeOpenAIResponse(responseText, context) {
+  const text = responseText.toLowerCase();
+  
+  // Detect intent based on keywords and context
+  let intent = 'informational';
+  let confidence = 0.8; // Higher confidence for OpenAI responses
+
+  if (text.includes('book') || text.includes('reserve') || text.includes('schedule')) {
+    intent = 'booking';
+    confidence = 0.85;
+  } else if (text.includes('learn') || text.includes('course') || text.includes('study')) {
+    intent = 'educational';
+    confidence = 0.85;
+  } else if (text.includes('tour') || text.includes('visit') || text.includes('explore')) {
+    intent = 'navigation';
+    confidence = 0.9;
+  } else if (text.includes('help') || text.includes('support') || text.includes('assistance')) {
+    intent = 'support';
+    confidence = 0.95;
+  } else if (context.includes('admin')) {
+    intent = 'administrative';
+    confidence = 0.8;
+  }
+
+  return { intent, confidence };
+}
+
+/**
+ * Detect platform context from URL path
+ */
+function detectPlatformContextFromPath(path) {
+  if (!path) return 'general';
+  
+  const contextMap = {
+    '/museums': 'museum_exploration',
+    '/artifacts': 'artifact_viewing', 
+    '/tours': 'tour_booking',
+    '/virtual-tours': 'virtual_tour',
+    '/education': 'learning',
+    '/admin/dashboard': 'admin_overview',
+    '/admin/artifacts': 'artifact_management',
+    '/admin/visitors': 'visitor_analytics',
+    '/admin/staff': 'staff_management',
+    '/profile': 'user_profile',
+    '/booking': 'tour_booking'
+  };
+  
+  // Check for exact matches first
+  if (contextMap[path]) {
+    return contextMap[path];
+  }
+  
+  // Check for partial matches
+  for (const [route, context] of Object.entries(contextMap)) {
+    if (path.includes(route.replace('/', ''))) {
+      return context;
+    }
+  }
+  
+  // Default context based on URL patterns
+  if (path.includes('admin')) {
+    return 'admin_overview';
+  } else if (path.includes('museum')) {
+    return 'museum_exploration';
+  } else if (path.includes('tour')) {
+    return 'tour_booking';
+  } else if (path.includes('learn') || path.includes('education')) {
+    return 'learning';
+  }
+  
+  return 'general';
 }
 
 module.exports = router;

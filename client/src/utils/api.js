@@ -1,4 +1,5 @@
 import mockApi from './mockApi.js';
+import { getValidToken, cleanupCorruptedTokens } from './tokenUtils.js';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true'
@@ -13,29 +14,67 @@ class ApiClient {
   }
 
   async checkBackendAvailability() {
+    // Skip check if we're forced to use mock API
+    if (USE_MOCK_API) {
+      this.useMockAPI = true
+      this.backendChecked = true
+      return false
+    }
+
     if (this.backendChecked) return !this.useMockAPI
+
+    // For production deployments, assume backend is available and let individual requests handle failures
+    if (this.baseURL === '/api') {
+      console.log('Using Netlify proxy - assuming backend available')
+      this.useMockAPI = false
+      this.backendChecked = true
+      return true
+    }
 
     try {
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 3000)
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // Increased timeout to 10s for Render wake-up
 
-      const response = await fetch(`${this.baseURL}/health`, {
-        method: 'GET',
-        signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
+      // Try health check first
+      let response
+      try {
+        response = await fetch(`${this.baseURL}/health`, {
+          method: 'GET',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+      } catch (healthError) {
+        console.log('Health endpoint failed, trying root endpoint')
+        // Fallback to root endpoint if health check fails
+        response = await fetch(`${this.baseURL.replace('/api', '')}`, {
+          method: 'GET',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+      }
 
       clearTimeout(timeoutId)
 
-      if (response.ok) {
-        const data = await response.json()
-        this.useMockAPI = false
+      if (response && response.ok) {
+        try {
+          const data = await response.json()
+          console.log('Backend is available:', data.message || 'OK')
+          this.useMockAPI = false
+        } catch {
+          // Even if we can't parse JSON, if we got a 200 response, backend is available
+          console.log('Backend is available (non-JSON response)')
+          this.useMockAPI = false
+        }
       } else {
+        console.log('Backend not available, falling back to mock API')
         this.useMockAPI = true
       }
     } catch (error) {
+      console.log('Backend check failed:', error.message, '- using mock API')
       this.useMockAPI = true
     }
 
@@ -45,7 +84,15 @@ class ApiClient {
 
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`
-    const token = localStorage.getItem('token')
+    
+    // Clean up any corrupted tokens before making request
+    const wasCorrupted = cleanupCorruptedTokens()
+    if (wasCorrupted) {
+      console.log('🧹 Cleaned up corrupted authentication data')
+    }
+    
+    // Get valid token
+    const token = getValidToken()
 
     const config = {
       headers: {
@@ -64,11 +111,35 @@ class ApiClient {
       const response = await fetch(url, config)
       let data
 
-      try {
-        data = await response.json()
-      } catch (parseError) {
-        // If response is not JSON, use the text
-        data = { message: await response.text() }
+      // Check if response has content before trying to parse
+      const contentType = response.headers.get('content-type')
+      const hasContent = response.status !== 204 && response.headers.get('content-length') !== '0'
+      
+      if (hasContent && contentType && contentType.includes('application/json')) {
+        try {
+          // Clone response to avoid body consumption issues
+          const responseClone = response.clone()
+          data = await responseClone.json()
+        } catch (parseError) {
+          console.warn('JSON parse failed, trying text:', parseError)
+          try {
+            const textData = await response.text()
+            data = textData ? { message: textData } : {}
+          } catch (textError) {
+            console.error('Failed to read response as text:', textError)
+            data = { message: 'Unable to parse response' }
+          }
+        }
+      } else if (hasContent) {
+        try {
+          const textData = await response.text()
+          data = textData ? { message: textData } : {}
+        } catch (textError) {
+          console.error('Failed to read response as text:', textError)
+          data = { message: 'Unable to parse response' }
+        }
+      } else {
+        data = {}
       }
 
       if (!response.ok) {
@@ -104,15 +175,15 @@ class ApiClient {
     } catch (error) {
       // Don't fall back to mock API for authentication errors (4xx)
       // Only fall back for network/server errors (5xx)
-      if (error.message.includes('Invalid email or password') || 
-          error.message.includes('User not found') ||
-          error.message.includes('400') ||
-          error.message.includes('401') ||
-          error.message.includes('403')) {
+      if (error.message.includes('Invalid email or password') ||
+        error.message.includes('User not found') ||
+        error.message.includes('400') ||
+        error.message.includes('401') ||
+        error.message.includes('403')) {
         // These are authentication errors, don't fall back
         throw error
       }
-      
+
       // Fall back to mock API only for network/server errors
       try {
         return mockApi.login(credentials)
@@ -142,15 +213,30 @@ class ApiClient {
       return mockApi.logout()
     }
 
-    return this.request('/auth/logout', {
-      method: 'POST',
-    })
+    try {
+      return await this.request('/auth/logout', {
+        method: 'POST',
+      })
+    } catch (error) {
+      // If logout fails due to invalid token, still clear local storage
+      if (error.message.includes('Invalid token') || error.message.includes('Token is not valid')) {
+        console.warn('Logout failed due to invalid token, clearing local storage anyway')
+        // Clean up local storage regardless of server response
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        // Return success since we've cleared the local session
+        return { success: true, message: 'Local session cleared' }
+      }
+      // Re-throw other errors
+      throw error
+    }
   }
 
   async refreshToken(refreshToken) {
     if (this.useMockAPI) {
       // Mock API doesn't need refresh tokens, return current session
-      const token = localStorage.getItem('token')
+      cleanupCorruptedTokens()
+      const token = getValidToken()
       if (token) {
         return { token, success: true }
       }
@@ -166,7 +252,8 @@ class ApiClient {
   async getCurrentUser() {
     try {
       if (this.useMockAPI) {
-        const token = localStorage.getItem('token')
+        cleanupCorruptedTokens()
+        const token = getValidToken()
         return mockApi.getCurrentUser(token)
       }
 
@@ -200,7 +287,8 @@ class ApiClient {
 
       // Try fallback to mock API if real API fails
       try {
-        const token = localStorage.getItem('token')
+        cleanupCorruptedTokens()
+        const token = getValidToken()
         if (token) {
           return mockApi.getCurrentUser(token)
         }
@@ -276,7 +364,9 @@ class ApiClient {
     const formData = new FormData()
     images.forEach((file) => formData.append('images', file))
 
-    const token = localStorage.getItem('token')
+    // Clean up corrupted tokens and get valid token
+    cleanupCorruptedTokens()
+    const token = getValidToken()
     const response = await fetch(`${this.baseURL}/artifacts/${id}/images`, {
       method: 'POST',
       headers: {
@@ -300,7 +390,9 @@ class ApiClient {
     const formData = new FormData()
     images.forEach((file) => formData.append('images', file))
 
-    const token = localStorage.getItem('token')
+    // Clean up corrupted tokens and get valid token
+    cleanupCorruptedTokens()
+    const token = getValidToken()
     const response = await fetch(`${this.baseURL}/artifacts/${id}/images`, {
       method: 'PUT',
       headers: {
@@ -324,7 +416,9 @@ class ApiClient {
     const formData = new FormData()
     formData.append('model', modelFile)
 
-    const token = localStorage.getItem('token')
+    // Clean up corrupted tokens and get valid token
+    cleanupCorruptedTokens()
+    const token = getValidToken()
     const response = await fetch(`${this.baseURL}/artifacts/${id}/model`, {
       method: 'POST',
       headers: {
@@ -415,15 +509,17 @@ class ApiClient {
   }
 
   // Admin endpoints
-  async getUsers() {
+  async getUsers({ page = 1, limit = 10, role } = {}) {
     if (this.useMockAPI) {
       return mockApi.getUsers()
     }
-    return this.request('/admin/users')
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) })
+    if (role) params.append('role', role)
+    return this.request(`/super-admin/users?${params}`)
   }
 
   async updateUserRole(userId, role) {
-    return this.request(`/admin/users/${userId}/role`, {
+    return this.request(`/super-admin/users/${userId}`, {
       method: 'PUT',
       body: { role },
     })
@@ -607,7 +703,7 @@ class ApiClient {
     }
     const q = new URLSearchParams({ page: String(page), limit: String(limit) })
     if (role) q.set('role', role)
-    return this.request(`/admin/users?${q.toString()}`)
+    return this.request(`/super-admin/users?${q.toString()}`)
   }
 
   async setUserRole(userId, role) {
@@ -744,7 +840,9 @@ class ApiClient {
     const formData = new FormData()
     formData.append('logo', logoFile)
 
-    const token = localStorage.getItem('token')
+    // Clean up corrupted tokens and get valid token
+    cleanupCorruptedTokens()
+    const token = getValidToken()
     const response = await fetch(`${this.baseURL}/museums/profile/logo`, {
       method: 'POST',
       headers: {
@@ -863,14 +961,6 @@ class ApiClient {
     return this.request('/museum-admin/dashboard')
   }
 
-  async getRecentArtifacts({ page = 1, limit = 10 } = {}) {
-    const q = new URLSearchParams({ page: String(page), limit: String(limit) })
-    return this.request(`/museum-admin/artifacts?${q}`)
-  }
-
-  async getPendingTasks() {
-    return this.request('/museum-admin/quick-stats')
-  }
 
   async submitVirtualMuseum(submissionData) {
     if (this.useMockAPI) {
@@ -889,6 +979,55 @@ class ApiClient {
     const q = new URLSearchParams({ page: String(page), limit: String(limit) })
     if (status) q.set('status', status)
     return this.request(`/museum-admin/virtual-submissions?${q.toString()}`)
+  }
+
+  // Museum Admin Communications endpoints
+  async getMuseumCommunications(params = {}) {
+    const queryParams = new URLSearchParams()
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') {
+        queryParams.append(key, value)
+      }
+    })
+    return this.request(`/museum-admin/communications?${queryParams}`)
+  }
+
+  async getMuseumCommunication(id) {
+    return this.request(`/museum-admin/communications/${id}`)
+  }
+
+  async createMuseumCommunication(communicationData) {
+    return this.request('/museum-admin/communications', {
+      method: 'POST',
+      body: communicationData,
+    })
+  }
+
+  async replyToMuseumCommunication(id, replyData) {
+    return this.request(`/museum-admin/communications/${id}/reply`, {
+      method: 'POST',
+      body: replyData,
+    })
+  }
+
+  async markMuseumCommunicationAsRead(id) {
+    return this.request(`/museum-admin/communications/${id}/read`, {
+      method: 'PUT',
+    })
+  }
+
+  async archiveMuseumCommunication(id) {
+    return this.request(`/museum-admin/communications/${id}/archive`, {
+      method: 'PUT',
+    })
+  }
+
+  async getMuseumUnreadCount() {
+    return this.request('/museum-admin/communications/unread-count')
+  }
+
+  async getMuseumCommunicationConversation(id) {
+    return this.request(`/museum-admin/communications/${id}/conversation`)
   }
 
   // User/Visitor endpoints
@@ -1213,17 +1352,24 @@ class ApiClient {
     });
   }
 
+  async patch(url, data = {}) {
+    return this.request(url, {
+      method: 'PATCH',
+      body: data
+    });
+  }
+
   // Course/Education endpoints
   async getCourses(filters = {}) {
     try {
       await this.checkBackendAvailability();
-      
+
       if (this.useMockAPI) {
         const params = new URLSearchParams(filters);
         const endpoint = `/education/public/courses?${params.toString()}`;
         return mockApi.getCourses(endpoint);
       }
-      
+
       const params = new URLSearchParams(filters);
       return this.request(`/learning/courses?${params.toString()}`);
     } catch (error) {
@@ -1237,11 +1383,11 @@ class ApiClient {
   async getCourseById(courseId) {
     try {
       await this.checkBackendAvailability();
-      
+
       if (this.useMockAPI) {
         return mockApi.getCourseById(courseId);
       }
-      
+
       return this.request(`/learning/courses/${courseId}`);
     } catch (error) {
       return mockApi.getCourseById(courseId);
@@ -1251,11 +1397,11 @@ class ApiClient {
   async getCourseLessons(courseId) {
     try {
       await this.checkBackendAvailability();
-      
+
       if (this.useMockAPI) {
         return mockApi.getCourseLessons(courseId);
       }
-      
+
       return this.request(`/learning/courses/${courseId}/lessons`);
     } catch (error) {
       return mockApi.getCourseLessons(courseId);
@@ -1265,11 +1411,11 @@ class ApiClient {
   async enrollInCourse(courseId) {
     try {
       await this.checkBackendAvailability();
-      
+
       if (this.useMockAPI) {
         return mockApi.enrollInCourse(courseId);
       }
-      
+
       return this.request(`/learning/courses/${courseId}/enroll`, {
         method: 'POST'
       });
@@ -1281,11 +1427,11 @@ class ApiClient {
   async getCourseProgress(courseId) {
     try {
       await this.checkBackendAvailability();
-      
+
       if (this.useMockAPI) {
         return mockApi.getCourseProgress(courseId);
       }
-      
+
       return this.request(`/learning/courses/${courseId}/progress`);
     } catch (error) {
       return mockApi.getCourseProgress(courseId);
@@ -1295,11 +1441,11 @@ class ApiClient {
   async updateLessonProgress(courseId, lessonId, completed = true) {
     try {
       await this.checkBackendAvailability();
-      
+
       if (this.useMockAPI) {
         return mockApi.updateLessonProgress(courseId, lessonId, completed);
       }
-      
+
       return this.request(`/learning/courses/${courseId}/lessons/${lessonId}/progress`, {
         method: 'PUT',
         body: { completed }
@@ -1313,11 +1459,11 @@ class ApiClient {
   async createCourse(courseData) {
     try {
       await this.checkBackendAvailability();
-      
+
       if (this.useMockAPI) {
         return mockApi.createCourse(courseData);
       }
-      
+
       return this.request('/learning/courses', {
         method: 'POST',
         body: courseData
@@ -1330,11 +1476,11 @@ class ApiClient {
   async updateCourse(courseId, courseData) {
     try {
       await this.checkBackendAvailability();
-      
+
       if (this.useMockAPI) {
         return mockApi.updateCourse(courseId, courseData);
       }
-      
+
       return this.request(`/learning/courses/${courseId}`, {
         method: 'PUT',
         body: courseData
@@ -1347,11 +1493,11 @@ class ApiClient {
   async deleteCourse(courseId) {
     try {
       await this.checkBackendAvailability();
-      
+
       if (this.useMockAPI) {
         return mockApi.deleteCourse(courseId);
       }
-      
+
       return this.request(`/learning/courses/${courseId}`, {
         method: 'DELETE'
       });
@@ -1367,11 +1513,11 @@ class ApiClient {
   async getRentalArtifacts(params = {}) {
     try {
       await this.checkBackendAvailability();
-      
+
       if (this.useMockAPI) {
         return mockApi.getRentalArtifacts(params);
       }
-      
+
       const queryParams = new URLSearchParams(params).toString()
       const endpoint = `/rentals/artifacts${queryParams ? `?${queryParams}` : ''}`
       return this.request(endpoint)
@@ -1383,11 +1529,11 @@ class ApiClient {
   async getAllRentalRequests(params = {}) {
     try {
       await this.checkBackendAvailability();
-      
+
       if (this.useMockAPI) {
         return mockApi.getAllRentalRequests(params);
       }
-      
+
       const queryParams = new URLSearchParams(params).toString()
       const endpoint = `/rentals${queryParams ? `?${queryParams}` : ''}`
       return this.request(endpoint)
@@ -1399,11 +1545,11 @@ class ApiClient {
   async getRentalRequestById(id) {
     try {
       await this.checkBackendAvailability();
-      
+
       if (this.useMockAPI) {
         return mockApi.getRentalRequestById(id);
       }
-      
+
       return this.request(`/rentals/${id}`)
     } catch (error) {
       return mockApi.getRentalRequestById(id);
@@ -1413,11 +1559,11 @@ class ApiClient {
   async createRentalRequest(data) {
     try {
       await this.checkBackendAvailability();
-      
+
       if (this.useMockAPI) {
         return mockApi.createRentalRequest(data);
       }
-      
+
       return this.request('/rentals', {
         method: 'POST',
         body: JSON.stringify(data)
@@ -1430,11 +1576,11 @@ class ApiClient {
   async updateRentalRequestStatus(id, data) {
     try {
       await this.checkBackendAvailability();
-      
+
       if (this.useMockAPI) {
         return mockApi.updateRentalRequestStatus(id, data);
       }
-      
+
       return this.request(`/rentals/${id}/status`, {
         method: 'PATCH',
         body: JSON.stringify(data)
@@ -1447,11 +1593,11 @@ class ApiClient {
   async addRentalRequestMessage(id, data) {
     try {
       await this.checkBackendAvailability();
-      
+
       if (this.useMockAPI) {
         return mockApi.addRentalRequestMessage(id, data);
       }
-      
+
       return this.request(`/rentals/${id}/messages`, {
         method: 'POST',
         body: JSON.stringify(data)
@@ -1464,11 +1610,11 @@ class ApiClient {
   async updateRentalPaymentStatus(id, data) {
     try {
       await this.checkBackendAvailability();
-      
+
       if (this.useMockAPI) {
         return mockApi.updateRentalPaymentStatus(id, data);
       }
-      
+
       return this.request(`/rentals/${id}/payment-status`, {
         method: 'PATCH',
         body: JSON.stringify(data)
@@ -1481,11 +1627,11 @@ class ApiClient {
   async updateRental3DIntegration(id, data) {
     try {
       await this.checkBackendAvailability();
-      
+
       if (this.useMockAPI) {
         return mockApi.updateRental3DIntegration(id, data);
       }
-      
+
       return this.request(`/rentals/${id}/3d-integration`, {
         method: 'PATCH',
         body: JSON.stringify(data)
@@ -1498,11 +1644,11 @@ class ApiClient {
   async updateRentalVirtualMuseum(id, data) {
     try {
       await this.checkBackendAvailability();
-      
+
       if (this.useMockAPI) {
         return mockApi.updateRentalVirtualMuseum(id, data);
       }
-      
+
       return this.request(`/rentals/${id}/virtual-museum`, {
         method: 'PATCH',
         body: JSON.stringify(data)
@@ -1515,11 +1661,11 @@ class ApiClient {
   async getRentalStatistics() {
     try {
       await this.checkBackendAvailability();
-      
+
       if (this.useMockAPI) {
         return mockApi.getRentalStatistics();
       }
-      
+
       return this.request('/rentals/stats')
     } catch (error) {
       return mockApi.getRentalStatistics();
@@ -1532,7 +1678,9 @@ class ApiClient {
     formData.append('file', file)
     formData.append('type', type)
 
-    const token = localStorage.getItem('token')
+    // Clean up corrupted tokens and get valid token
+    cleanupCorruptedTokens()
+    const token = getValidToken()
 
     const response = await fetch(`${this.baseURL}/upload`, {
       method: 'POST',
@@ -2215,30 +2363,6 @@ class ApiClient {
     })
   }
 
-  // Artifact management methods
-  async createArtifact(artifactData) {
-    return this.request('/artifacts', {
-      method: 'POST',
-      body: artifactData,
-    })
-  }
-
-  async updateArtifact(id, artifactData) {
-    return this.request(`/artifacts/${id}`, {
-      method: 'PUT',
-      body: artifactData,
-    })
-  }
-
-  async deleteArtifact(id) {
-    return this.request(`/artifacts/${id}`, {
-      method: 'DELETE',
-    })
-  }
-
-  async getArtifactById(id) {
-    return this.request(`/artifacts/${id}`)
-  }
 
   async uploadArtifactImage(artifactId, imageFile) {
     const formData = new FormData()
@@ -2254,6 +2378,55 @@ class ApiClient {
     return this.request(`/artifacts/${artifactId}/images/${imageId}`, {
       method: 'DELETE',
     })
+  }
+
+  // Communications endpoints
+  async getCommunications(params = {}) {
+    const queryParams = new URLSearchParams()
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') {
+        queryParams.append(key, value)
+      }
+    })
+    return this.request(`/communications?${queryParams}`)
+  }
+
+  async getCommunication(id) {
+    return this.request(`/communications/${id}`)
+  }
+
+  async createCommunication(communicationData) {
+    return this.request('/communications', {
+      method: 'POST',
+      body: communicationData,
+    })
+  }
+
+  async replyToCommunication(id, replyData) {
+    return this.request(`/communications/${id}/reply`, {
+      method: 'POST',
+      body: replyData,
+    })
+  }
+
+  async markCommunicationAsRead(id) {
+    return this.request(`/communications/${id}/read`, {
+      method: 'PUT',
+    })
+  }
+
+  async archiveCommunication(id) {
+    return this.request(`/communications/${id}/archive`, {
+      method: 'PUT',
+    })
+  }
+
+  async getUnreadCount() {
+    return this.request('/communications/unread-count')
+  }
+
+  async getCommunicationConversation(id) {
+    return this.request(`/communications/${id}/conversation`)
   }
 }
 

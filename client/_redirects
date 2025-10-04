@@ -1,0 +1,5 @@
+# Proxy API requests to Render backend
+/api/* https://ethioheritage360-ethiopian-heritage.onrender.com/api/:splat 200
+
+# Fallback for client-side routing (SPA)
+/*    /index.html   200

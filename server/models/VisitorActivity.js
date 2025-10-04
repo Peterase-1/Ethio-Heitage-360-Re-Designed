@@ -135,7 +135,7 @@ visitorActivitySchema.statics.getUserActivitySummary = async function(userId, da
   const pipeline = [
     {
       $match: {
-        userId: mongoose.Types.ObjectId(userId),
+        userId: new mongoose.Types.ObjectId(userId),
         timestamp: { $gte: startDate }
       }
     },
@@ -163,7 +163,7 @@ visitorActivitySchema.statics.getDailyActivityStats = async function(userId, day
   const pipeline = [
     {
       $match: {
-        userId: mongoose.Types.ObjectId(userId),
+        userId: new mongoose.Types.ObjectId(userId),
         timestamp: { $gte: startDate }
       }
     },
