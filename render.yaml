@@ -6,7 +6,7 @@ services:
     plan: free
     region: ohio  # Choose region closest to your users
     healthCheckPath: /api/health
-    rootDir: server
+    rootDir: backend
     buildCommand: npm install
     startCommand: node server.js
     envVars:
