@@ -2532,7 +2532,7 @@ async function createCommunication(req, res) {
     const { type, subject, message, priority = 'medium' } = req.body;
 
     // Find Super Admin user
-    const superAdmin = await User.findOne({ role: 'super_admin' });
+    const superAdmin = await User.findOne({ role: 'superAdmin' });
     if (!superAdmin) {
       return res.status(400).json({
         success: false,

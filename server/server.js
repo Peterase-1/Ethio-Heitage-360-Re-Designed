@@ -112,28 +112,29 @@ app.use(cors({
   origin: function (origin, callback) {
     // allow requests with no origin (like mobile apps, curl)
     if (!origin) return callback(null, true);
-    
+
+    // For development, be more permissive
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Development mode - allowing origin:', origin);
+      return callback(null, true);
+    }
+
     // Check string origins
     if (allowedOrigins.includes(origin)) return callback(null, true);
-    
+
     // Check regex patterns
     for (const allowedOrigin of allowedOrigins) {
       if (allowedOrigin instanceof RegExp && allowedOrigin.test(origin)) {
         return callback(null, true);
       }
     }
-    
-    // For development, be more permissive
-    if (process.env.NODE_ENV === 'development') {
-      return callback(null, true);
-    }
-    
+
     return callback(new Error('CORS not allowed from this origin: ' + origin), false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  optionsSuccessStatus: 204
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  optionsSuccessStatus: 200
 }));
 // Handle preflight
 app.options('*', cors());
@@ -188,7 +189,7 @@ app.use('/api/user', userRoutes);
 app.use('/api/visitor', visitorRoutes);
 app.use('/api/visitor/events', visitorEventsRoutes); // Visitor events API
 app.use('/api/visitor/exhibitions', visitorExhibitionsRoutes); // Visitor exhibitions API
-app.use('/api/rentals', rentalsRoutes);
+app.use('/api/rental', rentalsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/exhibitions', adminExhibitionsRoutes); // Admin exhibitions management API
 app.use('/api/super-admin', superAdminRoutes);

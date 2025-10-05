@@ -602,7 +602,7 @@ const getMuseumRentalStats = async (req, res) => {
 };
 
 /**
- * Get artifacts for museum rental system
+ * Get artifacts for museum rental system - Enhanced for bidirectional rental
  */
 const getMuseumArtifacts = async (req, res) => {
   try {
@@ -619,8 +619,11 @@ const getMuseumArtifacts = async (req, res) => {
 
     console.log('🔍 Getting artifacts for museum:', museumId);
     // Get artifacts from the specified museum
-    const artifacts = await Artifact.find({ museum: museumId })
-      .select('name description category images status')
+    const artifacts = await Artifact.find({ 
+      museum: museumId,
+      status: { $in: ['published', 'active'] } // Only show available artifacts
+    })
+      .select('name description category images status accessionNumber estimatedValue rarity condition availability')
       .populate('museum', 'name location');
 
     res.json({
@@ -638,6 +641,72 @@ const getMuseumArtifacts = async (req, res) => {
   }
 };
 
+/**
+ * Get all artifacts (for super admin to select from when creating requests)
+ */
+const getAllArtifacts = async (req, res) => {
+  try {
+    console.log('🔍 Getting all available artifacts for rental...');
+    
+    const { page = 1, limit = 50, search, category, museum } = req.query;
+    
+    const query = {
+      status: { $in: ['published', 'active'] },
+      // Only include artifacts that are available for rental
+      $or: [
+        { availability: { $exists: false } },
+        { availability: 'available' }
+      ]
+    };
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { accessionNumber: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    if (category && category !== 'all') {
+      query.category = category;
+    }
+
+    if (museum && museum !== 'all') {
+      query.museum = museum;
+    }
+
+    const [artifacts, total] = await Promise.all([
+      Artifact.find(query)
+        .populate('museum', 'name location')
+        .select('name description category images accessionNumber estimatedValue rarity condition availability museum')
+        .sort({ name: 1 })
+        .skip((page - 1) * limit)
+        .limit(Number(limit)),
+      Artifact.countDocuments(query)
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        artifacts,
+        pagination: {
+          current: Number(page),
+          pages: Math.ceil(total / limit),
+          total
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Get all artifacts error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get artifacts',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   createRentalRequest,
   getAllRentalRequests,
@@ -649,5 +718,6 @@ module.exports = {
   updateVirtualMuseumIntegration,
   getRentalStatistics,
   getMuseumRentalStats,
-  getMuseumArtifacts
+  getMuseumArtifacts,
+  getAllArtifacts
 };

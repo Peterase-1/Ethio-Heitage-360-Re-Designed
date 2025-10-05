@@ -41,14 +41,14 @@ const dbUtils = {
   createIndexes: async () => {
     try {
       console.log('Creating database indexes...');
-      
+
       // User collection indexes
       await mongoose.connection.db.collection('users').createIndex({ email: 1 }, { unique: true });
       await mongoose.connection.db.collection('users').createIndex({ role: 1 });
       await mongoose.connection.db.collection('users').createIndex({ isActive: 1 });
       await mongoose.connection.db.collection('users').createIndex({ museumId: 1 });
       await mongoose.connection.db.collection('users').createIndex({ createdAt: -1 });
-      
+
       console.log('✅ Database indexes created successfully');
     } catch (error) {
       console.error('Error creating indexes:', error.message);
@@ -70,10 +70,10 @@ const connectDB = async () => {
   try {
     // Set mongoose options
     mongoose.set('strictQuery', false);
-    
+
     console.log('Connecting to MongoDB...');
     console.log('Database URI:', process.env.MONGODB_URI?.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@') || 'Not set');
-    
+
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
       maxPoolSize: 10, // Maintain up to 10 socket connections
       serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
@@ -83,23 +83,23 @@ const connectDB = async () => {
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
     console.log(`📊 Database: ${conn.connection.name}`);
     console.log(`🔗 Connection Status: ${dbUtils.getConnectionStatus()}`);
-    
+
     // Create indexes on connection
     await dbUtils.createIndexes();
-    
+
     // Set up connection event listeners
     mongoose.connection.on('error', (err) => {
       console.error('MongoDB connection error:', err);
     });
-    
+
     mongoose.connection.on('disconnected', () => {
       console.warn('MongoDB disconnected');
     });
-    
+
     mongoose.connection.on('reconnected', () => {
       console.log('MongoDB reconnected');
     });
-    
+
   } catch (error) {
     console.error('❌ Error connecting to MongoDB:', error.message);
     if (error.name === 'MongoNetworkError') {

@@ -8,3 +8,8 @@ set NODE_ENV=development
 echo Environment variables set
 echo Starting server on port 5001...
 node server.js
+
+
+
+
+

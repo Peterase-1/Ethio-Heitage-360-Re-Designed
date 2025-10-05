@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ command, mode }) => {
   const isDev = mode === 'development';
-  
+
   return {
     plugins: [react()],
     server: {
@@ -19,13 +19,13 @@ export default defineConfig(({ command, mode }) => {
       open: false,
       proxy: {
         '/api': {
-          target: 'http://localhost:5000',
+          target: 'http://localhost:5001',
           changeOrigin: true,
           secure: false,
           ws: true
         },
         '/socket.io': {
-          target: 'http://localhost:5000',
+          target: 'http://localhost:5001',
           ws: true
         }
       },

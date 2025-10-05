@@ -491,11 +491,11 @@ router.put('/heritage-sites/suggestions/:id', museumAdminController.updateHerita
 router.get('/communications', museumAdminController.getCommunications);
 
 /**
- * @route   GET /api/museum-admin/communications/:id
- * @desc    Get specific communication
+ * @route   GET /api/museum-admin/communications/unread-count
+ * @desc    Get unread communications count
  * @access  Museum Admin or Super Admin
  */
-router.get('/communications/:id', museumAdminController.getCommunication);
+router.get('/communications/unread-count', museumAdminController.getUnreadCount);
 
 /**
  * @route   POST /api/museum-admin/communications
@@ -503,6 +503,20 @@ router.get('/communications/:id', museumAdminController.getCommunication);
  * @access  Museum Admin
  */
 router.post('/communications', museumAdminController.createCommunication);
+
+/**
+ * @route   GET /api/museum-admin/communications/:id
+ * @desc    Get specific communication
+ * @access  Museum Admin or Super Admin
+ */
+router.get('/communications/:id', museumAdminController.getCommunication);
+
+/**
+ * @route   GET /api/museum-admin/communications/:id/conversation
+ * @desc    Get conversation thread for a communication
+ * @access  Museum Admin or Super Admin
+ */
+router.get('/communications/:id/conversation', museumAdminController.getConversation);
 
 /**
  * @route   POST /api/museum-admin/communications/:id/reply
@@ -517,20 +531,6 @@ router.post('/communications/:id/reply', museumAdminController.replyToCommunicat
  * @access  Museum Admin or Super Admin
  */
 router.put('/communications/:id/read', museumAdminController.markAsRead);
-
-/**
- * @route   GET /api/museum-admin/communications/unread-count
- * @desc    Get unread communications count
- * @access  Museum Admin or Super Admin
- */
-router.get('/communications/unread-count', museumAdminController.getUnreadCount);
-
-/**
- * @route   GET /api/museum-admin/communications/:id/conversation
- * @desc    Get conversation thread for a communication
- * @access  Museum Admin or Super Admin
- */
-router.get('/communications/:id/conversation', museumAdminController.getConversation);
 
 /**
  * @route   PUT /api/museum-admin/communications/:id/archive

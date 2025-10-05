@@ -112,6 +112,32 @@ const communicationSchema = new mongoose.Schema({
   internalNotes: {
     type: String,
     maxlength: 500
+  },
+
+  // Read tracking for multiple users
+  readBy: [{
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    readAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+
+  // Archived tracking for multiple users
+  archivedBy: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+
+  // Thread/conversation tracking
+  threadId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Communication',
+    required: false
   }
 }, {
   timestamps: true

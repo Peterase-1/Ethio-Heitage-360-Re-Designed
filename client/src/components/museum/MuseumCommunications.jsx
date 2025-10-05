@@ -74,28 +74,47 @@ const MuseumCommunications = ({ filter = {} }) => {
     loadUnreadCount();
   }, []);
 
+  // Reload communications when filters change
+  useEffect(() => {
+    loadCommunications();
+  }, [filters]);
+
   const loadCommunications = async () => {
     try {
       setLoading(true);
       console.log('🔄 Loading museum communications...');
+      console.log('🔧 Applied filters:', filters);
+
+      // Temporarily remove empty filters to avoid issues
+      const cleanFilters = {};
+      Object.keys(filters).forEach(key => {
+        if (filters[key] && filters[key] !== '') {
+          cleanFilters[key] = filters[key];
+        }
+      });
 
       const response = await api.getMuseumCommunications({
         page: 1,
         limit: 50,
-        ...filters
+        ...cleanFilters
       });
 
       console.log('📨 Communications response:', response);
+      console.log('📨 Response success:', response.success);
+      console.log('📨 Response data:', response.data);
+      console.log('📨 Response data length:', response.data?.length);
 
-      if (response.success) {
-        setCommunications(response.data || []);
-        console.log('✅ Loaded', response.data?.length || 0, 'communications');
+      if (response.success && response.data) {
+        setCommunications(response.data);
+        console.log('✅ Loaded', response.data.length, 'communications');
       } else {
-        console.log('⚠️ No communications data found');
+        console.log('⚠️ No communications data found or request failed');
+        console.log('⚠️ Response:', response);
         setCommunications([]);
       }
     } catch (error) {
       console.error('❌ Error loading communications:', error);
+      console.error('❌ Error details:', error.message);
       setError('Failed to load communications');
       setCommunications([]);
     } finally {

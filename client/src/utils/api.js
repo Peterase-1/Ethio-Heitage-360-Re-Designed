@@ -1519,10 +1519,42 @@ class ApiClient {
       }
 
       const queryParams = new URLSearchParams(params).toString()
-      const endpoint = `/rentals/artifacts${queryParams ? `?${queryParams}` : ''}`
+      const endpoint = `/rental/artifacts${queryParams ? `?${queryParams}` : ''}`
       return this.request(endpoint)
     } catch (error) {
       return mockApi.getRentalArtifacts(params);
+    }
+  }
+
+  async getAllRentalArtifacts(params = {}) {
+    try {
+      await this.checkBackendAvailability();
+
+      if (this.useMockAPI) {
+        return mockApi.getRentalArtifacts(params);
+      }
+
+      const queryParams = new URLSearchParams(params).toString()
+      const endpoint = `/rental/all-artifacts${queryParams ? `?${queryParams}` : ''}`
+      return this.request(endpoint)
+    } catch (error) {
+      return mockApi.getRentalArtifacts(params);
+    }
+  }
+
+  async getRentalRequests(params = {}) {
+    try {
+      await this.checkBackendAvailability();
+
+      if (this.useMockAPI) {
+        return mockApi.getAllRentalRequests(params);
+      }
+
+      const queryParams = new URLSearchParams(params).toString()
+      const endpoint = `/rental/requests${queryParams ? `?${queryParams}` : ''}`
+      return this.request(endpoint)
+    } catch (error) {
+      return mockApi.getAllRentalRequests(params);
     }
   }
 
@@ -1535,7 +1567,7 @@ class ApiClient {
       }
 
       const queryParams = new URLSearchParams(params).toString()
-      const endpoint = `/rentals${queryParams ? `?${queryParams}` : ''}`
+      const endpoint = `/rental/requests${queryParams ? `?${queryParams}` : ''}`
       return this.request(endpoint)
     } catch (error) {
       return mockApi.getAllRentalRequests(params);
@@ -1550,7 +1582,7 @@ class ApiClient {
         return mockApi.getRentalRequestById(id);
       }
 
-      return this.request(`/rentals/${id}`)
+      return this.request(`/rental/requests/${id}`)
     } catch (error) {
       return mockApi.getRentalRequestById(id);
     }
@@ -1564,12 +1596,29 @@ class ApiClient {
         return mockApi.createRentalRequest(data);
       }
 
-      return this.request('/rentals', {
+      return this.request('/rental/requests', {
         method: 'POST',
-        body: JSON.stringify(data)
+        body: data
       })
     } catch (error) {
       return mockApi.createRentalRequest(data);
+    }
+  }
+
+  async updateRentalRequest(id, data) {
+    try {
+      await this.checkBackendAvailability();
+
+      if (this.useMockAPI) {
+        return mockApi.updateRentalRequestStatus(id, data);
+      }
+
+      return this.request(`/rental/requests/${id}/status`, {
+        method: 'PUT',
+        body: data
+      })
+    } catch (error) {
+      return mockApi.updateRentalRequestStatus(id, data);
     }
   }
 
@@ -1581,9 +1630,9 @@ class ApiClient {
         return mockApi.updateRentalRequestStatus(id, data);
       }
 
-      return this.request(`/rentals/${id}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify(data)
+      return this.request(`/rental/requests/${id}/status`, {
+        method: 'PUT',
+        body: data
       })
     } catch (error) {
       return mockApi.updateRentalRequestStatus(id, data);
@@ -1598,9 +1647,9 @@ class ApiClient {
         return mockApi.addRentalRequestMessage(id, data);
       }
 
-      return this.request(`/rentals/${id}/messages`, {
+      return this.request(`/rental/requests/${id}/messages`, {
         method: 'POST',
-        body: JSON.stringify(data)
+        body: data
       })
     } catch (error) {
       return mockApi.addRentalRequestMessage(id, data);
@@ -1615,9 +1664,9 @@ class ApiClient {
         return mockApi.updateRentalPaymentStatus(id, data);
       }
 
-      return this.request(`/rentals/${id}/payment-status`, {
-        method: 'PATCH',
-        body: JSON.stringify(data)
+      return this.request(`/rental/requests/${id}/payment`, {
+        method: 'PUT',
+        body: data
       })
     } catch (error) {
       return mockApi.updateRentalPaymentStatus(id, data);
@@ -1632,9 +1681,9 @@ class ApiClient {
         return mockApi.updateRental3DIntegration(id, data);
       }
 
-      return this.request(`/rentals/${id}/3d-integration`, {
-        method: 'PATCH',
-        body: JSON.stringify(data)
+      return this.request(`/rental/requests/${id}/3d-integration`, {
+        method: 'PUT',
+        body: data
       })
     } catch (error) {
       return mockApi.updateRental3DIntegration(id, data);
@@ -1649,16 +1698,16 @@ class ApiClient {
         return mockApi.updateRentalVirtualMuseum(id, data);
       }
 
-      return this.request(`/rentals/${id}/virtual-museum`, {
-        method: 'PATCH',
-        body: JSON.stringify(data)
+      return this.request(`/rental/requests/${id}/virtual-museum`, {
+        method: 'PUT',
+        body: data
       })
     } catch (error) {
       return mockApi.updateRentalVirtualMuseum(id, data);
     }
   }
 
-  async getRentalStatistics() {
+  async getRentalStatistics(params = {}) {
     try {
       await this.checkBackendAvailability();
 
@@ -1666,7 +1715,23 @@ class ApiClient {
         return mockApi.getRentalStatistics();
       }
 
-      return this.request('/rentals/stats')
+      const queryParams = new URLSearchParams(params).toString()
+      return this.request(`/rental/statistics${queryParams ? `?${queryParams}` : ''}`)
+    } catch (error) {
+      return mockApi.getRentalStatistics();
+    }
+  }
+
+  async getMuseumRentalStats(params = {}) {
+    try {
+      await this.checkBackendAvailability();
+
+      if (this.useMockAPI) {
+        return mockApi.getRentalStatistics();
+      }
+
+      const queryParams = new URLSearchParams(params).toString()
+      return this.request(`/rental/museum-stats${queryParams ? `?${queryParams}` : ''}`)
     } catch (error) {
       return mockApi.getRentalStatistics();
     }

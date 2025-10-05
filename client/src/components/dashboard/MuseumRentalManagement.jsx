@@ -1,10 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../../utils/api';
 import {
   Box, Button, Card, CardContent, CardHeader, Divider, Grid, TextField, Typography,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination,
   Paper, IconButton, Chip, Tooltip, Snackbar, Alert, LinearProgress, Dialog,
-  DialogTitle, DialogContent, DialogActions, DialogContentText, useTheme, Tabs, Tab
+  DialogTitle, DialogContent, DialogActions, DialogContentText, useTheme, Tabs, Tab,
+  FormControlLabel, Checkbox
 } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon, Cancel as CancelIcon, Visibility as VisibilityIcon,
@@ -28,8 +30,41 @@ const MuseumRentalManagement = () => {
     severity: 'success'
   });
 
-  // Mock data for rental requests
-  const [rentals, setRentals] = useState([
+  // Real data for rental requests
+  const [rentals, setRentals] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load rental requests from API
+  useEffect(() => {
+    loadRentals();
+  }, []);
+
+  const loadRentals = async () => {
+    try {
+      setLoading(true);
+      console.log('🔄 Loading rental requests...');
+      const response = await api.getRentalRequests();
+      console.log('📋 Rental requests response:', response);
+
+      if (response && response.success && response.data) {
+        // Handle both old structure and new structure
+        const rentalData = response.data.requests || response.data;
+        setRentals(rentalData);
+        console.log('✅ Loaded', rentalData.length, 'rental requests');
+      } else {
+        console.log('⚠️ No rental requests found');
+        setRentals([]);
+      }
+    } catch (error) {
+      console.error('❌ Error loading rental requests:', error);
+      setRentals([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Mock data for fallback (remove this after API is working)
+  const mockRentals = [
     {
       id: 'R001',
       requester: 'John Doe',
@@ -105,7 +140,10 @@ const MuseumRentalManagement = () => {
       approvedBy: 'Admin User',
       notes: 'Special handling required for one artifact'
     }
-  ]);
+  ];
+
+  // Use real data if available, otherwise fallback to mock data
+  const displayRentals = rentals.length > 0 ? rentals : mockRentals;
 
   // Mock data for artifacts
   const artifacts = {
@@ -121,17 +159,17 @@ const MuseumRentalManagement = () => {
   };
 
   // Filter rentals based on tab and search term
-  const filteredRentals = rentals.filter(rental => {
-    const matchesTab = tabValue === 0 || 
+  const filteredRentals = displayRentals.filter(rental => {
+    const matchesTab = tabValue === 0 ||
       (tabValue === 1 && rental.status === 'pending') ||
       (tabValue === 2 && rental.status === 'approved') ||
       (tabValue === 3 && rental.status === 'rejected');
-    
-    const matchesSearch = searchTerm === '' || 
+
+    const matchesSearch = searchTerm === '' ||
       rental.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       rental.requester.toLowerCase().includes(searchTerm.toLowerCase()) ||
       rental.institution.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     return matchesTab && matchesSearch;
   });
 
@@ -160,32 +198,38 @@ const MuseumRentalManagement = () => {
   };
 
   // Handle rental action (approve/reject)
-  const handleRentalAction = () => {
-    const updatedRentals = rentals.map(rental => {
-      if (rental.id === selectedRental.id) {
-        const now = new Date().toISOString();
-        const update = { 
-          status: action,
-          ...(action === 'approved' ? { 
-            approvedAt: now,
-            approvedBy: 'Current User' // This would be the logged-in user
-          } : {
-            rejectedAt: now,
-            rejectedBy: 'Current User',
-            rejectionReason: document.getElementById('rejection-reason').value || 'No reason provided'
-          })
-        };
-        return { ...rental, ...update };
-      }
-      return rental;
-    });
+  const handleRentalAction = async () => {
+    try {
+      console.log(`🔄 ${action} rental request:`, selectedRental.id);
 
-    setRentals(updatedRentals);
-    setDialogOpen(false);
-    showSnackbar(
-      `Rental request ${action === 'approved' ? 'approved' : 'rejected'} successfully`,
-      'success'
-    );
+      // Call API to update rental status
+      const updateData = { status: action };
+      if (action === 'rejected') {
+        updateData.rejectionReason = document.getElementById('rejection-reason')?.value || 'No reason provided';
+      }
+
+      const response = await api.updateRentalRequest(selectedRental.id, updateData);
+      console.log('📋 Update response:', response);
+
+      if (response && response.success) {
+        // Refresh the rental list
+        await loadRentals();
+
+        setDialogOpen(false);
+        showSnackbar(
+          `Rental request ${action === 'approved' ? 'approved' : 'rejected'} successfully`,
+          'success'
+        );
+      } else {
+        throw new Error(response?.message || 'Failed to update rental request');
+      }
+    } catch (error) {
+      console.error('❌ Error updating rental request:', error);
+      showSnackbar(
+        `Failed to ${action} rental request: ${error.message}`,
+        'error'
+      );
+    }
   };
 
   // Show snackbar
@@ -221,29 +265,40 @@ const MuseumRentalManagement = () => {
   return (
     <Box>
       <Card>
-        <CardHeader 
-          title="Rental Management" 
+        <CardHeader
+          title="Rental Management"
           subheader="Manage artifact loan requests and track their status"
           action={
-            <Button 
-              variant="contained" 
-              color="primary"
-              startIcon={<AssignmentIcon />}
-              onClick={() => {
-                // TODO: Implement export functionality
-                showSnackbar('Export functionality coming soon', 'info');
-              }}
-            >
-              Export
-            </Button>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                variant="outlined"
+                color="primary"
+                startIcon={<SearchIcon />}
+                onClick={loadRentals}
+                disabled={loading}
+              >
+                Refresh
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AssignmentIcon />}
+                onClick={() => {
+                  // TODO: Implement export functionality
+                  showSnackbar('Export functionality coming soon', 'info');
+                }}
+              >
+                Export
+              </Button>
+            </Box>
           }
         />
-        
+
         <Divider />
-        
+
         <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Tabs 
-            value={tabValue} 
+          <Tabs
+            value={tabValue}
             onChange={handleTabChange}
             indicatorColor="primary"
             textColor="primary"
@@ -254,7 +309,7 @@ const MuseumRentalManagement = () => {
               <Tab key={tab.value} label={tab.label} />
             ))}
           </Tabs>
-          
+
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <TextField
               size="small"
@@ -273,9 +328,9 @@ const MuseumRentalManagement = () => {
             </Tooltip>
           </Box>
         </Box>
-        
+
         <Divider />
-        
+
         <TableContainer>
           <Table>
             <TableHead>
@@ -291,7 +346,16 @@ const MuseumRentalManagement = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredRentals.length > 0 ? (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={8} align="center">
+                    <LinearProgress />
+                    <Typography variant="body2" sx={{ mt: 1 }}>
+                      Loading rental requests...
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : filteredRentals.length > 0 ? (
                 filteredRentals
                   .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                   .map((rental) => (
@@ -351,29 +415,29 @@ const MuseumRentalManagement = () => {
                       <TableCell align="right">
                         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
                           <Tooltip title="View Details">
-                            <IconButton 
+                            <IconButton
                               size="small"
                               onClick={() => handleActionClick(rental, 'view')}
                             >
                               <VisibilityIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          
+
                           {rental.status === 'pending' && (
                             <>
                               <Tooltip title="Approve">
-                                <IconButton 
-                                  size="small" 
+                                <IconButton
+                                  size="small"
                                   color="success"
                                   onClick={() => handleActionClick(rental, 'approve')}
                                 >
                                   <CheckCircleIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
-                              
+
                               <Tooltip title="Reject">
-                                <IconButton 
-                                  size="small" 
+                                <IconButton
+                                  size="small"
                                   color="error"
                                   onClick={() => handleActionClick(rental, 'reject')}
                                 >
@@ -401,7 +465,7 @@ const MuseumRentalManagement = () => {
             </TableBody>
           </Table>
         </TableContainer>
-        
+
         <TablePagination
           rowsPerPageOptions={[5, 10, 25]}
           component="div"
@@ -412,19 +476,19 @@ const MuseumRentalManagement = () => {
           onRowsPerPageChange={handleChangeRowsPerPage}
         />
       </Card>
-      
+
       {/* Rental Details/Approval/Rejection Dialog */}
-      <Dialog 
-        open={dialogOpen} 
+      <Dialog
+        open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         maxWidth="md"
         fullWidth
       >
         <DialogTitle>
-          {action === 'view' ? 'Rental Request Details' : 
-           action === 'approve' ? 'Approve Rental Request' : 'Reject Rental Request'}
+          {action === 'view' ? 'Rental Request Details' :
+            action === 'approve' ? 'Approve Rental Request' : 'Reject Rental Request'}
         </DialogTitle>
-        
+
         <DialogContent dividers>
           {selectedRental && (
             <Grid container spacing={3}>
@@ -434,17 +498,17 @@ const MuseumRentalManagement = () => {
                   <Typography variant="body2" color="textSecondary">Request ID</Typography>
                   <Typography variant="body1">{selectedRental.id}</Typography>
                 </Box>
-                
+
                 <Box sx={{ mb: 2 }}>
                   <Typography variant="body2" color="textSecondary">Status</Typography>
                   {getStatusChip(selectedRental.status)}
                 </Box>
-                
+
                 <Box sx={{ mb: 2 }}>
                   <Typography variant="body2" color="textSecondary">Submitted On</Typography>
                   <Typography variant="body1">{formatDate(selectedRental.submittedAt)}</Typography>
                 </Box>
-                
+
                 <Box sx={{ mb: 2 }}>
                   <Typography variant="body2" color="textSecondary">Rental Period</Typography>
                   <Typography variant="body1">
@@ -452,7 +516,7 @@ const MuseumRentalManagement = () => {
                     {' '}({Math.ceil((new Date(selectedRental.endDate) - new Date(selectedRental.startDate)) / (1000 * 60 * 60 * 24))} days)
                   </Typography>
                 </Box>
-                
+
                 {selectedRental.status === 'approved' && selectedRental.approvedAt && (
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="body2" color="textSecondary">Approved On</Typography>
@@ -461,7 +525,7 @@ const MuseumRentalManagement = () => {
                     </Typography>
                   </Box>
                 )}
-                
+
                 {selectedRental.status === 'rejected' && selectedRental.rejectedAt && (
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="body2" color="textSecondary">Rejected On</Typography>
@@ -473,34 +537,34 @@ const MuseumRentalManagement = () => {
                   </Box>
                 )}
               </Grid>
-              
+
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle1" gutterBottom>Requester Information</Typography>
                 <Box sx={{ mb: 2 }}>
                   <Typography variant="body2" color="textSecondary">Name</Typography>
                   <Typography variant="body1">{selectedRental.requester}</Typography>
                 </Box>
-                
+
                 <Box sx={{ mb: 2 }}>
                   <Typography variant="body2" color="textSecondary">Email</Typography>
                   <Typography variant="body1">{selectedRental.email}</Typography>
                 </Box>
-                
+
                 <Box sx={{ mb: 2 }}>
                   <Typography variant="body2" color="textSecondary">Institution</Typography>
                   <Typography variant="body1">{selectedRental.institution}</Typography>
                 </Box>
-                
+
                 <Box sx={{ mb: 2 }}>
                   <Typography variant="body2" color="textSecondary">Purpose</Typography>
                   <Typography variant="body1">{selectedRental.purpose}</Typography>
                 </Box>
-                
+
                 <Box sx={{ mb: 2 }}>
                   <Typography variant="body2" color="textSecondary">Insurance Information</Typography>
                   <Typography variant="body1">{selectedRental.insuranceInfo || 'Not provided'}</Typography>
                 </Box>
-                
+
                 {selectedRental.notes && (
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="body2" color="textSecondary">Notes</Typography>
@@ -508,7 +572,7 @@ const MuseumRentalManagement = () => {
                   </Box>
                 )}
               </Grid>
-              
+
               <Grid item xs={12}>
                 <Typography variant="subtitle1" gutterBottom>Requested Artifacts</Typography>
                 <TableContainer component={Paper} variant="outlined">
@@ -530,12 +594,12 @@ const MuseumRentalManagement = () => {
                             <TableCell>{artifact.title}</TableCell>
                             <TableCell>{artifact.period || 'N/A'}</TableCell>
                             <TableCell>
-                              <Chip 
-                                label={selectedRental.status === 'pending' ? 'Pending' : 
-                                      selectedRental.status === 'approved' ? 'Approved' : 'Rejected'}
+                              <Chip
+                                label={selectedRental.status === 'pending' ? 'Pending' :
+                                  selectedRental.status === 'approved' ? 'Approved' : 'Rejected'}
                                 size="small"
-                                color={selectedRental.status === 'approved' ? 'success' : 
-                                      selectedRental.status === 'rejected' ? 'error' : 'default'}
+                                color={selectedRental.status === 'approved' ? 'success' :
+                                  selectedRental.status === 'rejected' ? 'error' : 'default'}
                               />
                             </TableCell>
                           </TableRow>
@@ -545,18 +609,18 @@ const MuseumRentalManagement = () => {
                   </Table>
                 </TableContainer>
               </Grid>
-              
+
               {(action === 'approve' || action === 'reject') && (
                 <Grid item xs={12}>
                   <Divider sx={{ my: 2 }} />
-                  
+
                   {action === 'approve' ? (
                     <Box>
                       <Typography variant="subtitle1" gutterBottom>Approval Details</Typography>
                       <Typography variant="body2" color="textSecondary" paragraph>
                         By approving this request, you confirm that all necessary documentation has been reviewed and the loan terms are acceptable.
                       </Typography>
-                      
+
                       <FormControlLabel
                         control={<Checkbox required />}
                         label="I confirm that I have reviewed all documentation and approve this request"
@@ -568,7 +632,7 @@ const MuseumRentalManagement = () => {
                       <Typography variant="body2" color="textSecondary" paragraph>
                         Please provide a reason for rejecting this request. This will be shared with the requester.
                       </Typography>
-                      
+
                       <TextField
                         fullWidth
                         id="rejection-reason"
@@ -586,14 +650,14 @@ const MuseumRentalManagement = () => {
             </Grid>
           )}
         </DialogContent>
-        
+
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)}>
             {action === 'view' ? 'Close' : 'Cancel'}
           </Button>
-          
+
           {(action === 'approve' || action === 'reject') && (
-            <Button 
+            <Button
               onClick={handleRentalAction}
               variant="contained"
               color={action === 'approve' ? 'success' : 'error'}
@@ -605,15 +669,15 @@ const MuseumRentalManagement = () => {
           )}
         </DialogActions>
       </Dialog>
-      
+
       {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
       >
-        <Alert 
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} 
+        <Alert
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
           severity={snackbar.severity}
           sx={{ width: '100%' }}
         >

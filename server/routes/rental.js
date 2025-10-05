@@ -119,4 +119,11 @@ router.get('/artifacts', rentalController.getMuseumArtifacts);
  */
 router.get('/artifacts/:museumId', rentalController.getMuseumArtifacts);
 
+/**
+ * @route   GET /api/rental/all-artifacts
+ * @desc    Get all available artifacts for rental selection
+ * @access  Authenticated users (for bidirectional rental system)
+ */
+router.get('/all-artifacts', rentalController.getAllArtifacts);
+
 module.exports = router;
