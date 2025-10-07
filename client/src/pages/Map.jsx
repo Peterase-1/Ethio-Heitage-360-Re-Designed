@@ -20,7 +20,7 @@ const MapPage = () => {
         // Try to fetch from API, fallback to mock data
         let sitesData;
         try {
-          const response = await fetch('http://localhost:5001/api/map/heritage-sites');
+          const response = await fetch('http://localhost:5000/api/map/heritage-sites');
           if (response.ok) {
             const result = await response.json();
             sitesData = result.data;

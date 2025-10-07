@@ -2,6 +2,7 @@ const RentalRequest = require('../models/RentalRequest');
 const Artifact = require('../models/Artifact');
 const Museum = require('../models/Museum');
 const User = require('../models/User');
+const VirtualMuseum = require('../models/VirtualMuseum');
 
 // Generate unique request ID
 const generateRequestId = () => {
@@ -28,14 +29,39 @@ async function createRentalRequest(req, res) {
       contactEmail
     } = req.body;
 
+    console.log('🔍 Creating rental request with data:', {
+      requestType,
+      artifactId,
+      museumId: req.body.museumId,
+      userRole: req.user.role,
+      userId: req.user.id
+    });
+
     const requestedBy = req.user.id;
-    
-    // Get museum ID from authenticated user
-    const museumId = req.user.museumId;
-    if (!museumId) {
+
+    // Get museum ID - for museum_to_super requests, use user's museum
+    // For super_to_museum requests, use the museumId from request body
+    let museumId;
+    if (requestType === 'museum_to_super') {
+      museumId = req.user.museumId;
+      if (!museumId) {
+        return res.status(400).json({
+          success: false,
+          message: 'User is not associated with a museum'
+        });
+      }
+    } else if (requestType === 'super_to_museum') {
+      museumId = req.body.museumId;
+      if (!museumId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Museum ID is required for super_to_museum requests'
+        });
+      }
+    } else {
       return res.status(400).json({
         success: false,
-        message: 'User is not associated with a museum'
+        message: 'Invalid request type'
       });
     }
 
@@ -87,6 +113,13 @@ async function createRentalRequest(req, res) {
 
     await rentalRequest.save();
 
+    console.log('✅ Rental request created successfully:', {
+      requestId: rentalRequest.requestId,
+      requestType: rentalRequest.requestType,
+      museum: rentalRequest.museum,
+      status: rentalRequest.status
+    });
+
     // Populate the response
     await rentalRequest.populate([
       { path: 'artifact', select: 'name description images' },
@@ -130,16 +163,40 @@ async function getAllRentalRequests(req, res) {
     // Only add filters if they are not undefined or empty
     if (status && status !== 'undefined' && status !== 'all') query.status = status;
     if (requestType && requestType !== 'undefined' && requestType !== 'all') query.requestType = requestType;
-    if (museumId && museumId !== 'undefined') query.museum = museumId;
     if (userId && userId !== 'undefined') query.requestedBy = userId;
+
+    // Museum-specific filtering: Museum Admin should only see requests involving their museum
+    if (req.user.role === 'museumAdmin' && req.user.museumId) {
+      // Museum Admin sees requests where their museum is involved (either as requester or target)
+      query.$or = [
+        { museum: req.user.museumId }, // Requests involving their museum
+        { requestedBy: req.user.id }  // Requests they created
+      ];
+    } else if (museumId && museumId !== 'undefined') {
+      // For other cases, use the provided museumId
+      query.museum = museumId;
+    }
 
     // Add search functionality
     if (search && search.trim()) {
-      query.$or = [
-        { requestId: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { specialRequirements: { $regex: search, $options: 'i' } }
-      ];
+      const searchQuery = {
+        $or: [
+          { requestId: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } },
+          { specialRequirements: { $regex: search, $options: 'i' } }
+        ]
+      };
+
+      // If we already have a $or query (museum filtering), combine them with $and
+      if (query.$or) {
+        query.$and = [
+          { $or: query.$or },
+          searchQuery
+        ];
+        delete query.$or;
+      } else {
+        query.$or = searchQuery.$or;
+      }
     }
 
     const sort = {};
@@ -148,6 +205,7 @@ async function getAllRentalRequests(req, res) {
     console.log('🔍 Rental query:', query);
     console.log('🔍 Rental sort:', sort);
     console.log('🔍 Rental pagination:', { page, limit });
+    console.log('🔍 User info:', { role: req.user.role, museumId: req.user.museumId, userId: req.user.id });
 
     const [requests, total] = await Promise.all([
       RentalRequest.find(query)
@@ -163,6 +221,13 @@ async function getAllRentalRequests(req, res) {
 
     console.log('📋 Found rental requests:', requests.length);
     console.log('📋 Total rental requests:', total);
+    console.log('📋 Request details:', requests.map(r => ({
+      requestId: r.requestId,
+      requestType: r.requestType,
+      museum: r.museum,
+      status: r.status,
+      requestedBy: r.requestedBy
+    })));
 
     res.json({
       success: true,
@@ -285,6 +350,57 @@ async function updateRentalRequestStatus(req, res) {
     }
 
     await request.save();
+
+    // If approved, add artifact to virtual museum
+    if (status === 'approved' && request.status === 'approved') {
+      try {
+        // Check if artifact is already in virtual museum
+        const existingEntry = await VirtualMuseum.findOne({
+          artifact: request.artifact,
+          museum: request.museum
+        });
+
+        if (!existingEntry) {
+          // Get artifact details for virtual museum entry
+          const artifact = await Artifact.findById(request.artifact);
+          const museum = await Museum.findById(request.museum);
+
+          if (artifact && museum) {
+            // Create virtual museum entry
+            const virtualMuseumEntry = new VirtualMuseum({
+              artifact: request.artifact,
+              museum: request.museum,
+              rentalRequest: request._id,
+              title: artifact.name,
+              description: artifact.description || `Rental artifact from ${museum.name}`,
+              status: 'active',
+              category: artifact.category,
+              period: artifact.period?.era || 'Unknown',
+              origin: artifact.origin?.region || 'Unknown',
+              tags: artifact.tags || [],
+              featured: false,
+              displayOrder: 0
+            });
+
+            await virtualMuseumEntry.save();
+
+            console.log('✅ Artifact added to virtual museum:', {
+              artifactId: request.artifact,
+              museumId: request.museum,
+              virtualMuseumId: virtualMuseumEntry._id
+            });
+          }
+        } else {
+          console.log('ℹ️ Artifact already exists in virtual museum:', {
+            artifactId: request.artifact,
+            museumId: request.museum
+          });
+        }
+      } catch (error) {
+        console.error('❌ Error adding artifact to virtual museum:', error);
+        // Don't fail the approval if virtual museum addition fails
+      }
+    }
 
     res.json({
       success: true,
@@ -619,9 +735,9 @@ const getMuseumArtifacts = async (req, res) => {
 
     console.log('🔍 Getting artifacts for museum:', museumId);
     // Get artifacts from the specified museum
-    const artifacts = await Artifact.find({ 
+    const artifacts = await Artifact.find({
       museum: museumId,
-      status: { $in: ['published', 'active'] } // Only show available artifacts
+      status: { $in: ['on_display', 'in_storage', 'published', 'active'] } // Only show available artifacts
     })
       .select('name description category images status accessionNumber estimatedValue rarity condition availability')
       .populate('museum', 'name location');
@@ -647,9 +763,9 @@ const getMuseumArtifacts = async (req, res) => {
 const getAllArtifacts = async (req, res) => {
   try {
     console.log('🔍 Getting all available artifacts for rental...');
-    
+
     const { page = 1, limit = 50, search, category, museum } = req.query;
-    
+
     const query = {
       status: { $in: ['published', 'active'] },
       // Only include artifacts that are available for rental

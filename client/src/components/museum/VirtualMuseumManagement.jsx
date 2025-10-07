@@ -460,20 +460,75 @@ const VirtualMuseumManagement = () => {
             </Table>
           </TableContainer>
 
-          {/* Performance Analytics */}
+          {/* Approved Rental Artifacts */}
           <Paper sx={{ p: 3, mt: 3 }}>
-            <Typography variant="h6" gutterBottom>Performance Overview</Typography>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" gutterBottom>Most Viewed Exhibition</Typography>
-                <Typography variant="body1" color="primary">
-                  Ethiopian Heritage Collection (2,450 views)
-                </Typography>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" gutterBottom>Average Rating</Typography>
-                <Typography variant="body1" color="success.main">4.8 / 5.0</Typography>
-              </Grid>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h6">Approved Rental Artifacts</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Artifacts from approved rental requests that are available for virtual museum display
+              </Typography>
+            </Box>
+
+            <Grid container spacing={2}>
+              {submissions.length > 0 ? (
+                submissions
+                  .filter(submission => submission.status === 'approved')
+                  .map((submission) => (
+                    <Grid item xs={12} md={6} lg={4} key={submission._id}>
+                      <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <CardContent sx={{ flexGrow: 1 }}>
+                          <Typography variant="h6" gutterBottom>
+                            {submission.title}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                            {submission.description}
+                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                            <Chip
+                              label={submission.type}
+                              size="small"
+                              color="primary"
+                              variant="outlined"
+                            />
+                            <Chip
+                              label={`${submission.artifacts?.length || 0} artifacts`}
+                              size="small"
+                              color="secondary"
+                              variant="outlined"
+                            />
+                          </Box>
+                          <Typography variant="body2" color="text.secondary">
+                            Views: {submission.views || 0} | Rating: {submission.rating || 'N/A'}
+                          </Typography>
+                        </CardContent>
+                        <CardActions>
+                          <Button
+                            size="small"
+                            startIcon={<Eye size={16} />}
+                            sx={{ color: '#8B5A3C' }}
+                          >
+                            View Details
+                          </Button>
+                          <Button
+                            size="small"
+                            startIcon={<Play size={16} />}
+                            sx={{ color: '#8B5A3C' }}
+                          >
+                            Preview
+                          </Button>
+                        </CardActions>
+                      </Card>
+                    </Grid>
+                  ))
+              ) : (
+                <Grid item xs={12}>
+                  <Box sx={{ textAlign: 'center', py: 4 }}>
+                    <Typography variant="body1" color="text.secondary">
+                      No approved rental artifacts available for virtual museum display
+                    </Typography>
+                  </Box>
+                </Grid>
+              )}
             </Grid>
           </Paper>
 

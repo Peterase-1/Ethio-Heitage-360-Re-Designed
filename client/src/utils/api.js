@@ -1,13 +1,25 @@
 import mockApi from './mockApi.js';
 import { getValidToken, cleanupCorruptedTokens } from './tokenUtils.js';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
-const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true'
+// FORCE PORT 5000 - AGGRESSIVE CACHE BUSTING
+const API_BASE_URL = import.meta.env.VITE_API_URL || `http://localhost:5000/api?t=${Date.now()}&v=3&cb=${Math.random().toString(36).substring(7)}`
+const USE_MOCK_API = false // Force to use real API in development
+// EMERGENCY FIX: Force port 5000 - NO MORE 5001
+const FORCE_PORT_5000 = true; // This will force the browser to reload the API client
+const CACHE_BUST = Math.random().toString(36).substring(7); // Additional cache busting
+const EMERGENCY_PORT_FIX = true; // Emergency fix for port 5001 issue
 
 class ApiClient {
   constructor() {
-    this.baseURL = API_BASE_URL
+    // EMERGENCY FIX: Force port 5000
+    this.baseURL = API_BASE_URL.replace('5001', '5000')
     this.useMockAPI = USE_MOCK_API
+    console.log('🚀 API Client initialized with base URL:', this.baseURL)
+    console.log('🔧 Cache bust:', CACHE_BUST)
+    console.log('🔧 Force port 5000:', FORCE_PORT_5000)
+    console.log('🚨 EMERGENCY PORT FIX:', EMERGENCY_PORT_FIX)
+    console.log('🔧 Original URL:', API_BASE_URL)
+    console.log('🔧 Final URL:', this.baseURL)
     this.backendChecked = false
     // Check backend availability on initialization
     this.checkBackendAvailability()
@@ -83,14 +95,20 @@ class ApiClient {
   }
 
   async request(endpoint, options = {}) {
-    const url = `${this.baseURL}${endpoint}`
-    
+    let url = `${this.baseURL}${endpoint}`
+
+    // EMERGENCY FIX: Force port 5000 in URL
+    if (url.includes('5001')) {
+      url = url.replace('5001', '5000')
+      console.log('🚨 EMERGENCY: Fixed port 5001 to 5000 in URL:', url)
+    }
+
     // Clean up any corrupted tokens before making request
     const wasCorrupted = cleanupCorruptedTokens()
     if (wasCorrupted) {
       console.log('🧹 Cleaned up corrupted authentication data')
     }
-    
+
     // Get valid token
     const token = getValidToken()
 
@@ -108,13 +126,14 @@ class ApiClient {
     }
 
     try {
+      console.log('🌐 Making request to:', url)
       const response = await fetch(url, config)
       let data
 
       // Check if response has content before trying to parse
       const contentType = response.headers.get('content-type')
       const hasContent = response.status !== 204 && response.headers.get('content-length') !== '0'
-      
+
       if (hasContent && contentType && contentType.includes('application/json')) {
         try {
           // Clone response to avoid body consumption issues
@@ -864,51 +883,71 @@ class ApiClient {
 
   // Museum Dashboard endpoints
   async getMuseumDashboardStats() {
-    await this.checkBackendAvailability();
+    try {
+      await this.checkBackendAvailability();
 
-    if (this.useMockAPI) {
-      return {
-        totalArtifacts: 45,
-        artifactsInStorage: 12,
-        activeRentals: 3,
-        monthlyVisitors: 0
+      if (this.useMockAPI) {
+        return {
+          success: true,
+          data: {
+            totalArtifacts: 45,
+            artifactsInStorage: 12,
+            activeRentals: 3,
+            monthlyVisitors: 0,
+            pendingRentals: 2,
+            totalRevenue: 0
+          }
+        };
       }
-    }
 
-    return this.request('/museums/dashboard/stats', {
-      method: 'GET',
-    });
+      return this.request('/museums/dashboard/stats');
+    } catch (error) {
+      console.error('Museum dashboard stats API error:', error);
+      throw error;
+    }
   }
 
   async getRecentArtifacts() {
-    await this.checkBackendAvailability();
+    try {
+      await this.checkBackendAvailability();
 
-    if (this.useMockAPI) {
-      return [
-        { id: 1, name: 'Ancient Vase', status: 'on_display', lastUpdated: '2025-08-01' },
-        { id: 2, name: 'Historical Painting', status: 'in_storage', lastUpdated: '2025-08-05' }
-      ]
+      if (this.useMockAPI) {
+        return {
+          success: true,
+          data: [
+            { id: 1, name: 'Ancient Vase', status: 'on_display', lastUpdated: '2025-08-01' },
+            { id: 2, name: 'Historical Painting', status: 'in_storage', lastUpdated: '2025-08-05' }
+          ]
+        };
+      }
+
+      return this.request('/museums/dashboard/recent-artifacts');
+    } catch (error) {
+      console.error('Museum recent artifacts API error:', error);
+      throw error;
     }
-
-    return this.request('/museums/dashboard/recent-artifacts', {
-      method: 'GET',
-    });
   }
 
   async getPendingTasks() {
-    await this.checkBackendAvailability();
+    try {
+      await this.checkBackendAvailability();
 
-    if (this.useMockAPI) {
-      return [
-        { id: 1, type: 'rental_request', title: '3 Rental requests awaiting approval', priority: 'medium' },
-        { id: 2, type: 'draft_event', title: '2 Virtual museum submissions in review', priority: 'low' },
-        { id: 3, type: 'staff_approval', title: '1 New staff member to onboard', priority: 'high' }
-      ]
+      if (this.useMockAPI) {
+        return {
+          success: true,
+          data: [
+            { id: 1, type: 'rental_request', title: '3 Rental requests awaiting approval', priority: 'medium' },
+            { id: 2, type: 'draft_event', title: '2 Virtual museum submissions in review', priority: 'low' },
+            { id: 3, type: 'staff_approval', title: '1 New staff member to onboard', priority: 'high' }
+          ]
+        };
+      }
+
+      return this.request('/museums/dashboard/pending-tasks');
+    } catch (error) {
+      console.error('Museum pending tasks API error:', error);
+      throw error;
     }
-
-    return this.request('/museums/dashboard/pending-tasks', {
-      method: 'GET',
-    });
   }
 
   async getMuseumArtifacts({ page = 1, limit = 20, category, search } = {}) {
@@ -958,7 +997,58 @@ class ApiClient {
   }
 
   async getMuseumDashboard() {
-    return this.request('/museum-admin/dashboard')
+    try {
+      await this.checkBackendAvailability();
+
+      if (this.useMockAPI) {
+        return {
+          success: true,
+          dashboard: {
+            quickStats: {
+              totalArtifacts: 45,
+              publishedArtifacts: 12,
+              activeRentals: 3,
+              thisMonthVisitors: 0,
+              pendingRentals: 2,
+              totalRevenue: 0
+            },
+            analytics: {
+              topArtifacts: []
+            },
+            tasks: {
+              pendingApprovals: 0,
+              pendingRentals: 2,
+              recentRentals: [],
+              pendingArtifacts: []
+            }
+          }
+        };
+      }
+
+      // Get dashboard stats
+      const statsResponse = await this.request('/museums/dashboard/stats');
+      const recentArtifactsResponse = await this.request('/museums/dashboard/recent-artifacts');
+      const pendingTasksResponse = await this.request('/museums/dashboard/pending-tasks');
+
+      return {
+        success: true,
+        dashboard: {
+          quickStats: statsResponse.data || statsResponse,
+          analytics: {
+            topArtifacts: recentArtifactsResponse.data || recentArtifactsResponse
+          },
+          tasks: {
+            pendingApprovals: 0,
+            pendingRentals: statsResponse.data?.pendingRentals || 0,
+            recentRentals: [],
+            pendingArtifacts: pendingTasksResponse.data || pendingTasksResponse
+          }
+        }
+      };
+    } catch (error) {
+      console.error('Museum dashboard API error:', error);
+      throw error;
+    }
   }
 
 
@@ -1551,7 +1641,7 @@ class ApiClient {
       }
 
       const queryParams = new URLSearchParams(params).toString()
-      const endpoint = `/rental/requests${queryParams ? `?${queryParams}` : ''}`
+      const endpoint = `/rental${queryParams ? `?${queryParams}` : ''}`
       return this.request(endpoint)
     } catch (error) {
       return mockApi.getAllRentalRequests(params);
@@ -1567,7 +1657,7 @@ class ApiClient {
       }
 
       const queryParams = new URLSearchParams(params).toString()
-      const endpoint = `/rental/requests${queryParams ? `?${queryParams}` : ''}`
+      const endpoint = `/rental${queryParams ? `?${queryParams}` : ''}`
       return this.request(endpoint)
     } catch (error) {
       return mockApi.getAllRentalRequests(params);
@@ -1582,7 +1672,7 @@ class ApiClient {
         return mockApi.getRentalRequestById(id);
       }
 
-      return this.request(`/rental/requests/${id}`)
+      return this.request(`/rental/${id}`)
     } catch (error) {
       return mockApi.getRentalRequestById(id);
     }
@@ -1596,7 +1686,7 @@ class ApiClient {
         return mockApi.createRentalRequest(data);
       }
 
-      return this.request('/rental/requests', {
+      return this.request('/rental', {
         method: 'POST',
         body: data
       })
@@ -1613,8 +1703,8 @@ class ApiClient {
         return mockApi.updateRentalRequestStatus(id, data);
       }
 
-      return this.request(`/rental/requests/${id}/status`, {
-        method: 'PUT',
+      return this.request(`/rental/${id}/status`, {
+        method: 'PATCH',
         body: data
       })
     } catch (error) {
@@ -1630,8 +1720,8 @@ class ApiClient {
         return mockApi.updateRentalRequestStatus(id, data);
       }
 
-      return this.request(`/rental/requests/${id}/status`, {
-        method: 'PUT',
+      return this.request(`/rental/${id}/status`, {
+        method: 'PATCH',
         body: data
       })
     } catch (error) {
@@ -1647,7 +1737,7 @@ class ApiClient {
         return mockApi.addRentalRequestMessage(id, data);
       }
 
-      return this.request(`/rental/requests/${id}/messages`, {
+      return this.request(`/rental/${id}/messages`, {
         method: 'POST',
         body: data
       })
@@ -1664,8 +1754,8 @@ class ApiClient {
         return mockApi.updateRentalPaymentStatus(id, data);
       }
 
-      return this.request(`/rental/requests/${id}/payment`, {
-        method: 'PUT',
+      return this.request(`/rental/${id}/payment-status`, {
+        method: 'PATCH',
         body: data
       })
     } catch (error) {
@@ -1681,8 +1771,8 @@ class ApiClient {
         return mockApi.updateRental3DIntegration(id, data);
       }
 
-      return this.request(`/rental/requests/${id}/3d-integration`, {
-        method: 'PUT',
+      return this.request(`/rental/${id}/3d-integration`, {
+        method: 'PATCH',
         body: data
       })
     } catch (error) {
@@ -1698,8 +1788,8 @@ class ApiClient {
         return mockApi.updateRentalVirtualMuseum(id, data);
       }
 
-      return this.request(`/rental/requests/${id}/virtual-museum`, {
-        method: 'PUT',
+      return this.request(`/rental/${id}/virtual-museum`, {
+        method: 'PATCH',
         body: data
       })
     } catch (error) {
@@ -2492,6 +2582,68 @@ class ApiClient {
 
   async getCommunicationConversation(id) {
     return this.request(`/communications/${id}/conversation`)
+  }
+
+  async uploadArtifactImage(artifactId, imageFile) {
+    const formData = new FormData()
+    formData.append('image', imageFile)
+    return this.request(`/artifacts/${artifactId}/images`, {
+      method: 'POST',
+      body: formData,
+      headers: {}, // Let browser set Content-Type for FormData
+    })
+  }
+
+  async deleteArtifactImage(artifactId, imageId) {
+    return this.request(`/artifacts/${artifactId}/images/${imageId}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Visitor Registration endpoints
+  async registerVisitor(visitorData) {
+    return this.request('/visitor-registration', {
+      method: 'POST',
+      body: JSON.stringify(visitorData),
+    })
+  }
+
+  async getVisitorRegistrations(params = {}) {
+    const queryParams = new URLSearchParams(params).toString()
+    return this.request(`/visitor-registration?${queryParams}`)
+  }
+
+  async getVisitorRegistrationById(id) {
+    return this.request(`/visitor-registration/${id}`)
+  }
+
+  async updateVisitorStatus(id, statusData) {
+    return this.request(`/visitor-registration/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify(statusData),
+    })
+  }
+
+  async getVisitorAnalytics(params = {}) {
+    const queryParams = new URLSearchParams(params).toString()
+    return this.request(`/visitor-registration/analytics?${queryParams}`)
+  }
+
+  // Audit Logs endpoints
+  async getAuditLogs(params = {}) {
+    const queryParams = new URLSearchParams(params).toString()
+    return this.request(`/super-admin/audit-logs?${queryParams}`)
+  }
+
+  async getAuditLogsSummary(params = {}) {
+    const queryParams = new URLSearchParams(params).toString()
+    return this.request(`/super-admin/audit-logs/summary?${queryParams}`)
+  }
+
+  // Super Admin Analytics endpoints
+  async getSuperAdminAnalytics(params = {}) {
+    const queryParams = new URLSearchParams(params).toString()
+    return this.request(`/super-admin/analytics?${queryParams}`)
   }
 }
 

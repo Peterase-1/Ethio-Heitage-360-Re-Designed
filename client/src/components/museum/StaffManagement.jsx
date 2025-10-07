@@ -67,7 +67,7 @@ const StaffManagement = () => {
     search: '',
     department: '',
     role: '',
-    status: 'active',
+    status: '', // Show all statuses by default
     page: 1,
     limit: 10,
     sortBy: 'name',
@@ -118,6 +118,13 @@ const StaffManagement = () => {
         staffService.getRolesAndPermissions(),
         staffService.getStaffStats()
       ]);
+
+      console.log('Staff data received:', staffData);
+      console.log('Staff array:', staffData.data.staff);
+      if (staffData.data.staff && staffData.data.staff.length > 0) {
+        console.log('First staff member:', staffData.data.staff[0]);
+        console.log('First staff member ID:', staffData.data.staff[0]._id || staffData.data.staff[0].id);
+      }
 
       setStaff(staffData.data.staff);
       setPagination(staffData.data.pagination);
@@ -242,9 +249,21 @@ const StaffManagement = () => {
       console.log('Updating schedule:', { id, schedule });
       const response = await staffService.updateStaffSchedule(id, schedule);
       console.log('Schedule update response:', response);
-      setStaff(staff.map(member =>
-        member._id === id ? response.data : member
-      ));
+
+      // Update the staff array with the new schedule data
+      setStaff(prevStaff =>
+        prevStaff.map(member => {
+          if (member._id === id) {
+            return {
+              ...member,
+              schedule: response.data.schedule,
+              updatedAt: response.data.updatedAt
+            };
+          }
+          return member;
+        })
+      );
+
       setOpenScheduleDialog(false);
       setSuccess('Schedule updated successfully');
     } catch (err) {
@@ -256,9 +275,30 @@ const StaffManagement = () => {
   const handleRecordAttendance = async (id, attendanceData) => {
     try {
       await staffService.recordAttendance(id, attendanceData);
+
+      // Update local state immediately for better UX
+      setStaff(prevStaff =>
+        prevStaff.map(member => {
+          if (member._id === id) {
+            return {
+              ...member,
+              performance: {
+                ...member.performance,
+                attendance: {
+                  ...member.performance?.attendance,
+                  totalDays: (member.performance?.attendance?.totalDays || 0) + 1,
+                  presentDays: (member.performance?.attendance?.presentDays || 0) + 1
+                }
+              }
+            };
+          }
+          return member;
+        })
+      );
+
       setOpenAttendanceDialog(false);
       setSuccess('Attendance recorded successfully');
-      loadStaff(); // Refresh to get updated performance data
+      loadStaff(); // Refresh to get updated performance data from backend
     } catch (err) {
       setError(err.message || 'Failed to record attendance');
     }
@@ -267,9 +307,34 @@ const StaffManagement = () => {
   const handleSubmitLeaveRequest = async (id, leaveData) => {
     try {
       await staffService.submitLeaveRequest(id, leaveData);
+
+      // Update local state immediately for better UX
+      setStaff(prevStaff =>
+        prevStaff.map(member => {
+          if (member._id === id) {
+            return {
+              ...member,
+              status: 'on_leave',
+              leaveRequests: [
+                ...(member.leaveRequests || []),
+                {
+                  startDate: leaveData.startDate,
+                  endDate: leaveData.endDate,
+                  type: leaveData.type,
+                  reason: leaveData.reason,
+                  status: 'pending',
+                  submittedAt: new Date().toISOString()
+                }
+              ]
+            };
+          }
+          return member;
+        })
+      );
+
       setOpenLeaveDialog(false);
-      setSuccess('Leave request submitted successfully');
-      loadStaff(); // Refresh to get updated status
+      setSuccess('Leave request submitted successfully - Staff status changed to On Leave');
+      loadStaff(); // Refresh to get updated status from backend
     } catch (err) {
       setError(err.message || 'Failed to submit leave request');
     }
@@ -296,7 +361,7 @@ const StaffManagement = () => {
       search: '',
       department: '',
       role: '',
-      status: 'active',
+      status: '', // Show all statuses when clearing filters
       page: 1,
       limit: 10,
       sortBy: 'name',
@@ -576,8 +641,14 @@ const StaffManagement = () => {
               <Button
                 size="small"
                 onClick={() => {
-                  setSelectedStaff({ role: role, name: role });
-                  setOpenPermissionsDialog(true);
+                  // Find a staff member with this role to use as a template
+                  const staffWithRole = staff.find(s => s.role === role);
+                  if (staffWithRole) {
+                    setSelectedStaff(staffWithRole);
+                    setOpenPermissionsDialog(true);
+                  } else {
+                    setError(`No staff members found with role: ${role}`);
+                  }
                 }}
                 sx={{
                   color: '#8B4513',
@@ -589,8 +660,14 @@ const StaffManagement = () => {
               <Button
                 size="small"
                 onClick={() => {
-                  setSelectedStaff({ role: role, name: role });
-                  setOpenPermissionsDialog(true);
+                  // Find a staff member with this role to use as a template
+                  const staffWithRole = staff.find(s => s.role === role);
+                  if (staffWithRole) {
+                    setSelectedStaff(staffWithRole);
+                    setOpenPermissionsDialog(true);
+                  } else {
+                    setError(`No staff members found with role: ${role}`);
+                  }
                 }}
                 sx={{
                   color: '#8B4513',
@@ -633,7 +710,7 @@ const StaffManagement = () => {
                       <Typography variant="body2" sx={{ color: '#8D6E63' }}>
                         {typeof hours === 'string' ? hours :
                           typeof hours === 'object' && hours !== null ?
-                            (hours.start && hours.end ? `${hours.start} - ${hours.end}` : 'Not set') :
+                            (hours.working && hours.startTime && hours.endTime ? `${hours.startTime} - ${hours.endTime}` : 'Not set') :
                             hours || 'Not set'}
                       </Typography>
                     </Box>
@@ -702,15 +779,15 @@ const StaffManagement = () => {
                 <Grid item xs={4}>
                   <Box sx={{ textAlign: 'center' }}>
                     <Typography variant="h6" sx={{ color: '#8B4513' }}>
-                      {member.performance?.rating || 0}
+                      {member.performance?.attendance?.totalDays || 0}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: '#8D6E63' }}>Rating</Typography>
+                    <Typography variant="caption" sx={{ color: '#8D6E63' }}>Attendance</Typography>
                   </Box>
                 </Grid>
                 <Grid item xs={4}>
                   <Box sx={{ textAlign: 'center' }}>
                     <Typography variant="h6" sx={{ color: '#654321' }}>
-                      {member.performance?.completedTasks || 0}
+                      0
                     </Typography>
                     <Typography variant="caption" sx={{ color: '#8D6E63' }}>Tasks</Typography>
                   </Box>
@@ -718,7 +795,7 @@ const StaffManagement = () => {
                 <Grid item xs={4}>
                   <Box sx={{ textAlign: 'center' }}>
                     <Typography variant="h6" sx={{ color: '#6D4C41' }}>
-                      {member.performance?.onTimeRate || 0}%
+                      0%
                     </Typography>
                     <Typography variant="caption" sx={{ color: '#8D6E63' }}>On Time</Typography>
                   </Box>
@@ -758,6 +835,8 @@ const StaffManagement = () => {
                 size="small"
                 startIcon={<Shield size={16} />}
                 onClick={() => {
+                  console.log('Setting selected staff for permissions:', member);
+                  console.log('Staff ID:', member._id || member.id);
                   setSelectedStaff(member);
                   setOpenPermissionsDialog(true);
                 }}
@@ -969,7 +1048,7 @@ const StaffManagement = () => {
             <Button
               variant="outlined"
               startIcon={<Calendar size={16} />}
-              onClick={() => setTabValue(2)}
+              onClick={() => setOpenScheduleDialog(true)}
               sx={{
                 borderColor: '#8B4513',
                 color: '#8B4513',

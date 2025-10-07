@@ -19,7 +19,7 @@ const getStaff = async (req, res) => {
       limit = 10,
       department,
       role,
-      status = 'active',
+      status,
       search,
       sortBy = 'name',
       sortOrder = 'asc'
@@ -669,6 +669,8 @@ const submitLeaveRequest = async (req, res) => {
     staff.leaveRequests = staff.leaveRequests || [];
     staff.leaveRequests.push(leaveRequest);
 
+    // Update staff status to on_leave
+    staff.status = 'on_leave';
     staff.updatedBy = req.user._id;
     await staff.save();
 

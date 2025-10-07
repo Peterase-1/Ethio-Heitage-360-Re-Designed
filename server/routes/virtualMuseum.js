@@ -2,24 +2,26 @@ const express = require('express');
 const router = express.Router();
 const { auth } = require('../middleware/auth');
 const {
-  getArtifacts,
-  getArtifact,
-  getVirtualTours,
-  bookVirtualTour,
-  getUserBookings,
-  toggleFavorite,
-  getArtifactCategories
+  getVirtualMuseumArtifacts,
+  getFeaturedArtifacts,
+  getPopularArtifacts,
+  getArtifactsByMuseum,
+  getArtifactDetails,
+  likeArtifact,
+  rateArtifact,
+  getVirtualMuseumStats
 } = require('../controllers/virtualMuseum');
 
-// Public routes
-router.get('/artifacts', getArtifacts);
-router.get('/artifacts/categories', getArtifactCategories);
-router.get('/artifacts/:id', getArtifact);
-router.get('/tours', getVirtualTours);
+// Public routes - Virtual Museum Artifacts
+router.get('/artifacts', getVirtualMuseumArtifacts);
+router.get('/artifacts/featured', getFeaturedArtifacts);
+router.get('/artifacts/popular', getPopularArtifacts);
+router.get('/artifacts/museum/:museumId', getArtifactsByMuseum);
+router.get('/artifacts/:id', getArtifactDetails);
+router.get('/stats', getVirtualMuseumStats);
 
 // Protected routes (require authentication)
-router.post('/tours/book', auth, bookVirtualTour);
-router.get('/bookings', auth, getUserBookings);
-router.post('/artifacts/:id/favorite', auth, toggleFavorite);
+router.post('/artifacts/:id/like', auth, likeArtifact);
+router.post('/artifacts/:id/rate', auth, rateArtifact);
 
 module.exports = router;

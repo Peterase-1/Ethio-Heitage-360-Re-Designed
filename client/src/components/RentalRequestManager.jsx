@@ -91,6 +91,14 @@ const RentalRequestManager = () => {
     fetchMuseums();
   }, []);
 
+  // Debug museums loading
+  useEffect(() => {
+    console.log('🏛️ Museums state updated:', {
+      museumsCount: museums.length,
+      museums: museums.map(m => ({ id: m._id, name: m.name }))
+    });
+  }, [museums]);
+
   // Refetch requests when filters change
   useEffect(() => {
     fetchRequests();
@@ -224,6 +232,13 @@ const RentalRequestManager = () => {
     e.preventDefault();
     try {
       console.log('🔄 Creating rental request...', formData);
+      console.log('🔍 Form data details:', {
+        requestType: formData.requestType,
+        museumId: formData.museumId,
+        artifactId: formData.artifactId,
+        hasMuseumId: !!formData.museumId,
+        hasArtifactId: !!formData.artifactId
+      });
       const response = await api.createRentalRequest(formData);
       console.log('✅ Rental request created successfully:', response);
 
@@ -499,7 +514,7 @@ const RentalRequestManager = () => {
                           >
                             <Eye className="h-4 w-4" />
                           </button>
-                          
+
                           {/* Approval Button - Only visible when user can approve */}
                           {canApproveRequest(request) && (
                             <>

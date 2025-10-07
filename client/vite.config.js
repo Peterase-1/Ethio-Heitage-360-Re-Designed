@@ -19,13 +19,13 @@ export default defineConfig(({ command, mode }) => {
       open: false,
       proxy: {
         '/api': {
-          target: 'http://localhost:5001',
+          target: 'http://localhost:5000',
           changeOrigin: true,
           secure: false,
           ws: true
         },
         '/socket.io': {
-          target: 'http://localhost:5001',
+          target: 'http://localhost:5000',
           ws: true
         }
       },

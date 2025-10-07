@@ -344,7 +344,7 @@ const ArtifactManagement = () => {
               (() => {
                 const imageUrl = artifact.media.images[0].url.startsWith('http')
                   ? artifact.media.images[0].url
-                  : `http://localhost:5001${artifact.media.images[0].url}`;
+                  : `http://localhost:5000${artifact.media.images[0].url}`;
                 return (
                   <img
                     src={imageUrl}
@@ -962,7 +962,7 @@ const ArtifactManagement = () => {
                           <img
                             src={selectedArtifact.media.images[0].url.startsWith('http')
                               ? selectedArtifact.media.images[0].url
-                              : `http://localhost:5001${selectedArtifact.media.images[0].url}`}
+                              : `http://localhost:5000${selectedArtifact.media.images[0].url}`}
                             alt={selectedArtifact.name}
                             style={{
                               width: '100%',

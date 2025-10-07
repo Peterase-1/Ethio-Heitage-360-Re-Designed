@@ -240,32 +240,32 @@ router.put('/:id/schedule', [
     .withMessage('Schedule must be an object'),
   body('schedule.monday')
     .optional()
-    .isString()
-    .withMessage('Monday schedule must be a string'),
+    .isObject()
+    .withMessage('Monday schedule must be an object'),
   body('schedule.tuesday')
     .optional()
-    .isString()
-    .withMessage('Tuesday schedule must be a string'),
+    .isObject()
+    .withMessage('Tuesday schedule must be an object'),
   body('schedule.wednesday')
     .optional()
-    .isString()
-    .withMessage('Wednesday schedule must be a string'),
+    .isObject()
+    .withMessage('Wednesday schedule must be an object'),
   body('schedule.thursday')
     .optional()
-    .isString()
-    .withMessage('Thursday schedule must be a string'),
+    .isObject()
+    .withMessage('Thursday schedule must be an object'),
   body('schedule.friday')
     .optional()
-    .isString()
-    .withMessage('Friday schedule must be a string'),
+    .isObject()
+    .withMessage('Friday schedule must be an object'),
   body('schedule.saturday')
     .optional()
-    .isString()
-    .withMessage('Saturday schedule must be a string'),
+    .isObject()
+    .withMessage('Saturday schedule must be an object'),
   body('schedule.sunday')
     .optional()
-    .isString()
-    .withMessage('Sunday schedule must be a string')
+    .isObject()
+    .withMessage('Sunday schedule must be an object')
 ], staffController.updateStaffSchedule);
 
 /**

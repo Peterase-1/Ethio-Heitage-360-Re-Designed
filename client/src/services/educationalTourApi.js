@@ -1,7 +1,7 @@
 // Educational Tours API Service
 // Frontend service to interact with educational tours backend endpoints
 
-const API_BASE_URL = 'http://localhost:5001/api';
+const API_BASE_URL = 'http://localhost:5000/api';
 
 // Helper function to handle API responses
 const handleResponse = async (response) => {

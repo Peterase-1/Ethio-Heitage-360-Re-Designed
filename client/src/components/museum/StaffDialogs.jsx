@@ -46,16 +46,36 @@ export const PermissionsDialog = ({ open, onClose, staff, onUpdate }) => {
   const handleSave = async () => {
     try {
       setLoading(true);
-      await onUpdate(staff._id, permissions);
+      console.log('PermissionsDialog - Staff object:', staff);
+      console.log('PermissionsDialog - Staff ID:', staff?._id || staff?.id);
+
+      const staffId = staff?._id || staff?.id;
+      if (!staffId) {
+        console.error('Staff ID is missing. Staff object:', staff);
+        console.error('Available staff properties:', Object.keys(staff || {}));
+        setError('Staff ID is missing. Cannot update permissions. Please refresh the page and try again.');
+        return;
+      }
+
+      console.log('Using staff ID for permissions update:', staffId);
+
+      await onUpdate(staffId, permissions);
       onClose();
     } catch (err) {
+      console.error('PermissionsDialog - Save error:', err);
       setError(err.message || 'Failed to update permissions');
     } finally {
       setLoading(false);
     }
   };
 
-  if (!staff) return null;
+  if (!staff) {
+    console.log('PermissionsDialog - No staff object provided');
+    return null;
+  }
+
+  console.log('PermissionsDialog - Staff object received:', staff);
+  console.log('PermissionsDialog - Staff ID fields:', { _id: staff._id, id: staff.id });
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -158,7 +178,9 @@ export const ScheduleDialog = ({ open, onClose, staff, onUpdate }) => {
 
   useEffect(() => {
     if (open && staff) {
-      setSchedule(staff.schedule || {
+      // Transform backend schedule format to frontend format
+      const backendSchedule = staff.schedule || {};
+      const frontendSchedule = {
         monday: '',
         tuesday: '',
         wednesday: '',
@@ -166,7 +188,17 @@ export const ScheduleDialog = ({ open, onClose, staff, onUpdate }) => {
         friday: '',
         saturday: '',
         sunday: ''
+      };
+
+      // Convert backend format to frontend format
+      Object.keys(frontendSchedule).forEach(day => {
+        const daySchedule = backendSchedule[day];
+        if (daySchedule && daySchedule.working && daySchedule.startTime && daySchedule.endTime) {
+          frontendSchedule[day] = `${daySchedule.startTime}-${daySchedule.endTime}`;
+        }
       });
+
+      setSchedule(frontendSchedule);
     }
   }, [open, staff]);
 
@@ -177,8 +209,40 @@ export const ScheduleDialog = ({ open, onClose, staff, onUpdate }) => {
   const handleSave = async () => {
     try {
       setLoading(true);
-      console.log('ScheduleDialog - Saving schedule:', { staffId: staff._id, schedule });
-      await onUpdate(staff._id, schedule);
+      const staffId = staff?._id || staff?.id;
+      console.log('ScheduleDialog - Saving schedule:', { staffId, schedule });
+
+      if (!staffId) {
+        setError('Staff ID is missing. Cannot update schedule.');
+        return;
+      }
+
+      // Transform schedule data to match backend schema
+      const transformedSchedule = {};
+      Object.keys(schedule).forEach(day => {
+        const timeString = schedule[day];
+        if (timeString && timeString.trim() !== '') {
+          // Parse time string like "8:00-18:00" into startTime and endTime
+          const [startTime, endTime] = timeString.split('-');
+          transformedSchedule[day] = {
+            working: true,
+            startTime: startTime?.trim() || '09:00',
+            endTime: endTime?.trim() || '17:00',
+            breakTime: 60 // Default 1 hour break
+          };
+        } else {
+          // No schedule for this day
+          transformedSchedule[day] = {
+            working: false,
+            startTime: '09:00',
+            endTime: '17:00',
+            breakTime: 0
+          };
+        }
+      });
+
+      console.log('ScheduleDialog - Transformed schedule:', transformedSchedule);
+      await onUpdate(staffId, transformedSchedule);
       onClose();
     } catch (err) {
       console.error('ScheduleDialog - Save error:', err);
@@ -333,7 +397,12 @@ export const AttendanceDialog = ({ open, onClose, staff, onRecord }) => {
         return;
       }
 
-      await onRecord(staff._id, attendanceData);
+      const staffId = staff?._id || staff?.id;
+      if (!staffId) {
+        setError('Staff ID is missing. Cannot record attendance.');
+        return;
+      }
+      await onRecord(staffId, attendanceData);
       onClose();
     } catch (err) {
       setError(err.message || 'Failed to record attendance');
@@ -498,7 +567,12 @@ export const LeaveRequestDialog = ({ open, onClose, staff, onSubmit }) => {
         return;
       }
 
-      await onSubmit(staff._id, leaveData);
+      const staffId = staff?._id || staff?.id;
+      if (!staffId) {
+        setError('Staff ID is missing. Cannot submit leave request.');
+        return;
+      }
+      await onSubmit(staffId, leaveData);
       onClose();
     } catch (err) {
       setError(err.message || 'Failed to submit leave request');

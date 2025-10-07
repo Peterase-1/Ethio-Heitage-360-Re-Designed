@@ -234,6 +234,7 @@ app.use('/api/system-settings', require('./routes/systemSettings')); // System s
 app.use('/api/flashcards', require('./routes/flashcards')); // Flashcards management
 app.use('/api/live-sessions', liveSessionsRoutes); // Live sessions management
 app.use('/api/communications', communicationsRoutes); // Communications management
+app.use('/api/visitor-registration', require('./routes/visitorRegistration')); // Visitor registration management
 
 // Enhanced feature API routes
 app.use('/api/games', gamesRoutes); // Games management and playing

@@ -83,9 +83,11 @@ const RentalManagement = () => {
   const loadRequests = async () => {
     try {
       console.log('🔄 Loading rental requests...');
+      // Museum Admin should see requests related to their museum
       const response = await api.getAllRentalRequests({
         page: 1,
-        limit: 1000
+        limit: 1000,
+        // Don't filter by museumId here - let the backend handle it based on user's museum
       });
       console.log('📋 Query params:', { page: 1, limit: 1000 });
       console.log('📋 Requests response:', response);
@@ -251,7 +253,14 @@ const RentalManagement = () => {
   };
 
   const canMuseumApprove = (request) => {
-    return request.requestType === 'super_to_museum' && request.status === 'pending';
+    const canApprove = request.requestType === 'super_to_museum' && request.status === 'pending';
+    console.log('🔍 Museum approval check:', {
+      requestId: request.requestId,
+      requestType: request.requestType,
+      status: request.status,
+      canApprove: canApprove
+    });
+    return canApprove;
   };
 
   const filteredRequests = (requests && Array.isArray(requests) ? requests : []).filter(request => {
@@ -475,84 +484,92 @@ const RentalManagement = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredRequests.map((request) => (
-                    <TableRow key={request._id} hover>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                          #{request.requestId}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={request.requestType === 'museum_to_super' ? 'Museum → Super' : 'Super → Museum'}
-                          color={getDirectionColor(request.requestType)}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Box>
+                  {filteredRequests.map((request) => {
+                    console.log('📋 Rendering request in table:', {
+                      requestId: request.requestId,
+                      requestType: request.requestType,
+                      status: request.status,
+                      canApprove: canMuseumApprove(request)
+                    });
+                    return (
+                      <TableRow key={request._id} hover>
+                        <TableCell>
                           <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                            {request.artifact?.name || 'Unknown Artifact'}
+                            #{request.requestId}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {request.artifact?.category || ''}
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={request.requestType === 'museum_to_super' ? 'Museum → Super' : 'Super → Museum'}
+                            color={getDirectionColor(request.requestType)}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                              {request.artifact?.name || 'Unknown Artifact'}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {request.artifact?.category || ''}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={request.status}
+                            color={getStatusColor(request.status)}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {request.duration} days
                           </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={request.status}
-                          color={getStatusColor(request.status)}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {request.duration} days
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          ETB {parseFloat(request.rentalFee || 0).toLocaleString()}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" color="text.secondary">
-                          {new Date(request.createdAt).toLocaleDateString()}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Tooltip title="View Details">
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                setSelectedRequest(request);
-                                setShowDetailModal(true);
-                              }}
-                              sx={{ color: 'primary.main' }}
-                            >
-                              <Eye />
-                            </IconButton>
-                          </Tooltip>
-                          {canMuseumApprove(request) && (
-                            <Tooltip title="Review Request">
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            ETB {parseFloat(request.rentalFee || 0).toLocaleString()}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {new Date(request.createdAt).toLocaleDateString()}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Tooltip title="View Details">
                               <IconButton
                                 size="small"
                                 onClick={() => {
                                   setSelectedRequest(request);
-                                  setShowApprovalModal(true);
+                                  setShowDetailModal(true);
                                 }}
-                                sx={{ color: 'success.main' }}
+                                sx={{ color: 'primary.main' }}
                               >
-                                <CheckCircle />
+                                <Eye />
                               </IconButton>
                             </Tooltip>
-                          )}
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                            {canMuseumApprove(request) && (
+                              <Tooltip title="Review Request">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => {
+                                    setSelectedRequest(request);
+                                    setShowApprovalModal(true);
+                                  }}
+                                  sx={{ color: 'success.main' }}
+                                >
+                                  <CheckCircle />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </TableContainer>

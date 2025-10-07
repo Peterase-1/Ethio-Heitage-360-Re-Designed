@@ -19,7 +19,7 @@ class NotificationWebSocketService {
     }
 
     try {
-      const serverUrl = import.meta.env.VITE_WEBSOCKET_URL || import.meta.env.REACT_APP_WEBSOCKET_URL || 'http://localhost:5001';
+      const serverUrl = import.meta.env.VITE_WEBSOCKET_URL || import.meta.env.REACT_APP_WEBSOCKET_URL || 'http://localhost:5000';
 
       this.socket = io(`${serverUrl}/notifications`, {
         auth: {

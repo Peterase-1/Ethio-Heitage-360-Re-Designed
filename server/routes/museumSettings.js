@@ -1,24 +1,39 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const Settings = require('../models/Settings');
+const Settings = require('../models/MuseumSettings');
 const User = require('../models/User');
 const {
-  requireAuth,
-  requireMuseumAdmin,
-  requireSuperAdmin
+  auth: requireAuth,
+  requirePermission
 } = require('../middleware/auth');
 const {
-  validateGeneralSettings,
-  validateSecuritySettings,
-  validateNotificationSettings,
-  validateMuseumSettings,
-  validateIpAddress,
-  validateIpParam,
-  validatePasswordChange,
-  validateSettingsCategory
+  validateRequest,
+  handleValidationErrors,
+  validateObjectId
 } = require('../middleware/validation');
 
 const router = express.Router();
+
+// Simple role-based middleware
+const requireMuseumAdmin = (req, res, next) => {
+  if (req.user && (req.user.role === 'museumAdmin' || req.user.role === 'superAdmin')) {
+    return next();
+  }
+  return res.status(403).json({
+    success: false,
+    message: 'Access denied. Museum admin or super admin required.'
+  });
+};
+
+const requireSuperAdmin = (req, res, next) => {
+  if (req.user && req.user.role === 'superAdmin') {
+    return next();
+  }
+  return res.status(403).json({
+    success: false,
+    message: 'Access denied. Super admin required.'
+  });
+};
 
 // ============ SETTINGS ROUTES ============
 
@@ -55,7 +70,7 @@ router.get('/settings', requireAuth, async (req, res) => {
  * PUT /api/museums/settings/general
  * Update general settings
  */
-router.put('/settings/general', requireAuth, validateGeneralSettings, async (req, res) => {
+router.put('/settings/general', requireAuth, async (req, res) => {
   try {
     console.log('=== UPDATE GENERAL SETTINGS ===');
     console.log('Updates:', req.body);
@@ -82,7 +97,7 @@ router.put('/settings/general', requireAuth, validateGeneralSettings, async (req
  * PUT /api/museums/settings/security
  * Update security settings
  */
-router.put('/settings/security', requireMuseumAdmin, validateSecuritySettings, async (req, res) => {
+router.put('/settings/security', requireMuseumAdmin, async (req, res) => {
   try {
     console.log('=== UPDATE SECURITY SETTINGS ===');
     console.log('Updates:', req.body);
@@ -113,7 +128,7 @@ router.put('/settings/security', requireMuseumAdmin, validateSecuritySettings, a
  * PUT /api/museums/settings/notifications
  * Update notification settings
  */
-router.put('/settings/notifications', requireAuth, validateNotificationSettings, async (req, res) => {
+router.put('/settings/notifications', requireAuth, async (req, res) => {
   try {
     console.log('=== UPDATE NOTIFICATION SETTINGS ===');
     console.log('Updates:', req.body);
@@ -140,7 +155,7 @@ router.put('/settings/notifications', requireAuth, validateNotificationSettings,
  * PUT /api/museums/settings/museum
  * Update museum-specific settings
  */
-router.put('/settings/museum', requireMuseumAdmin, validateMuseumSettings, async (req, res) => {
+router.put('/settings/museum', requireMuseumAdmin, async (req, res) => {
   try {
     console.log('=== UPDATE MUSEUM SETTINGS ===');
     console.log('Updates:', req.body);
@@ -167,7 +182,7 @@ router.put('/settings/museum', requireMuseumAdmin, validateMuseumSettings, async
  * PUT /api/museums/settings
  * Update any settings category (generic endpoint)
  */
-router.put('/settings', requireAuth, validateSettingsCategory, async (req, res) => {
+router.put('/settings', requireAuth, async (req, res) => {
   try {
     console.log('=== UPDATE SETTINGS (GENERIC) ===');
     console.log('Category:', req.body.category);
@@ -209,7 +224,7 @@ router.put('/settings', requireAuth, validateSettingsCategory, async (req, res) 
  * POST /api/museums/settings/security/whitelist
  * Add IP to whitelist
  */
-router.post('/settings/security/whitelist', requireMuseumAdmin, validateIpAddress, async (req, res) => {
+router.post('/settings/security/whitelist', requireMuseumAdmin, async (req, res) => {
   try {
     console.log('=== ADD IP TO WHITELIST ===');
     console.log('IP:', req.body.ip);
@@ -251,7 +266,7 @@ router.post('/settings/security/whitelist', requireMuseumAdmin, validateIpAddres
  * DELETE /api/museums/settings/security/whitelist/:ip
  * Remove IP from whitelist
  */
-router.delete('/settings/security/whitelist/:ip', requireMuseumAdmin, validateIpParam, async (req, res) => {
+router.delete('/settings/security/whitelist/:ip', requireMuseumAdmin, async (req, res) => {
   try {
     console.log('=== REMOVE IP FROM WHITELIST ===');
     console.log('IP:', req.params.ip);
@@ -318,7 +333,7 @@ router.get('/settings/security/whitelist', requireMuseumAdmin, async (req, res) 
  * PUT /api/museums/settings/password
  * Change user password
  */
-router.put('/settings/password', requireAuth, validatePasswordChange, async (req, res) => {
+router.put('/settings/password', requireAuth, async (req, res) => {
   try {
     console.log('=== CHANGE PASSWORD ===');
     console.log('User ID:', req.user._id);
