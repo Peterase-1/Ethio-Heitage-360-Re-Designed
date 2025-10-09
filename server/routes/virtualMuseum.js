@@ -1,27 +1,25 @@
 const express = require('express');
 const router = express.Router();
+const virtualMuseumController = require('../controllers/virtualMuseumController');
 const { auth } = require('../middleware/auth');
-const {
-  getVirtualMuseumArtifacts,
-  getFeaturedArtifacts,
-  getPopularArtifacts,
-  getArtifactsByMuseum,
-  getArtifactDetails,
-  likeArtifact,
-  rateArtifact,
-  getVirtualMuseumStats
-} = require('../controllers/virtualMuseum');
+const { requireRole } = require('../middleware/roleHierarchy');
 
-// Public routes - Virtual Museum Artifacts
-router.get('/artifacts', getVirtualMuseumArtifacts);
-router.get('/artifacts/featured', getFeaturedArtifacts);
-router.get('/artifacts/popular', getPopularArtifacts);
-router.get('/artifacts/museum/:museumId', getArtifactsByMuseum);
-router.get('/artifacts/:id', getArtifactDetails);
-router.get('/stats', getVirtualMuseumStats);
+// GET /api/virtual-museum/submissions
+router.get('/submissions', auth, virtualMuseumController.getSubmissions);
 
-// Protected routes (require authentication)
-router.post('/artifacts/:id/like', auth, likeArtifact);
-router.post('/artifacts/:id/rate', auth, rateArtifact);
+// GET /api/virtual-museum/submissions/rental-artifacts
+router.get('/submissions/rental-artifacts', auth, virtualMuseumController.getRentalArtifacts);
+
+// POST /api/virtual-museum/submissions
+router.post('/submissions', auth, virtualMuseumController.createSubmission);
+
+// PUT /api/virtual-museum/submissions/:id/approve
+router.put('/submissions/:id/approve', auth, requireRole('superAdmin'), virtualMuseumController.approveSubmission);
+
+// GET /api/virtual-museum/stats
+router.get('/stats', auth, virtualMuseumController.getStats);
+
+// DELETE /api/virtual-museum/submissions/:id
+router.delete('/submissions/:id', auth, virtualMuseumController.deleteSubmission);
 
 module.exports = router;

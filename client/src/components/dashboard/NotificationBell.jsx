@@ -24,6 +24,7 @@ import {
 import { useTheme } from '@mui/material/styles';
 import { useAuth } from '../../../hooks/useAuth';
 import { formatDistanceToNow } from 'date-fns';
+import notificationService from '../../services/notificationService';
 
 const notificationTypes = {
   success: {
@@ -44,63 +45,121 @@ const notificationTypes = {
   },
 };
 
-// Mock notifications - replace with actual API calls
-const mockNotifications = [
-  {
-    id: 1,
-    title: 'New artifact submission',
-    message: 'A new artifact has been submitted for review',
-    type: 'info',
-    timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
-    read: false,
-    link: '/admin/artifacts',
-  },
-  {
-    id: 2,
-    title: 'Rental request',
-    message: 'Your rental request has been approved',
-    type: 'success',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-    read: false,
-    link: '/rentals',
-  },
-  {
-    id: 3,
-    title: 'System Update',
-    message: 'Scheduled maintenance this weekend',
-    type: 'warning',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
-    read: true,
-    link: '/notifications',
-  },
-];
+// Notification types mapping for display
+const getNotificationType = (type) => {
+  const typeMap = {
+    'system': 'info',
+    'security': 'error',
+    'approval': 'info',
+    'workflow': 'info',
+    'deadline': 'warning',
+    'milestone': 'success',
+    'error': 'error',
+    'warning': 'warning',
+    'info': 'info',
+    'success': 'success',
+    'reminder': 'info',
+    'communication': 'info',
+    'analytics': 'info',
+    'content': 'info',
+    'event': 'info',
+    'rental': 'info',
+    'user_activity': 'info',
+    'backup': 'info',
+    'maintenance': 'warning'
+  };
+  return typeMap[type] || 'info';
+};
 
 const NotificationBell = () => {
   const [anchorEl, setAnchorEl] = useState(null);
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(false);
   const theme = useTheme();
   const { user } = useAuth();
 
   const open = Boolean(anchorEl);
 
-  // Count unread notifications
+  // Load notifications on component mount
   useEffect(() => {
-    const unread = notifications.filter(n => !n.read).length;
-    setUnreadCount(unread);
-  }, [notifications]);
+    loadNotifications();
+    loadUnreadCount();
+  }, []);
 
-  const handleClick = (event) => {
+  // Load notifications from API
+  const loadNotifications = async () => {
+    try {
+      setLoading(true);
+      const response = await notificationService.getNotifications({
+        limit: 20,
+        unreadOnly: false
+      });
+      
+      if (response.data && response.data.success) {
+        const formattedNotifications = response.data.notifications.map(notification => ({
+          id: notification._id,
+          title: notification.title,
+          message: notification.message,
+          type: getNotificationType(notification.type),
+          timestamp: new Date(notification.createdAt),
+          read: notification.recipients.find(r => r.user.toString() === user._id)?.readAt ? true : false,
+          link: notification.action?.url || '/notifications',
+          priority: notification.priority,
+          category: notification.category,
+          action: notification.action
+        }));
+        
+        setNotifications(formattedNotifications);
+      }
+    } catch (error) {
+      console.error('Failed to load notifications:', error);
+      // Fallback to empty array on error
+      setNotifications([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load unread count
+  const loadUnreadCount = async () => {
+    try {
+      const response = await notificationService.getUnreadCount();
+      if (response.data && response.data.success) {
+        setUnreadCount(response.data.count);
+      }
+    } catch (error) {
+      console.error('Failed to load unread count:', error);
+      setUnreadCount(0);
+    }
+  };
+
+  const handleClick = async (event) => {
     setAnchorEl(event.currentTarget);
-    // Mark all as read when opening
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
+    // Load fresh notifications when opening
+    await loadNotifications();
   };
 
   const handleClose = () => {
     setAnchorEl(null);
   };
 
-  const handleNotificationClick = (notification) => {
+  const handleNotificationClick = async (notification) => {
+    // Mark as read if not already read
+    if (!notification.read) {
+      try {
+        await notificationService.markAsRead(notification.id);
+        // Update local state
+        setNotifications(notifications.map(n => 
+          n.id === notification.id ? { ...n, read: true } : n
+        ));
+        // Update unread count
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      } catch (error) {
+        console.error('Failed to mark notification as read:', error);
+      }
+    }
+    
     // Handle navigation to notification link
     console.log('Navigate to:', notification.link);
     // Close the menu
@@ -166,7 +225,13 @@ const NotificationBell = () => {
         <Divider />
 
         <Box sx={{ maxHeight: '60vh', overflowY: 'auto' }}>
-          {Object.entries(groupedNotifications).map(([date, dayNotifications]) => (
+          {loading ? (
+            <Box p={2} textAlign="center">
+              <Typography variant="body2" color="textSecondary">
+                Loading notifications...
+              </Typography>
+            </Box>
+          ) : Object.entries(groupedNotifications).map(([date, dayNotifications]) => (
             <Box key={date}>
               <Box px={2} py={1} bgcolor="action.hover">
                 <Typography variant="subtitle2" color="textSecondary">
@@ -206,7 +271,7 @@ const NotificationBell = () => {
             </Box>
           ))}
           
-          {notifications.length === 0 && (
+          {!loading && notifications.length === 0 && (
             <Box p={2} textAlign="center">
               <Typography variant="body2" color="textSecondary">
                 No new notifications

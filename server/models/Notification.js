@@ -153,16 +153,7 @@ const notificationSchema = new mongoose.Schema({
     },
     relatedEntityId: mongoose.Schema.Types.ObjectId,
     metadata: mongoose.Schema.Types.Mixed,
-    tags: [String],
-    location: {
-      country: String,
-      region: String,
-      city: String,
-      coordinates: {
-        type: { type: String, enum: ['Point'], default: 'Point' },
-        coordinates: [Number] // [longitude, latitude]
-      }
-    }
+    tags: [String]
   },
 
   // Status tracking
@@ -217,8 +208,8 @@ notificationSchema.index({ 'context.relatedEntity': 1, 'context.relatedEntityId'
 notificationSchema.index({ createdAt: -1, priority: 1 });
 notificationSchema.index({ 'analytics.engagementScore': -1 });
 
-// Geo index for location-based notifications
-notificationSchema.index({ 'context.location.coordinates': '2dsphere' });
+// Geo index for location-based notifications (commented out to avoid geo key issues)
+// notificationSchema.index({ 'context.location.coordinates': '2dsphere' });
 
 // Text search index
 notificationSchema.index({

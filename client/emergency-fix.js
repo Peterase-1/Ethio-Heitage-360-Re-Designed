@@ -19,3 +19,5 @@ window.location.reload(true);
 
 // If that doesn't work, try this:
 // window.location.href = window.location.href + '?t=' + Date.now();
+
+

@@ -30,12 +30,26 @@ const registerVisitor = async (req, res) => {
       notes
     } = req.body;
 
-    const museumId = req.user.museumId;
+    // For public visitor registration, get museum from request body or use default
+    let museumId = req.body.museumId;
+
+    // If no museum specified and user is authenticated, use their museum
+    if (!museumId && req.user && req.user.museumId) {
+      museumId = req.user.museumId;
+    }
+
+    // If still no museum, use a default museum (you can change this to your preferred default)
     if (!museumId) {
-      return res.status(400).json({
-        success: false,
-        message: 'User is not associated with a museum'
-      });
+      // Find the first available museum or create a default one
+      const defaultMuseum = await Museum.findOne({});
+      if (defaultMuseum) {
+        museumId = defaultMuseum._id;
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: 'No museum available for registration. Please specify a museum ID.'
+        });
+      }
     }
 
     // Validate museum exists
@@ -53,7 +67,7 @@ const registerVisitor = async (req, res) => {
       visitorInfo,
       visitDetails,
       museum: museumId,
-      registeredBy: req.user.id,
+      registeredBy: req.user ? req.user.id : undefined, // Use undefined instead of null
       payment: {
         ...payment,
         transactionId: generateTransactionId()
@@ -407,10 +421,108 @@ const getVisitorAnalytics = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Refresh visitor registration data and analytics
+ * @route   POST /api/visitor-registration/refresh
+ * @access  Museum Admin
+ */
+const refreshData = async (req, res) => {
+  try {
+    console.log('🔄 Refreshing visitor registration data...');
+
+    const museumId = req.user.museumId;
+    if (!museumId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User is not associated with a museum'
+      });
+    }
+
+    // Get fresh data
+    const registrations = await VisitorRegistration.find({ museum: museumId })
+      .populate('museum', 'name location')
+      .populate('registeredBy', 'name email role')
+      .sort({ createdAt: -1 });
+
+    // Get analytics data
+    const totalVisitors = await VisitorRegistration.countDocuments({ museum: museumId });
+    const todayVisitors = await VisitorRegistration.countDocuments({
+      museum: museumId,
+      createdAt: {
+        $gte: new Date(new Date().setHours(0, 0, 0, 0)),
+        $lt: new Date(new Date().setHours(23, 59, 59, 999))
+      }
+    });
+
+    const thisWeekVisitors = await VisitorRegistration.countDocuments({
+      museum: museumId,
+      createdAt: {
+        $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+      }
+    });
+
+    const thisMonthVisitors = await VisitorRegistration.countDocuments({
+      museum: museumId,
+      createdAt: {
+        $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+      }
+    });
+
+    // Calculate revenue
+    const revenueData = await VisitorRegistration.aggregate([
+      { $match: { museum: museumId } },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: '$payment.amount' },
+          averageRevenue: { $avg: '$payment.amount' },
+          maxRevenue: { $max: '$payment.amount' },
+          minRevenue: { $min: '$payment.amount' }
+        }
+      }
+    ]);
+
+    const refreshData = {
+      registrations,
+      analytics: {
+        overview: {
+          totalVisitors,
+          todayVisitors,
+          thisWeekVisitors,
+          thisMonthVisitors
+        },
+        revenue: revenueData[0] || {
+          totalRevenue: 0,
+          averageRevenue: 0,
+          maxRevenue: 0,
+          minRevenue: 0
+        }
+      },
+      lastRefreshed: new Date()
+    };
+
+    console.log('✅ Data refreshed successfully');
+    res.json({
+      success: true,
+      message: 'Data refreshed successfully',
+      data: refreshData
+    });
+
+  } catch (error) {
+    console.error('Refresh data error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to refresh data',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   registerVisitor,
   getVisitorRegistrations,
   getVisitorRegistrationById,
   updateVisitorStatus,
-  getVisitorAnalytics
+  getVisitorAnalytics,
+  refreshData
 };

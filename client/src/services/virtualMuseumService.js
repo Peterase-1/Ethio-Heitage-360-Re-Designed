@@ -120,6 +120,23 @@ class VirtualMuseumService {
   }
 
   /**
+   * Get rental artifacts available for virtual museum
+   */
+  async getRentalArtifacts(params = {}) {
+    console.log('=== GET RENTAL ARTIFACTS API CALL ===');
+    console.log('Params:', params);
+
+    try {
+      const response = await api.get('/virtual-museum/submissions/rental-artifacts', { params });
+      console.log('Rental artifacts API response:', response);
+      return response;
+    } catch (error) {
+      console.error('Could not get rental artifacts:', error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Submit for review
    */
   async submitForReview(id) {

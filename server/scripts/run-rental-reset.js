@@ -17,3 +17,5 @@ resetRentalSystem()
     console.error('❌ Rental system reset failed:', error);
     process.exit(1);
   });
+
+

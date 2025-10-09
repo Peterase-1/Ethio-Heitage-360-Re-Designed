@@ -84,10 +84,16 @@ connectDB();
 app.use(helmet());
 app.use(compression());
 
-// Rate limiting
+// Rate limiting - More permissive for development
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 1000, // Increased limit for development
+  message: {
+    error: 'Too many requests from this IP, please try again later.',
+    retryAfter: '15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
 });
 app.use(limiter);
 
@@ -114,7 +120,7 @@ app.use(cors({
     if (!origin) return callback(null, true);
 
     // For development, be more permissive
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV !== 'production') {
       console.log('Development mode - allowing origin:', origin);
       return callback(null, true);
     }
@@ -132,7 +138,7 @@ app.use(cors({
     return callback(new Error('CORS not allowed from this origin: ' + origin), false);
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   optionsSuccessStatus: 200
 }));
@@ -143,14 +149,32 @@ app.options('*', cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Static file serving for uploads with CORS headers
+// Static file serving for uploads with proper CORS headers
 app.use('/uploads', (req, res, next) => {
-  // Set CORS headers for static files
+  // Set comprehensive CORS headers for static files
   res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   next();
-}, express.static('uploads'));
+}, express.static('uploads', {
+  setHeaders: (res, path) => {
+    // Additional headers for image files
+    if (path.match(/\.(jpg|jpeg|png|gif|webp|svg)$/)) {
+      res.setHeader('Content-Type', 'image/jpeg');
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    }
+  }
+}));
 
 // Logging middleware
 app.use(morgan('combined'));
@@ -219,18 +243,25 @@ app.use('/api/education', educationRoutes); // Added comprehensive education man
 app.use('/api/student', studentDashboardRoutes); // Added student dashboard API
 app.use('/api/visitor-dashboard', visitorDashboardRoutes); // Added visitor dashboard API
 app.use('/api', educationApiRoutes); // Added education API routes matching frontend service
+console.log('EducationApi routes registered at /api');
 
 // New comprehensive feature routes
 app.use('/api/education-hub', educationHubRoutes); // Education hub with courses, quizzes, flashcards, live sessions
 app.use('/api/collection', collectionRoutes); // User collections: bookmarks, notes, favorites
 app.use('/api/community', communityRoutes); // Community features: forums, study groups, leaderboards
 app.use('/api/progress', progressRoutes); // Progress tracking: goals, achievements, analytics
+app.use('/api/security', require('./routes/security')); // Security center API
+app.use('/api/system-settings', require('./routes/systemSettings')); // System settings API
 
 // Enhanced visitor dashboard routes
 app.use('/api/bookmarks', require('./routes/bookmarkRoutes')); // Bookmarks management
 app.use('/api/notes', require('./routes/noteRoutes')); // Notes management
-app.use('/api/social', require('./routes/socialRoutes')); // Social features
+app.use('/api/social', require('./routes/socialRoutes'));
+
+// Notification routes
+app.use('/api/notifications', require('./routes/notifications')); // Social features
 app.use('/api/system-settings', require('./routes/systemSettings')); // System settings management
+app.use('/api/virtual-museum', require('./routes/virtualMuseum')); // Virtual museum management
 app.use('/api/flashcards', require('./routes/flashcards')); // Flashcards management
 app.use('/api/live-sessions', liveSessionsRoutes); // Live sessions management
 app.use('/api/communications', communicationsRoutes); // Communications management

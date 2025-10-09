@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import {
   PersonAdd, Search, FilterList, CheckCircle, Cancel, Visibility,
-  TrendingUp, People, AttachMoney, CalendarToday, Person
+  TrendingUp, People, AttachMoney, CalendarToday, Person, Refresh
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import api from '../../utils/api';
@@ -73,7 +73,7 @@ const VisitorRegistration = () => {
       name: '',
       email: '',
       phone: '',
-      age: '',
+      age: null, // Initialize as null
       gender: '',
       nationality: '',
       visitorType: ''
@@ -153,10 +153,75 @@ const VisitorRegistration = () => {
     }
   };
 
+  const handleRefresh = async () => {
+    try {
+      console.log('🔄 Refreshing data...');
+      setLoading(true);
+      setError('');
+
+      // Use the new refresh API endpoint
+      const response = await api.refreshVisitorData();
+      console.log('✅ Refresh response:', response);
+
+      if (response.success) {
+        // Update state with refreshed data
+        setRegistrations(response.data.registrations || []);
+        setAnalytics(response.data.analytics || analytics);
+        setSuccess('Data refreshed successfully!');
+      } else {
+        throw new Error(response.message || 'Failed to refresh data');
+      }
+    } catch (error) {
+      console.error('❌ Refresh error:', error);
+      setError('Failed to refresh data');
+      // Fallback to individual API calls
+      await Promise.all([loadData(), loadAnalytics()]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCreateRegistration = async (e) => {
     e.preventDefault();
     try {
       console.log('🔄 Creating visitor registration...', formData);
+      console.log('📊 Form data details:', {
+        visitorInfo: formData.visitorInfo,
+        visitDetails: formData.visitDetails,
+        payment: formData.payment
+      });
+
+      // Validate required fields
+      if (!formData.visitorInfo.age || formData.visitorInfo.age === '' || formData.visitorInfo.age === null) {
+        setError('Age is required');
+        return;
+      }
+
+      if (!formData.visitorInfo.gender) {
+        setError('Gender is required');
+        return;
+      }
+
+      if (!formData.visitorInfo.nationality) {
+        setError('Nationality is required');
+        return;
+      }
+
+      if (!formData.visitorInfo.visitorType) {
+        setError('Visitor type is required');
+        return;
+      }
+
+      if (!formData.visitDetails.visitPurpose) {
+        setError('Visit purpose is required');
+        return;
+      }
+
+      if (!formData.visitDetails.expectedDuration) {
+        setError('Expected duration is required');
+        return;
+      }
+
       const response = await api.registerVisitor(formData);
       console.log('✅ Registration created successfully:', response);
 
@@ -190,7 +255,7 @@ const VisitorRegistration = () => {
         name: '',
         email: '',
         phone: '',
-        age: '',
+        age: null, // Initialize as null instead of empty string
         gender: '',
         nationality: '',
         visitorType: ''
@@ -381,10 +446,10 @@ const VisitorRegistration = () => {
                 fullWidth
                 label="Age"
                 type="number"
-                value={formData.visitorInfo.age}
+                value={formData.visitorInfo.age || ''}
                 onChange={(e) => setFormData({
                   ...formData,
-                  visitorInfo: { ...formData.visitorInfo, age: e.target.value }
+                  visitorInfo: { ...formData.visitorInfo, age: parseInt(e.target.value) || '' }
                 })}
                 required
               />
@@ -603,7 +668,7 @@ const VisitorRegistration = () => {
       </DialogContent>
       <DialogActions>
         <Button onClick={() => setShowRegistrationModal(false)}>Cancel</Button>
-        <Button onClick={handleCreateRegistration} variant="contained">
+        <Button type="submit" variant="contained">
           Register Visitor
         </Button>
       </DialogActions>
@@ -614,14 +679,32 @@ const VisitorRegistration = () => {
     <Paper sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h6">Visitor Registrations</Typography>
-        <Button
-          variant="contained"
-          startIcon={<PersonAdd />}
-          onClick={() => setShowRegistrationModal(true)}
-          sx={{ bgcolor: '#1976d2' }}
-        >
-          Register Visitor
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<Refresh />}
+            onClick={handleRefresh}
+            disabled={loading}
+            sx={{
+              borderColor: '#1976d2',
+              color: '#1976d2',
+              '&:hover': {
+                borderColor: '#1565c0',
+                backgroundColor: '#e3f2fd'
+              }
+            }}
+          >
+            {loading ? 'Refreshing...' : 'Refresh'}
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<PersonAdd />}
+            onClick={() => setShowRegistrationModal(true)}
+            sx={{ bgcolor: '#1976d2' }}
+          >
+            Register Visitor
+          </Button>
+        </Box>
       </Box>
 
       {/* Filters */}
@@ -799,13 +882,31 @@ const VisitorRegistration = () => {
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 2 }}>
-          Visitor Registration & Analytics
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Register visitors and track museum analytics
-        </Typography>
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 2 }}>
+            Visitor Registration & Analytics
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Register visitors and track museum analytics
+          </Typography>
+        </Box>
+        <Button
+          variant="outlined"
+          startIcon={<Refresh />}
+          onClick={handleRefresh}
+          disabled={loading}
+          sx={{
+            borderColor: '#1976d2',
+            color: '#1976d2',
+            '&:hover': {
+              borderColor: '#1565c0',
+              backgroundColor: '#e3f2fd'
+            }
+          }}
+        >
+          {loading ? 'Refreshing...' : 'Refresh All Data'}
+        </Button>
       </Box>
 
       {/* Analytics Overview */}

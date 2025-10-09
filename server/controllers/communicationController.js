@@ -97,8 +97,8 @@ exports.getCommunication = async (req, res) => {
     }
 
     // Check if user has access to this communication
-    if (communication.from._id.toString() !== req.user._id.toString() &&
-      communication.to._id.toString() !== req.user._id.toString()) {
+    if (communication.from.toString() !== req.user._id.toString() &&
+      communication.to.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Access denied'
@@ -106,7 +106,7 @@ exports.getCommunication = async (req, res) => {
     }
 
     // Mark as read if user is the recipient
-    if (communication.to._id.toString() === req.user._id.toString() &&
+    if (communication.to.toString() === req.user._id.toString() &&
       communication.status === 'sent') {
       await communication.markAsRead();
     }
@@ -166,31 +166,36 @@ exports.createCommunication = async (req, res) => {
     if (museum) {
       const museumExists = await Museum.findById(museum);
       if (!museumExists) {
-        return res.status(400).json({
-          success: false,
-          message: 'Museum not found'
-        });
+        console.log('⚠️ Museum not found:', museum, 'but continuing without museum context');
+        // Don't fail the request, just remove the museum reference
+        museum = undefined;
       }
     }
 
-    const communication = new Communication({
+    const communicationData = {
       type,
       from: req.user._id,
       to,
-      museum,
       subject,
       message,
       priority,
       relatedContent,
       tags,
       internalNotes
-    });
+    };
+
+    // Only include museum if it exists
+    if (museum) {
+      communicationData.museum = museum;
+    }
+
+    const communication = new Communication(communicationData);
 
     await communication.save();
 
     // Populate the response
     await communication.populate('from to', 'name email role');
-    if (museum) {
+    if (communication.museum) {
       await communication.populate('museum', 'name');
     }
 
@@ -236,7 +241,7 @@ exports.replyToCommunication = async (req, res) => {
     }
 
     // Check if user has access to reply
-    if (originalMessage.to._id.toString() !== req.user._id.toString()) {
+    if (originalMessage.to.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Access denied'
@@ -300,8 +305,8 @@ exports.getConversation = async (req, res) => {
 
     // Check if user has access to this conversation
     const hasAccess = conversation.some(msg =>
-      msg.from._id.toString() === req.user._id.toString() ||
-      msg.to._id.toString() === req.user._id.toString()
+      msg.from.toString() === req.user._id.toString() ||
+      msg.to.toString() === req.user._id.toString()
     );
 
     if (!hasAccess) {
@@ -341,8 +346,11 @@ exports.markAsRead = async (req, res) => {
       });
     }
 
-    // Check if user is the recipient
-    if (communication.to._id.toString() !== req.user._id.toString()) {
+    // Check if user is the recipient (to is a simple ObjectId, not nested)
+    if (communication.to.toString() !== req.user._id.toString()) {
+      console.log('Access denied - User ID mismatch:');
+      console.log('Communication.to:', communication.to.toString());
+      console.log('Request user._id:', req.user._id.toString());
       return res.status(403).json({
         success: false,
         message: 'Access denied'
@@ -382,8 +390,8 @@ exports.archiveCommunication = async (req, res) => {
     }
 
     // Check if user has access
-    if (communication.from._id.toString() !== req.user._id.toString() &&
-      communication.to._id.toString() !== req.user._id.toString()) {
+    if (communication.from.toString() !== req.user._id.toString() &&
+      communication.to.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Access denied'

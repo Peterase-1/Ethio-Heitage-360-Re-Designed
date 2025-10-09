@@ -379,13 +379,55 @@ const deleteStaff = async (req, res) => {
  */
 const updateStaffPermissions = async (req, res) => {
   try {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      console.log('❌ Validation errors:', errors.array());
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    console.log('🔍 Update Staff Permissions Debug:', {
+      staffId: req.params.id,
+      permissions: req.body.permissions,
+      user: req.user?.id,
+      userRole: req.user?.role
+    });
+
     const { permissions } = req.body;
+
+    if (!permissions || !Array.isArray(permissions)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Permissions must be an array'
+      });
+    }
 
     const staff = await Staff.findById(req.params.id);
     if (!staff) {
+      console.log('❌ Staff member not found:', req.params.id);
+
+      // List available staff members for debugging
+      const availableStaff = await Staff.find({}).select('_id name email role').limit(5);
+      console.log('📋 Available staff members:', availableStaff.map(s => ({
+        id: s._id,
+        name: s.name,
+        email: s.email,
+        role: s.role
+      })));
+
       return res.status(404).json({
         success: false,
-        message: 'Staff member not found'
+        message: 'Staff member not found',
+        availableStaff: availableStaff.map(s => ({
+          id: s._id,
+          name: s.name,
+          email: s.email,
+          role: s.role
+        }))
       });
     }
 
@@ -397,9 +439,17 @@ const updateStaffPermissions = async (req, res) => {
       });
     }
 
+    console.log('📝 Updating staff permissions:', {
+      oldPermissions: staff.permissions,
+      newPermissions: permissions
+    });
+
     staff.permissions = permissions;
     staff.updatedBy = req.user._id;
+
+    console.log('💾 Saving staff member...');
     await staff.save();
+    console.log('✅ Staff permissions updated successfully');
 
     res.json({
       success: true,

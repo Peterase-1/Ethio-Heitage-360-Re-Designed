@@ -344,14 +344,29 @@ const ArtifactManagement = () => {
               (() => {
                 const imageUrl = artifact.media.images[0].url.startsWith('http')
                   ? artifact.media.images[0].url
-                  : `http://localhost:5000${artifact.media.images[0].url}`;
+                  : `${api.baseURL.replace('/api', '')}${artifact.media.images[0].url}`;
+
+                console.log('🖼️ Constructing image URL:', {
+                  originalUrl: artifact.media.images[0].url,
+                  baseURL: api.baseURL,
+                  finalUrl: imageUrl
+                });
+
                 return (
                   <img
                     src={imageUrl}
                     alt={artifact.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     onLoad={() => console.log('✅ Image loaded successfully:', imageUrl)}
-                    onError={(e) => console.error('❌ Image failed to load:', imageUrl, e)}
+                    onError={(e) => {
+                      console.error('❌ Image failed to load:', imageUrl, e);
+                      console.error('❌ Error details:', {
+                        src: imageUrl,
+                        baseURL: api.baseURL,
+                        originalUrl: artifact.media.images[0].url,
+                        error: e
+                      });
+                    }}
                   />
                 );
               })()
@@ -962,7 +977,7 @@ const ArtifactManagement = () => {
                           <img
                             src={selectedArtifact.media.images[0].url.startsWith('http')
                               ? selectedArtifact.media.images[0].url
-                              : `http://localhost:5000${selectedArtifact.media.images[0].url}`}
+                              : `${api.baseURL.replace('/api', '')}${selectedArtifact.media.images[0].url}`}
                             alt={selectedArtifact.name}
                             style={{
                               width: '100%',

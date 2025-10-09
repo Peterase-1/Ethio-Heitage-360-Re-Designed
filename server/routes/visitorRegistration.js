@@ -4,8 +4,8 @@ const { body, param, query } = require('express-validator');
 const visitorRegistrationController = require('../controllers/visitorRegistration');
 const { auth } = require('../middleware/auth');
 
-// Apply authentication middleware to all routes
-router.use(auth);
+// Note: Visitor registration should be public (no auth required)
+// Only admin routes need authentication
 
 /**
  * @route   POST /api/visitor-registration
@@ -90,11 +90,18 @@ router.post('/', [
 ], visitorRegistrationController.registerVisitor);
 
 /**
+ * @route   POST /api/visitor-registration/refresh
+ * @desc    Refresh visitor registration data and analytics
+ * @access  Museum Admin
+ */
+router.post('/refresh', auth, visitorRegistrationController.refreshData);
+
+/**
  * @route   GET /api/visitor-registration
  * @desc    Get all visitor registrations for a museum
  * @access  Museum Admin
  */
-router.get('/', [
+router.get('/', auth, [
   query('page')
     .optional()
     .isInt({ min: 1 })
@@ -131,7 +138,7 @@ router.get('/', [
  * @desc    Get visitor analytics for museum
  * @access  Museum Admin
  */
-router.get('/analytics', [
+router.get('/analytics', auth, [
   query('period')
     .optional()
     .isInt({ min: 1, max: 365 })
@@ -143,7 +150,7 @@ router.get('/analytics', [
  * @desc    Get visitor registration by ID
  * @access  Museum Admin
  */
-router.get('/:id', [
+router.get('/:id', auth, [
   param('id')
     .isMongoId()
     .withMessage('Invalid visitor registration ID')
@@ -154,7 +161,7 @@ router.get('/:id', [
  * @desc    Update visitor registration status
  * @access  Museum Admin
  */
-router.put('/:id/status', [
+router.put('/:id/status', auth, [
   param('id')
     .isMongoId()
     .withMessage('Invalid visitor registration ID'),

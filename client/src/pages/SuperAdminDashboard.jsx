@@ -50,6 +50,11 @@ import AnalyticsDashboard from '../components/AnalyticsDashboard';
 import PerformanceAnalytics from '../components/PerformanceAnalytics';
 import PerformanceMetricsDashboard from '../components/PerformanceMetricsDashboard';
 import SuperAdminProgressManagement from '../components/admin/SuperAdminProgressManagement';
+import EducationOverview from '../components/admin/EducationOverview';
+import CourseManagement from '../components/admin/CourseManagement';
+import EducationalTours from '../components/admin/EducationalTours';
+import SecurityCenter from '../components/admin/SecurityCenter';
+import SystemSettings from '../components/admin/SystemSettings';
 
 const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
   const { user, logout } = useAuth();
@@ -244,13 +249,31 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
     error: ''
   });
 
+  // Rental oversight state
+  const [rentalStats, setRentalStats] = useState({
+    activeRentals: 0,
+    totalRevenue: 0,
+    pendingApprovals: 0,
+    overdueReturns: 0,
+    loading: false,
+    error: ''
+  });
+
+  const [rentalRequests, setRentalRequests] = useState({
+    items: [],
+    total: 0,
+    page: 1,
+    limit: 20,
+    loading: false,
+    error: ''
+  });
+
   const sidebarItems = [
     {
       category: 'Platform Overview',
       items: [
         { id: 'dashboard', label: 'Dashboard', icon: Home, description: 'Complete analytics - user activity, artifact stats, rentals' },
-        { id: 'platform-analytics', label: 'Platform Analytics', icon: BarChart3, description: 'Insights for all museums combined' },
-        { id: 'performance-analytics', label: 'Performance Analytics', icon: Activity, description: 'Real-time system performance and metrics' },
+        { id: 'analytics', label: 'Analytics & Performance', icon: BarChart3, description: 'Comprehensive platform analytics and system performance' },
         { id: 'performance-metrics', label: 'Performance Metrics', icon: Monitor, description: 'Live system monitoring and health metrics' },
         { id: 'audit-logs', label: 'Audit Logs', icon: Activity, description: 'Track all approvals, rejections, and changes' }
       ]
@@ -293,26 +316,26 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
     // Fetch enhanced dashboard data with retry logic
     const loadDashboard = async (retryCount = 0) => {
       const maxRetries = 3;
-      
+
       try {
         console.log('Loading dashboard data...');
-        const res = await api.getSuperAdminDashboard();
-        
-        if (res.success && res.dashboard) {
-          const dashboard = res.dashboard;
+        const res = await api.getSuperAdminDashboardStats();
+
+        if (res.success && (res.dashboard || res.data)) {
+          const dashboard = res.dashboard || res.data;
           console.log('Dashboard data loaded successfully');
 
-          // Update stats with enhanced data
+          // Update stats with enhanced data from comprehensive dashboard
           setStats((prev) => ({
             ...prev,
             totalUsers: dashboard.systemOverview?.users?.total ?? prev.totalUsers,
             museums: dashboard.systemOverview?.museums?.total ?? prev.museums,
             heritageSites: dashboard.systemOverview?.heritageSites?.total ?? prev.heritageSites,
             activeTours: dashboard.systemOverview?.rentals?.active ?? prev.activeTours,
-            userGrowth: dashboard.trends?.userGrowth?.growthRate ?? prev.userGrowth,
-            museumGrowth: dashboard.trends?.museumGrowth?.approvalRate ?? prev.museumGrowth,
-            siteGrowth: dashboard.trends?.heritageSiteGrowth?.verificationRate ?? prev.siteGrowth,
-            tourGrowth: dashboard.systemOverview?.rentals?.completionRate ?? prev.tourGrowth
+            userGrowth: parseFloat(dashboard.trends?.userGrowth?.growthRate) ?? prev.userGrowth,
+            museumGrowth: parseFloat(dashboard.trends?.museumGrowth?.approvalRate) ?? prev.museumGrowth,
+            siteGrowth: parseFloat(dashboard.trends?.heritageSiteGrowth?.verificationRate) ?? prev.siteGrowth,
+            tourGrowth: parseFloat(dashboard.systemOverview?.rentals?.completionRate) ?? prev.tourGrowth
           }));
 
           // Store enhanced dashboard data for use in components
@@ -322,18 +345,18 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
         }
       } catch (e) {
         console.error(`Dashboard data load attempt ${retryCount + 1} failed:`, e.message);
-        
+
         // Retry logic for network/timeout errors
-        if (retryCount < maxRetries && 
-            (e.message.includes('fetch') || e.message.includes('timeout') || 
-             e.message.includes('502') || e.message.includes('503') ||
-             e.message.includes('Failed to fetch') || e.message.includes('NetworkError'))) {
+        if (retryCount < maxRetries &&
+          (e.message.includes('fetch') || e.message.includes('timeout') ||
+            e.message.includes('502') || e.message.includes('503') ||
+            e.message.includes('Failed to fetch') || e.message.includes('NetworkError'))) {
           const delay = 2000 * Math.pow(2, retryCount); // Exponential backoff: 2s, 4s, 8s
           console.log(`Retrying dashboard data load in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})`);
           setTimeout(() => loadDashboard(retryCount + 1), delay);
           return;
         }
-        
+
         // If all retries failed or it's a non-retryable error, try fallback
         console.log('Attempting fallback to basic stats API...');
         try {
@@ -351,7 +374,7 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
         }
       }
     };
-    
+
     loadDashboard();
   }, []);
 
@@ -609,6 +632,81 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
     loadAuditLogs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSection, auditLogsState.page, auditLogsState.limit]);
+
+  // Load rental statistics when Rental Oversight section is active
+  useEffect(() => {
+    if (activeSection !== 'rental-oversight') return;
+    const loadRentalStats = async () => {
+      setRentalStats(prev => ({ ...prev, loading: true, error: '' }));
+      try {
+        const res = await api.getRentalStatistics({ timeRange: '30d' });
+        console.log('📊 Rental Statistics Response:', res);
+        if (res.success) {
+          setRentalStats(prev => ({
+            ...prev,
+            activeRentals: res.data?.overview?.approvedRequests || 0,
+            totalRevenue: res.data?.overview?.totalRevenue || 0,
+            pendingApprovals: res.data?.overview?.pendingRequests || 0,
+            overdueReturns: 0, // Not provided by current backend, default to 0
+            loading: false,
+            error: ''
+          }));
+        } else {
+          setRentalStats(prev => ({
+            ...prev,
+            loading: false,
+            error: res.message || 'Failed to load rental statistics'
+          }));
+        }
+      } catch (error) {
+        console.error('Load rental stats error:', error);
+        setRentalStats(prev => ({
+          ...prev,
+          loading: false,
+          error: error.message
+        }));
+      }
+    };
+
+    loadRentalStats();
+  }, [activeSection]);
+
+  // Load rental requests when Rental Oversight section is active
+  useEffect(() => {
+    if (activeSection !== 'rental-oversight') return;
+    const loadRentalRequests = async () => {
+      setRentalRequests(prev => ({ ...prev, loading: true, error: '' }));
+      try {
+        const { page, limit } = rentalRequests;
+        const res = await api.getAllRentalRequests({ page, limit });
+        console.log('📊 Rental Requests Response:', res);
+        if (res.success) {
+          setRentalRequests(prev => ({
+            ...prev,
+            items: res.data?.items || res.data || [],
+            total: res.data?.total || 0,
+            loading: false,
+            error: ''
+          }));
+        } else {
+          setRentalRequests(prev => ({
+            ...prev,
+            loading: false,
+            error: res.message || 'Failed to load rental requests'
+          }));
+        }
+      } catch (error) {
+        console.error('Load rental requests error:', error);
+        setRentalRequests(prev => ({
+          ...prev,
+          loading: false,
+          error: error.message
+        }));
+      }
+    };
+
+    loadRentalRequests();
+  }, [activeSection, rentalRequests.page, rentalRequests.limit]);
 
   const handleRoleChange = async (id, role) => {
     try {
@@ -1211,7 +1309,7 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
             </button>
             <button
               className="p-4 border border-stone-200 rounded-lg hover:bg-stone-50 text-left"
-              onClick={() => setActiveSection('platform-analytics')}
+              onClick={() => setActiveSection('analytics')}
             >
               <BarChart3 className="h-6 w-6 text-amber-700 mb-2" />
               <h4 className="font-medium text-stone-900">View Analytics</h4>
@@ -1934,19 +2032,27 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <h4 className="font-medium text-blue-800">Active Rentals</h4>
-                  <p className="text-2xl font-bold text-blue-900">45</p>
+                  <p className="text-2xl font-bold text-blue-900">
+                    {rentalStats.loading ? '...' : rentalStats.activeRentals}
+                  </p>
                 </div>
                 <div className="bg-green-50 p-4 rounded-lg">
                   <h4 className="font-medium text-green-800">Total Revenue</h4>
-                  <p className="text-2xl font-bold text-green-900">ETB 2,85,000</p>
+                  <p className="text-2xl font-bold text-green-900">
+                    {rentalStats.loading ? '...' : `ETB ${rentalStats.totalRevenue.toLocaleString()}`}
+                  </p>
                 </div>
                 <div className="bg-yellow-50 p-4 rounded-lg">
                   <h4 className="font-medium text-yellow-800">Pending Approvals</h4>
-                  <p className="text-2xl font-bold text-yellow-900">8</p>
+                  <p className="text-2xl font-bold text-yellow-900">
+                    {rentalStats.loading ? '...' : rentalStats.pendingApprovals}
+                  </p>
                 </div>
                 <div className="bg-purple-50 p-4 rounded-lg">
                   <h4 className="font-medium text-purple-800">Overdue Returns</h4>
-                  <p className="text-2xl font-bold text-purple-900">3</p>
+                  <p className="text-2xl font-bold text-purple-900">
+                    {rentalStats.loading ? '...' : rentalStats.overdueReturns}
+                  </p>
                 </div>
               </div>
               <div className="overflow-x-auto">
@@ -1962,32 +2068,58 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    <tr>
-                      <td className="px-4 py-2 text-sm text-gray-900">Ancient Vase</td>
-                      <td className="px-4 py-2 text-sm text-gray-600">University of Addis</td>
-                      <td className="px-4 py-2 text-sm text-gray-600">30 days</td>
-                      <td className="px-4 py-2 text-sm text-gray-600">ETB 15,000</td>
-                      <td className="px-4 py-2">
-                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">Active</span>
-                      </td>
-                      <td className="px-4 py-2 space-x-2">
-                        <button className="text-blue-600 hover:text-blue-700 text-sm">View Details</button>
-                        <button className="text-red-600 hover:text-red-700 text-sm">Terminate</button>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="px-4 py-2 text-sm text-gray-900">Historical Manuscript</td>
-                      <td className="px-4 py-2 text-sm text-gray-600">Ethiopian Heritage Foundation</td>
-                      <td className="px-4 py-2 text-sm text-gray-600">14 days</td>
-                      <td className="px-4 py-2 text-sm text-gray-600">ETB 25,000</td>
-                      <td className="px-4 py-2">
-                        <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded">Overdue</span>
-                      </td>
-                      <td className="px-4 py-2 space-x-2">
-                        <button className="text-blue-600 hover:text-blue-700 text-sm">Contact</button>
-                        <button className="text-red-600 hover:text-red-700 text-sm">Report Issue</button>
-                      </td>
-                    </tr>
+                    {rentalRequests.loading ? (
+                      <tr>
+                        <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
+                          Loading rental requests...
+                        </td>
+                      </tr>
+                    ) : rentalRequests.error ? (
+                      <tr>
+                        <td colSpan="6" className="px-4 py-8 text-center text-red-500">
+                          Error: {rentalRequests.error}
+                        </td>
+                      </tr>
+                    ) : rentalRequests.items.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
+                          No rental requests found
+                        </td>
+                      </tr>
+                    ) : (
+                      rentalRequests.items.map((request) => (
+                        <tr key={request._id || request.id}>
+                          <td className="px-4 py-2 text-sm text-gray-900">
+                            {request.artifact?.name || request.artifactName || 'Unknown Artifact'}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-gray-600">
+                            {request.requester?.name || request.requesterName || 'Unknown Renter'}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-gray-600">
+                            {request.duration || request.rentalDuration || 'N/A'} days
+                          </td>
+                          <td className="px-4 py-2 text-sm text-gray-600">
+                            ETB {request.fee || request.rentalFee || 0}
+                          </td>
+                          <td className="px-4 py-2">
+                            <span className={`px-2 py-1 text-xs rounded ${request.status === 'approved' ? 'bg-green-100 text-green-800' :
+                              request.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                request.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                  request.status === 'overdue' ? 'bg-red-100 text-red-800' :
+                                    'bg-gray-100 text-gray-800'
+                              }`}>
+                              {request.status || 'Unknown'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2 space-x-2">
+                            <button className="text-blue-600 hover:text-blue-700 text-sm">View Details</button>
+                            {request.status === 'approved' && (
+                              <button className="text-red-600 hover:text-red-700 text-sm">Terminate</button>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -1995,96 +2127,9 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
           </div>
         );
       case 'system-settings':
-        return (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">System Settings</h3>
-              <p className="text-sm text-gray-600">Configure platform-wide settings and parameters</p>
-            </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h4 className="font-medium text-gray-900">Platform Configuration</h4>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Platform Name</label>
-                    <input type="text" className="w-full border rounded px-3 py-2" defaultValue="Ethiopian Heritage 360" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Default Language</label>
-                    <select className="w-full border rounded px-3 py-2">
-                      <option>English</option>
-                      <option>Amharic</option>
-                      <option>Oromo</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Max Upload Size (MB)</label>
-                    <input type="number" className="w-full border rounded px-3 py-2" defaultValue="50" />
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <h4 className="font-medium text-gray-900">Rental System Settings</h4>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Default Rental Period (days)</label>
-                    <input type="number" className="w-full border rounded px-3 py-2" defaultValue="30" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Security Deposit (%)</label>
-                    <input type="number" className="w-full border rounded px-3 py-2" defaultValue="20" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Late Fee (ETB/day)</label>
-                    <input type="number" className="w-full border rounded px-3 py-2" defaultValue="100" />
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <h4 className="font-medium text-gray-900">Email Notifications</h4>
-                  <div className="space-y-2">
-                    <label className="flex items-center space-x-2">
-                      <input type="checkbox" defaultChecked />
-                      <span className="text-sm text-gray-700">New user registrations</span>
-                    </label>
-                    <label className="flex items-center space-x-2">
-                      <input type="checkbox" defaultChecked />
-                      <span className="text-sm text-gray-700">Artifact approvals</span>
-                    </label>
-                    <label className="flex items-center space-x-2">
-                      <input type="checkbox" defaultChecked />
-                      <span className="text-sm text-gray-700">Rental activities</span>
-                    </label>
-                    <label className="flex items-center space-x-2">
-                      <input type="checkbox" />
-                      <span className="text-sm text-gray-700">Weekly reports</span>
-                    </label>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <h4 className="font-medium text-gray-900">Security Settings</h4>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Session Timeout (minutes)</label>
-                    <input type="number" className="w-full border rounded px-3 py-2" defaultValue="30" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Max Login Attempts</label>
-                    <input type="number" className="w-full border rounded px-3 py-2" defaultValue="5" />
-                  </div>
-                  <div className="space-y-2">
-                    <button className="w-full bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Backup Database</button>
-                    <button className="w-full bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">Generate Reports</button>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-6 pt-4 border-t">
-                <button className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">Save All Settings</button>
-              </div>
-            </div>
-          </div>
-        );
-      case 'platform-analytics':
+        return <SystemSettings />;
+      case 'analytics':
         return <AnalyticsDashboard />;
-
-      case 'performance-analytics':
-        return <PerformanceAnalytics />;
 
       case 'performance-metrics':
         return <PerformanceMetricsDashboard />;
@@ -2189,72 +2234,10 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
         );
 
       case 'education-overview':
-        return (
-          <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">Education Overview</h3>
-                <p className="text-sm text-gray-600">Educational content statistics and management</p>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <div className="flex items-center">
-                      <GraduationCap className="h-8 w-8 text-blue-600" />
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-blue-600">Total Courses</p>
-                        <p className="text-2xl font-bold text-blue-900">24</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-green-50 p-4 rounded-lg">
-                    <div className="flex items-center">
-                      <Users2 className="h-8 w-8 text-green-600" />
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-green-600">Active Students</p>
-                        <p className="text-2xl font-bold text-green-900">156</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-yellow-50 p-4 rounded-lg">
-                    <div className="flex items-center">
-                      <FileText className="h-8 w-8 text-yellow-600" />
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-yellow-600">Assignments</p>
-                        <p className="text-2xl font-bold text-yellow-900">89</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-purple-50 p-4 rounded-lg">
-                    <div className="flex items-center">
-                      <Presentation className="h-8 w-8 text-purple-600" />
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-purple-600">Educational Tours</p>
-                        <p className="text-2xl font-bold text-purple-900">12</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
+        return <EducationOverview />;
 
       case 'course-management':
-        return (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Course Management</h3>
-              <p className="text-sm text-gray-600">Manage educational courses across the platform</p>
-            </div>
-            <div className="p-6">
-              <div className="text-center py-12">
-                <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">Course management interface will be implemented here</p>
-              </div>
-            </div>
-          </div>
-        );
+        return <CourseManagement />;
 
       case 'assignment-management':
         return (
@@ -2278,20 +2261,7 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
         );
 
       case 'educational-tours':
-        return (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Educational Tours</h3>
-              <p className="text-sm text-gray-600">Manage educational tour programs</p>
-            </div>
-            <div className="p-6">
-              <div className="text-center py-12">
-                <Presentation className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">Educational tours management interface will be implemented here</p>
-              </div>
-            </div>
-          </div>
-        );
+        return <EducationalTours />;
 
       case 'communications':
         return (
@@ -2310,118 +2280,7 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
 
 
       case 'security':
-        return (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Security Center</h3>
-              <p className="text-sm text-gray-600">Security rules, access control, and monitoring</p>
-            </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-green-800">System Status</h4>
-                  <p className="text-2xl font-bold text-green-900">Secure</p>
-                  <p className="text-sm text-green-700">All systems operational</p>
-                </div>
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-blue-800">Active Sessions</h4>
-                  <p className="text-2xl font-bold text-blue-900">247</p>
-                  <p className="text-sm text-blue-700">Current user sessions</p>
-                </div>
-                <div className="bg-yellow-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-yellow-800">Failed Logins</h4>
-                  <p className="text-2xl font-bold text-yellow-900">12</p>
-                  <p className="text-sm text-yellow-700">Last 24 hours</p>
-                </div>
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-purple-800">API Calls</h4>
-                  <p className="text-2xl font-bold text-purple-900">15.2K</p>
-                  <p className="text-sm text-purple-700">Today</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-4">Access Control</h4>
-                  <div className="space-y-4 border rounded-lg p-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-700">Two-Factor Authentication</span>
-                      <button className="px-3 py-1 bg-green-100 text-green-800 rounded text-sm">Enabled</button>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-700">IP Whitelisting</span>
-                      <button className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-sm">Configure</button>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-700">Session Timeout</span>
-                      <span className="text-sm text-gray-600">30 minutes</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-700">Password Policy</span>
-                      <button className="px-3 py-1 bg-gray-100 text-gray-800 rounded text-sm">Update</button>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-4">Security Monitoring</h4>
-                  <div className="space-y-3 border rounded-lg p-4">
-                    <div className="flex items-center space-x-3">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <span className="text-sm text-gray-700">SSL Certificate Valid</span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <span className="text-sm text-gray-700">Database Encrypted</span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <span className="text-sm text-gray-700">API Rate Limiting Active</span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                      <span className="text-sm text-gray-700">Backup Pending (Due in 2 days)</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-6">
-                <h4 className="font-medium text-gray-900 mb-4">Recent Security Events</h4>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Event Type</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">IP Address</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      <tr>
-                        <td className="px-4 py-2 text-sm text-gray-600">2025-08-13 10:30</td>
-                        <td className="px-4 py-2 text-sm text-gray-900">Failed Login Attempt</td>
-                        <td className="px-4 py-2 text-sm text-gray-600">unknown@user.com</td>
-                        <td className="px-4 py-2 text-sm text-gray-600">192.168.1.100</td>
-                        <td className="px-4 py-2">
-                          <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded">Blocked</span>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="px-4 py-2 text-sm text-gray-600">2025-08-13 09:15</td>
-                        <td className="px-4 py-2 text-sm text-gray-900">Admin Login</td>
-                        <td className="px-4 py-2 text-sm text-gray-600">admin@heritage360.et</td>
-                        <td className="px-4 py-2 text-sm text-gray-600">203.0.113.45</td>
-                        <td className="px-4 py-2">
-                          <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">Success</span>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
+        return <SecurityCenter />;
 
       case 'audit-logs':
         return (
@@ -2446,22 +2305,30 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div className="bg-green-50 p-4 rounded-lg">
                   <h4 className="font-medium text-green-800">Approvals</h4>
-                  <p className="text-2xl font-bold text-green-900">156</p>
+                  <p className="text-2xl font-bold text-green-900">
+                    {auditLogsState.items.filter(log => log.action?.includes('approve') || log.action?.includes('approval')).length}
+                  </p>
                   <p className="text-sm text-green-700">This month</p>
                 </div>
                 <div className="bg-red-50 p-4 rounded-lg">
                   <h4 className="font-medium text-red-800">Rejections</h4>
-                  <p className="text-2xl font-bold text-red-900">23</p>
+                  <p className="text-2xl font-bold text-red-900">
+                    {auditLogsState.items.filter(log => log.action?.includes('reject') || log.action?.includes('rejection')).length}
+                  </p>
                   <p className="text-sm text-red-700">This month</p>
                 </div>
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <h4 className="font-medium text-blue-800">User Changes</h4>
-                  <p className="text-2xl font-bold text-blue-900">45</p>
+                  <p className="text-2xl font-bold text-blue-900">
+                    {auditLogsState.items.filter(log => log.action?.includes('user') || log.action?.includes('update')).length}
+                  </p>
                   <p className="text-sm text-blue-700">This month</p>
                 </div>
                 <div className="bg-purple-50 p-4 rounded-lg">
                   <h4 className="font-medium text-purple-800">System Changes</h4>
-                  <p className="text-2xl font-bold text-purple-900">12</p>
+                  <p className="text-2xl font-bold text-purple-900">
+                    {auditLogsState.items.filter(log => log.action?.includes('system') || log.action?.includes('config')).length}
+                  </p>
                   <p className="text-sm text-purple-700">This month</p>
                 </div>
               </div>
@@ -2478,26 +2345,49 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    <tr>
-                      <td className="px-4 py-2 text-sm text-gray-600">2025-08-13 10:30</td>
-                      <td className="px-4 py-2 text-sm text-gray-900">Artifact Approved</td>
-                      <td className="px-4 py-2 text-sm text-gray-600">super_admin@heritage360.et</td>
-                      <td className="px-4 py-2 text-sm text-gray-600">Ancient Ethiopian Crown</td>
-                      <td className="px-4 py-2 text-sm text-gray-600">National Museum submission</td>
-                      <td className="px-4 py-2">
-                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">Success</span>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="px-4 py-2 text-sm text-gray-600">2025-08-13 09:45</td>
-                      <td className="px-4 py-2 text-sm text-gray-900">User Role Changed</td>
-                      <td className="px-4 py-2 text-sm text-gray-600">super_admin@heritage360.et</td>
-                      <td className="px-4 py-2 text-sm text-gray-600">john@museum.et</td>
-                      <td className="px-4 py-2 text-sm text-gray-600">visitor → museum_admin</td>
-                      <td className="px-4 py-2">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">Updated</span>
-                      </td>
-                    </tr>
+                    {auditLogsState.loading ? (
+                      <tr>
+                        <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
+                          Loading audit logs...
+                        </td>
+                      </tr>
+                    ) : auditLogsState.items.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
+                          No audit logs found
+                        </td>
+                      </tr>
+                    ) : (
+                      auditLogsState.items.map((log, index) => (
+                        <tr key={index}>
+                          <td className="px-4 py-2 text-sm text-gray-600">
+                            {new Date(log.timestamp || log.createdAt).toLocaleString()}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-gray-900">{log.action || 'Unknown Action'}</td>
+                          <td className="px-4 py-2 text-sm text-gray-600">
+                            {log.performedBy?.email || log.user?.email || log.userId || 'System'}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-gray-600">
+                            {log.targetEntity?.name || log.target || log.entity || 'N/A'}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-gray-600">
+                            {log.details?.description || log.description || 'No details'}
+                          </td>
+                          <td className="px-4 py-2">
+                            <span className={`px-2 py-1 text-xs rounded ${log.result?.success || log.status === 'success' || log.status === 'approved'
+                              ? 'bg-green-100 text-green-800'
+                              : log.result?.success === false || log.status === 'rejected' || log.status === 'failed'
+                                ? 'bg-red-100 text-red-800'
+                                : log.status === 'pending'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-blue-100 text-blue-800'
+                              }`}>
+                              {log.result?.success ? 'Success' : log.result?.success === false ? 'Failed' : log.status || 'Unknown'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                     <tr>
                       <td className="px-4 py-2 text-sm text-gray-600">2025-08-13 08:30</td>
                       <td className="px-4 py-2 text-sm text-gray-900">Event Rejected</td>
@@ -2532,10 +2422,24 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
                 </table>
               </div>
               <div className="mt-4 flex items-center justify-between">
-                <p className="text-sm text-gray-600">Showing 1-5 of 234 audit log entries</p>
+                <p className="text-sm text-gray-600">
+                  Showing {auditLogsState.items.length} of {auditLogsState.total} audit log entries
+                </p>
                 <div className="space-x-2">
-                  <button className="px-3 py-1 border rounded text-sm">Previous</button>
-                  <button className="px-3 py-1 border rounded text-sm">Next</button>
+                  <button
+                    className="px-3 py-1 border rounded text-sm disabled:opacity-50"
+                    disabled={auditLogsState.page <= 1}
+                    onClick={() => setAuditLogsState(prev => ({ ...prev, page: prev.page - 1 }))}
+                  >
+                    Previous
+                  </button>
+                  <button
+                    className="px-3 py-1 border rounded text-sm disabled:opacity-50"
+                    disabled={auditLogsState.page * auditLogsState.limit >= auditLogsState.total}
+                    onClick={() => setAuditLogsState(prev => ({ ...prev, page: prev.page + 1 }))}
+                  >
+                    Next
+                  </button>
                 </div>
               </div>
             </div>

@@ -1,90 +1,70 @@
 const mongoose = require('mongoose');
 
 const virtualMuseumSubmissionSchema = new mongoose.Schema({
-  // Basic Information
   title: {
     type: String,
-    required: true,
+    required: [true, 'Exhibition title is required'],
     trim: true,
-    maxlength: 200
+    maxlength: [200, 'Title cannot exceed 200 characters']
   },
-
   type: {
     type: String,
-    required: true,
-    enum: ['Exhibition', '3D Experience', 'Gallery', 'Digital Archive', 'Interactive Tour']
+    required: [true, 'Exhibition type is required'],
+    enum: ['Exhibition', '3D Experience', 'Gallery', 'Digital Archive', 'Interactive Tour'],
+    default: 'Exhibition'
   },
-
   description: {
     type: String,
-    required: true,
-    maxlength: 2000
+    required: [true, 'Description is required'],
+    trim: true,
+    maxlength: [1000, 'Description cannot exceed 1000 characters']
   },
-
-  // Museum Information
-  museumId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Museum',
-    required: true
-  },
-
-  submittedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-
-  // Submission Status
-  status: {
-    type: String,
-    enum: ['pending', 'under_review', 'approved', 'rejected', 'resubmitted', 'published'],
-    default: 'pending'
-  },
-
-  // Artifacts included in this submission
   artifacts: [{
     artifactId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Artifact',
       required: true
     },
-    displayOrder: {
-      type: Number,
-      default: 0
-    },
-    customDescription: {
+    artifactName: {
       type: String,
-      maxlength: 500
+      required: true,
+      trim: true
     },
-    featured: {
-      type: Boolean,
-      default: false
+    accessionNumber: {
+      type: String,
+      trim: true
+    },
+    category: {
+      type: String,
+      trim: true
+    },
+    description: {
+      type: String,
+      trim: true
+    },
+    media: {
+      images: [{
+        url: String,
+        caption: String,
+        isPrimary: Boolean
+      }],
+      videos: [{
+        url: String,
+        caption: String,
+        duration: Number
+      }],
+      documents: [{
+        url: String,
+        title: String,
+        type: String
+      }]
     }
   }],
-
-  // Layout and Design
   layout: {
     type: String,
     enum: ['grid', 'timeline', 'story', '3d_gallery'],
     default: 'grid'
   },
-
-  theme: {
-    primaryColor: {
-      type: String,
-      default: '#8B5A3C'
-    },
-    secondaryColor: {
-      type: String,
-      default: '#ffffff'
-    },
-    fontFamily: {
-      type: String,
-      default: 'Inter'
-    }
-  },
-
-  // Accessibility Features
   accessibility: {
     audioDescriptions: {
       type: Boolean,
@@ -97,291 +77,139 @@ const virtualMuseumSubmissionSchema = new mongoose.Schema({
     highContrast: {
       type: Boolean,
       default: false
-    },
-    screenReader: {
-      type: Boolean,
-      default: false
-    },
-    keyboardNavigation: {
-      type: Boolean,
-      default: true
     }
   },
-
-  // Media and Resources
-  media: {
-    bannerImage: {
-      type: String, // URL to uploaded banner image
-      default: null
-    },
-    thumbnail: {
-      type: String, // URL to thumbnail image
-      default: null
-    },
-    backgroundMusic: {
-      type: String, // URL to background music file
-      default: null
-    },
-    introVideo: {
-      type: String, // URL to intro video
-      default: null
-    }
+  status: {
+    type: String,
+    enum: ['pending', 'under_review', 'approved', 'rejected', 'resubmitted'],
+    default: 'pending'
   },
-
-  // 3D Models and Interactive Content
-  interactiveContent: {
-    has3DModels: {
-      type: Boolean,
-      default: false
-    },
-    hasVRSupport: {
-      type: Boolean,
-      default: false
-    },
-    hasARSupport: {
-      type: Boolean,
-      default: false
-    },
-    modelFiles: [{
-      artifactId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Artifact'
-      },
-      modelUrl: String,
-      textureUrl: String,
-      animationUrl: String,
-      fileSize: Number,
-      format: {
-        type: String,
-        enum: ['gltf', 'glb', 'obj', 'fbx']
-      }
-    }]
+  submissionDate: {
+    type: Date,
+    default: Date.now
   },
-
-  // Review and Feedback
+  museumId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Museum',
+    required: true
+  },
+  museumName: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  source: {
+    type: String,
+    enum: ['manual', 'rental_approval', 'import'],
+    default: 'manual'
+  },
+  rentalId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Rental'
+  },
   review: {
     reviewedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User'
     },
     reviewedAt: Date,
-    feedback: {
-      type: String,
-      maxlength: 1000
-    },
+    feedback: String,
     rating: {
       type: Number,
       min: 1,
       max: 5
-    },
-    rejectionReason: {
-      type: String,
-      maxlength: 500
     }
   },
-
-  // Performance Metrics
   metrics: {
     views: {
       type: Number,
       default: 0
     },
-    uniqueVisitors: {
-      type: Number,
-      default: 0
-    },
     averageRating: {
       type: Number,
-      default: 0
+      min: 1,
+      max: 5
     },
     totalRatings: {
       type: Number,
       default: 0
     },
-    favorites: {
-      type: Number,
-      default: 0
-    },
-    shares: {
-      type: Number,
-      default: 0
-    },
     lastViewed: Date
   },
-
-  // Publishing Information
-  publishing: {
-    publishedAt: Date,
-    publishedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    },
-    isPublic: {
-      type: Boolean,
-      default: false
-    },
-    featured: {
-      type: Boolean,
-      default: false
-    },
-    tags: [{
-      type: String,
-      trim: true,
-      lowercase: true
-    }]
-  },
-
-  // SEO and Discovery
-  seo: {
-    metaTitle: {
-      type: String,
-      maxlength: 60
-    },
-    metaDescription: {
-      type: String,
-      maxlength: 160
-    },
-    keywords: [{
-      type: String,
-      trim: true,
-      lowercase: true
-    }]
-  },
-
-  // Timestamps
-  submissionDate: {
-    type: Date,
-    default: Date.now
-  },
-
-  lastModified: {
-    type: Date,
-    default: Date.now
-  },
-
-  // Soft delete
-  isDeleted: {
+  tags: [{
+    type: String,
+    trim: true
+  }],
+  featured: {
     type: Boolean,
     default: false
   },
-
-  deletedAt: Date,
-  deletedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  }
+  published: {
+    type: Boolean,
+    default: false
+  },
+  publishedAt: Date
 }, {
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  timestamps: true
 });
 
-// Indexes for better query performance
-virtualMuseumSubmissionSchema.index({ museumId: 1, status: 1 });
-virtualMuseumSubmissionSchema.index({ submittedBy: 1 });
+// Indexes for better performance
+virtualMuseumSubmissionSchema.index({ title: 'text', description: 'text' });
 virtualMuseumSubmissionSchema.index({ status: 1, submissionDate: -1 });
-virtualMuseumSubmissionSchema.index({ 'publishing.isPublic': 1, 'publishing.featured': 1 });
-virtualMuseumSubmissionSchema.index({ 'metrics.views': -1 });
-virtualMuseumSubmissionSchema.index({ 'seo.keywords': 1 });
+virtualMuseumSubmissionSchema.index({ museumId: 1, status: 1 });
+virtualMuseumSubmissionSchema.index({ createdBy: 1 });
+virtualMuseumSubmissionSchema.index({ 'artifacts.artifactId': 1 });
+virtualMuseumSubmissionSchema.index({ source: 1, rentalId: 1 });
 
-// Virtual fields
+// Virtual for artifact count
 virtualMuseumSubmissionSchema.virtual('artifactCount').get(function () {
   return this.artifacts.length;
 });
 
-virtualMuseumSubmissionSchema.virtual('has3DContent').get(function () {
-  return this.interactiveContent.has3DModels || this.interactiveContent.modelFiles.length > 0;
-});
-
-virtualMuseumSubmissionSchema.virtual('isPublished').get(function () {
-  return this.status === 'published' && this.publishing.isPublic;
-});
-
-// Pre-save middleware
-virtualMuseumSubmissionSchema.pre('save', function (next) {
-  this.lastModified = new Date();
-
-  // Auto-generate SEO fields if not provided
-  if (!this.seo.metaTitle && this.title) {
-    this.seo.metaTitle = this.title.substring(0, 60);
-  }
-
-  if (!this.seo.metaDescription && this.description) {
-    this.seo.metaDescription = this.description.substring(0, 160);
-  }
-
-  next();
-});
-
-// Instance methods
-virtualMuseumSubmissionSchema.methods.incrementViews = async function () {
-  this.metrics.views += 1;
-  this.metrics.lastViewed = new Date();
-  return await this.save();
+// Method to add artifact
+virtualMuseumSubmissionSchema.methods.addArtifact = function (artifactData) {
+  this.artifacts.push(artifactData);
+  return this.save();
 };
 
-virtualMuseumSubmissionSchema.methods.addRating = async function (rating, userId) {
-  // Update average rating
-  const totalRatings = this.metrics.totalRatings + 1;
-  const newAverage = ((this.metrics.averageRating * this.metrics.totalRatings) + rating) / totalRatings;
-
-  this.metrics.averageRating = Math.round(newAverage * 10) / 10;
-  this.metrics.totalRatings = totalRatings;
-
-  return await this.save();
+// Method to remove artifact
+virtualMuseumSubmissionSchema.methods.removeArtifact = function (artifactId) {
+  this.artifacts = this.artifacts.filter(artifact =>
+    artifact.artifactId.toString() !== artifactId.toString()
+  );
+  return this.save();
 };
 
-virtualMuseumSubmissionSchema.methods.updateStatus = async function (newStatus, reviewedBy, feedback = null) {
-  this.status = newStatus;
-  this.review.reviewedBy = reviewedBy;
-  this.review.reviewedAt = new Date();
-
-  if (feedback) {
-    this.review.feedback = feedback;
-  }
-
-  if (newStatus === 'published') {
-    this.publishing.publishedAt = new Date();
-    this.publishing.publishedBy = reviewedBy;
-    this.publishing.isPublic = true;
-  }
-
-  return await this.save();
+// Static method to get approved submissions
+virtualMuseumSubmissionSchema.statics.getApprovedSubmissions = function () {
+  return this.find({ status: 'approved' })
+    .populate('artifacts.artifactId', 'name accessionNumber media category description')
+    .populate('museumId', 'name')
+    .populate('createdBy', 'name email')
+    .sort({ submissionDate: -1 });
 };
 
-// Static methods
-virtualMuseumSubmissionSchema.statics.getByMuseum = function (museumId, status = null) {
-  const query = { museumId, isDeleted: false };
-  if (status) {
-    query.status = status;
-  }
-  return this.find(query).populate('artifacts.artifactId').sort({ submissionDate: -1 });
+// Static method to get submissions by museum
+virtualMuseumSubmissionSchema.statics.getByMuseum = function (museumId) {
+  return this.find({ museumId })
+    .populate('artifacts.artifactId', 'name accessionNumber media category description')
+    .populate('createdBy', 'name email')
+    .sort({ submissionDate: -1 });
 };
 
-virtualMuseumSubmissionSchema.statics.getPublicSubmissions = function (limit = 20, skip = 0) {
-  return this.find({
-    'publishing.isPublic': true,
-    status: 'published',
-    isDeleted: false
-  })
-    .populate('artifacts.artifactId')
-    .populate('museumId', 'name location')
-    .sort({ 'publishing.featured': -1, 'metrics.views': -1 })
-    .limit(limit)
-    .skip(skip);
-};
-
-virtualMuseumSubmissionSchema.statics.getFeaturedSubmissions = function () {
-  return this.find({
-    'publishing.featured': true,
-    'publishing.isPublic': true,
-    status: 'published',
-    isDeleted: false
-  })
-    .populate('artifacts.artifactId')
-    .populate('museumId', 'name location')
-    .sort({ 'metrics.views': -1 })
-    .limit(10);
+// Static method to get rental-based submissions
+virtualMuseumSubmissionSchema.statics.getRentalSubmissions = function () {
+  return this.find({ source: 'rental_approval' })
+    .populate('artifacts.artifactId', 'name accessionNumber media category description')
+    .populate('rentalId', 'status startDate endDate')
+    .populate('museumId', 'name')
+    .populate('createdBy', 'name email')
+    .sort({ submissionDate: -1 });
 };
 
 module.exports = mongoose.model('VirtualMuseumSubmission', virtualMuseumSubmissionSchema);

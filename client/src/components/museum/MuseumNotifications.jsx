@@ -51,15 +51,15 @@ const MuseumNotifications = () => {
         ...filters
       };
 
-      const response = await api.get('/museum-admin/notifications', { params });
+      const response = await api.get('/notifications', { params });
 
-      if (response.data.success) {
-        setNotifications(response.data.notifications);
-        setUnreadCount(response.data.unreadCount);
+      if (response.data && response.data.success) {
+        setNotifications(response.data.notifications || []);
+        setUnreadCount(response.data.unreadCount || 0);
         setPagination(prev => ({
           ...prev,
-          total: response.data.pagination.total,
-          pages: response.data.pagination.pages
+          total: response.data.pagination?.total || 0,
+          pages: response.data.pagination?.pages || 0
         }));
       } else {
         setError('Failed to load notifications');
@@ -75,17 +75,18 @@ const MuseumNotifications = () => {
   // Mark notification as read
   const markAsRead = async (id) => {
     try {
-      const response = await api.put(`/museum-admin/notifications/${id}/read`);
+      const response = await api.put(`/notifications/${id}/read`);
 
-      if (response.data.success) {
+      if (response.data && response.data.success) {
         setNotifications(notifications.map(notif => {
-          const recipient = notif.recipients?.find(r => r.user === 'current_user');
-          if (notif._id === id && recipient && !recipient.readAt) {
+          if (notif._id === id) {
             return {
               ...notif,
-              recipients: notif.recipients.map(r =>
-                r.user === 'current_user' ? { ...r, readAt: new Date() } : r
-              )
+              recipients: notif.recipients?.map(r =>
+                r.user.toString() === 'current_user'
+                  ? { ...r, readAt: new Date().toISOString() }
+                  : r
+              ) || []
             };
           }
           return notif;
@@ -100,9 +101,9 @@ const MuseumNotifications = () => {
   // Dismiss notification
   const dismissNotification = async (id) => {
     try {
-      const response = await api.put(`/museum-admin/notifications/${id}/dismiss`);
+      const response = await api.put(`/notifications/${id}/dismiss`);
 
-      if (response.data.success) {
+      if (response.data && response.data.success) {
         setNotifications(notifications.filter(notif => notif._id !== id));
         setUnreadCount(prev => {
           const notification = notifications.find(n => n._id === id);

@@ -1,212 +1,356 @@
 const mongoose = require('mongoose');
 
 const systemSettingsSchema = new mongoose.Schema({
-  category: {
-    type: String,
-    required: true,
-    enum: [
-      'general',
-      'branding',
-      'security',
-      'notifications',
-      'payments',
-      'features',
-      'api',
-      'analytics',
-      'maintenance'
-    ],
-    index: true
+  // Platform Configuration
+  platform: {
+    name: {
+      type: String,
+      default: 'Ethiopian Heritage 360'
+    },
+    description: {
+      type: String,
+      default: 'Digital platform for Ethiopian cultural heritage management'
+    },
+    version: {
+      type: String,
+      default: '1.0.0'
+    },
+    defaultLanguage: {
+      type: String,
+      enum: ['en', 'am', 'om'],
+      default: 'en'
+    },
+    supportedLanguages: [{
+      type: String,
+      enum: ['en', 'am', 'om']
+    }],
+    maxUploadSize: {
+      type: Number,
+      default: 50 // MB
+    },
+    allowedFileTypes: [{
+      type: String,
+      enum: ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'mp4', 'avi', 'mov']
+    }]
   },
-  key: {
-    type: String,
-    required: true,
-    unique: true,
-    index: true
+
+  // Rental System Settings
+  rentalSystem: {
+    defaultRentalPeriod: {
+      type: Number,
+      default: 30 // days
+    },
+    securityDepositPercentage: {
+      type: Number,
+      default: 20,
+      min: 0,
+      max: 100
+    },
+    lateFeePerDay: {
+      type: Number,
+      default: 100 // ETB
+    },
+    maxRentalDuration: {
+      type: Number,
+      default: 90 // days
+    },
+    autoApprovalThreshold: {
+      type: Number,
+      default: 7 // days
+    },
+    requireInsurance: {
+      type: Boolean,
+      default: true
+    }
   },
-  value: {
-    type: mongoose.Schema.Types.Mixed,
-    required: true
+
+  // Email Notification Settings
+  emailNotifications: {
+    newUserRegistrations: {
+      type: Boolean,
+      default: true
+    },
+    artifactApprovals: {
+      type: Boolean,
+      default: true
+    },
+    rentalActivities: {
+      type: Boolean,
+      default: true
+    },
+    weeklyReports: {
+      type: Boolean,
+      default: false
+    },
+    systemAlerts: {
+      type: Boolean,
+      default: true
+    },
+    securityAlerts: {
+      type: Boolean,
+      default: true
+    },
+    maintenanceNotifications: {
+      type: Boolean,
+      default: true
+    }
   },
-  dataType: {
-    type: String,
-    enum: ['string', 'number', 'boolean', 'object', 'array'],
-    required: true
+
+  // Security Settings
+  security: {
+    sessionTimeout: {
+      type: Number,
+      default: 30 // minutes
+    },
+    maxLoginAttempts: {
+      type: Number,
+      default: 5
+    },
+    lockoutDuration: {
+      type: Number,
+      default: 15 // minutes
+    },
+    requireTwoFactor: {
+      type: Boolean,
+      default: false
+    },
+    passwordPolicy: {
+      minLength: {
+        type: Number,
+        default: 8
+      },
+      requireUppercase: {
+        type: Boolean,
+        default: true
+      },
+      requireLowercase: {
+        type: Boolean,
+        default: true
+      },
+      requireNumbers: {
+        type: Boolean,
+        default: true
+      },
+      requireSpecialChars: {
+        type: Boolean,
+        default: true
+      },
+      maxAge: {
+        type: Number,
+        default: 90 // days
+      }
+    }
   },
-  description: {
-    type: String,
-    required: true
+
+  // API Settings
+  apiSettings: {
+    rateLimitPerMinute: {
+      type: Number,
+      default: 100
+    },
+    rateLimitPerHour: {
+      type: Number,
+      default: 1000
+    },
+    apiKeyExpiration: {
+      type: Number,
+      default: 365 // days
+    },
+    enableCORS: {
+      type: Boolean,
+      default: true
+    },
+    allowedOrigins: [{
+      type: String
+    }]
   },
-  isPublic: {
-    type: Boolean,
-    default: false // whether this setting can be accessed by non-admin users
+
+  // Maintenance Settings
+  maintenance: {
+    enableMaintenanceMode: {
+      type: Boolean,
+      default: false
+    },
+    maintenanceMessage: {
+      type: String,
+      default: 'System is under maintenance. Please try again later.'
+    },
+    scheduledMaintenance: {
+      enabled: {
+        type: Boolean,
+        default: false
+      },
+      startTime: {
+        type: Date
+      },
+      endTime: {
+        type: Date
+      },
+      frequency: {
+        type: String,
+        enum: ['weekly', 'monthly', 'quarterly'],
+        default: 'monthly'
+      }
+    },
+    backupSettings: {
+      frequency: {
+        type: String,
+        enum: ['daily', 'weekly', 'monthly'],
+        default: 'daily'
+      },
+      retentionDays: {
+        type: Number,
+        default: 30
+      },
+      autoBackup: {
+        type: Boolean,
+        default: true
+      }
+    }
   },
-  isEditable: {
-    type: Boolean,
-    default: true
+
+  // Theme and Branding
+  branding: {
+    primaryColor: {
+      type: String,
+      default: '#3B82F6'
+    },
+    secondaryColor: {
+      type: String,
+      default: '#1E40AF'
+    },
+    logoUrl: {
+      type: String
+    },
+    faviconUrl: {
+      type: String
+    },
+    customCSS: {
+      type: String
+    }
   },
-  validation: {
-    required: { type: Boolean, default: false },
-    min: Number,
-    max: Number,
-    minLength: Number,
-    maxLength: Number,
-    pattern: String,
-    options: [mongoose.Schema.Types.Mixed] // for enum-like validation
+
+  // Analytics Settings
+  analytics: {
+    enableGoogleAnalytics: {
+      type: Boolean,
+      default: false
+    },
+    googleAnalyticsId: {
+      type: String
+    },
+    enableCustomAnalytics: {
+      type: Boolean,
+      default: true
+    },
+    trackUserBehavior: {
+      type: Boolean,
+      default: true
+    },
+    dataRetentionDays: {
+      type: Number,
+      default: 365
+    }
   },
-  lastModifiedBy: {
+
+  // Feature Flags
+  features: {
+    enableVirtualMuseum: {
+      type: Boolean,
+      default: true
+    },
+    enableRentalSystem: {
+      type: Boolean,
+      default: true
+    },
+    enableEducationalContent: {
+      type: Boolean,
+      default: true
+    },
+    enableUserRegistration: {
+      type: Boolean,
+      default: true
+    },
+    enablePublicAPI: {
+      type: Boolean,
+      default: false
+    },
+    enableSocialLogin: {
+      type: Boolean,
+      default: false
+    }
+  },
+
+  // Audit
+  lastModified: {
+    type: Date,
+    default: Date.now
+  },
+  modifiedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   },
   version: {
     type: Number,
     default: 1
-  },
-  history: [{
-    value: mongoose.Schema.Types.Mixed,
-    modifiedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    },
-    modifiedAt: {
-      type: Date,
-      default: Date.now
-    },
-    reason: String
-  }]
+  }
 }, {
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  timestamps: true
 });
-
-// Compound index for category and key
-systemSettingsSchema.index({ category: 1, key: 1 });
 
 // Static methods
-systemSettingsSchema.statics.getSetting = function(key) {
-  return this.findOne({ key });
-};
+systemSettingsSchema.statics.getCurrentSettings = async function () {
+  let settings = await this.findOne().sort({ createdAt: -1 });
 
-systemSettingsSchema.statics.getSettingValue = async function(key, defaultValue = null) {
-  const setting = await this.findOne({ key });
-  return setting ? setting.value : defaultValue;
-};
-
-systemSettingsSchema.statics.getSettingsByCategory = function(category) {
-  return this.find({ category }).sort({ key: 1 });
-};
-
-systemSettingsSchema.statics.getPublicSettings = function() {
-  return this.find({ isPublic: true }).select('key value dataType description');
-};
-
-systemSettingsSchema.statics.setSetting = async function(key, value, userId, reason = '') {
-  const setting = await this.findOne({ key });
-  
-  if (!setting) {
-    throw new Error(`Setting ${key} not found`);
+  if (!settings) {
+    // Create default settings if none exist
+    settings = await this.create({});
   }
-  
-  if (!setting.isEditable) {
-    throw new Error(`Setting ${key} is not editable`);
-  }
-  
-  // Add to history
-  setting.history.push({
-    value: setting.value,
-    modifiedBy: userId,
-    reason
+
+  return settings;
+};
+
+systemSettingsSchema.statics.updateSettings = async function (updates, modifiedBy) {
+  const currentSettings = await this.getCurrentSettings();
+
+  // Create new version
+  const newSettings = new this({
+    ...currentSettings.toObject(),
+    ...updates,
+    lastModified: new Date(),
+    modifiedBy,
+    version: currentSettings.version + 1
   });
-  
-  // Update setting
-  setting.value = value;
-  setting.lastModifiedBy = userId;
-  setting.version += 1;
-  
-  return setting.save();
+
+  // Remove _id to create new document
+  delete newSettings._id;
+
+  return await newSettings.save();
 };
 
-systemSettingsSchema.statics.createSetting = function(data) {
-  return this.create(data);
+systemSettingsSchema.statics.getPublicSettings = async function () {
+  const settings = await this.getCurrentSettings();
+
+  // Return only public settings
+  return {
+    platform: {
+      name: settings.platform.name,
+      description: settings.platform.description,
+      version: settings.platform.version,
+      defaultLanguage: settings.platform.defaultLanguage,
+      supportedLanguages: settings.platform.supportedLanguages
+    },
+    features: settings.features,
+    branding: {
+      primaryColor: settings.branding.primaryColor,
+      secondaryColor: settings.branding.secondaryColor,
+      logoUrl: settings.branding.logoUrl
+    }
+  };
 };
 
-systemSettingsSchema.statics.deleteSetting = function(key) {
-  return this.findOneAndDelete({ key });
+systemSettingsSchema.statics.resetToDefaults = async function () {
+  return this.deleteMany({});
 };
-
-// Instance methods
-systemSettingsSchema.methods.updateValue = function(value, userId, reason = '') {
-  if (!this.isEditable) {
-    throw new Error(`Setting ${this.key} is not editable`);
-  }
-  
-  // Add to history
-  this.history.push({
-    value: this.value,
-    modifiedBy: userId,
-    reason
-  });
-  
-  // Update setting
-  this.value = value;
-  this.lastModifiedBy = userId;
-  this.version += 1;
-  
-  return this.save();
-};
-
-systemSettingsSchema.methods.validateValue = function(value) {
-  const validation = this.validation;
-  
-  if (validation.required && (value === null || value === undefined || value === '')) {
-    return { valid: false, error: 'Value is required' };
-  }
-  
-  if (this.dataType === 'number') {
-    if (isNaN(value)) {
-      return { valid: false, error: 'Value must be a number' };
-    }
-    if (validation.min !== undefined && value < validation.min) {
-      return { valid: false, error: `Value must be at least ${validation.min}` };
-    }
-    if (validation.max !== undefined && value > validation.max) {
-      return { valid: false, error: `Value must be at most ${validation.max}` };
-    }
-  }
-  
-  if (this.dataType === 'string') {
-    if (validation.minLength && value.length < validation.minLength) {
-      return { valid: false, error: `Value must be at least ${validation.minLength} characters` };
-    }
-    if (validation.maxLength && value.length > validation.maxLength) {
-      return { valid: false, error: `Value must be at most ${validation.maxLength} characters` };
-    }
-    if (validation.pattern) {
-      const regex = new RegExp(validation.pattern);
-      if (!regex.test(value)) {
-        return { valid: false, error: 'Value does not match required pattern' };
-      }
-    }
-  }
-  
-  if (validation.options && validation.options.length > 0) {
-    if (!validation.options.includes(value)) {
-      return { valid: false, error: `Value must be one of: ${validation.options.join(', ')}` };
-    }
-  }
-  
-  return { valid: true };
-};
-
-// Pre-save middleware
-systemSettingsSchema.pre('save', function(next) {
-  // Validate the value before saving
-  const validationResult = this.validateValue(this.value);
-  if (!validationResult.valid) {
-    return next(new Error(validationResult.error));
-  }
-  
-  next();
-});
 
 module.exports = mongoose.model('SystemSettings', systemSettingsSchema);

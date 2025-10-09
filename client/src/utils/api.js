@@ -560,6 +560,13 @@ class ApiClient {
     return this.request('/super-admin/dashboard')
   }
 
+  async getSuperAdminDashboardStats() {
+    if (this.useMockAPI) {
+      return mockApi.getSystemStats()
+    }
+    return this.request('/super-admin/dashboard/stats')
+  }
+
   async getSuperAdminAnalytics(params = {}) {
     if (this.useMockAPI) {
       return mockApi.getSystemStats()
@@ -604,6 +611,14 @@ class ApiClient {
     }
     const queryParams = new URLSearchParams(params).toString()
     return this.request(`/super-admin/performance-analytics/system-health?${queryParams}`)
+  }
+
+  async getPerformanceMetrics(params = {}) {
+    if (this.useMockAPI) {
+      return mockApi.getSystemStats()
+    }
+    const queryParams = new URLSearchParams(params).toString()
+    return this.request(`/super-admin/performance-metrics?${queryParams}`)
   }
 
   async getUserActivityMetrics(params = {}) {
@@ -785,17 +800,35 @@ class ApiClient {
     if (this.useMockAPI) {
       return mockApi.getSystemSettings()
     }
-    return this.request('/admin/settings')
+    return this.request('/system-settings')
   }
 
   async updateSystemSettings(settings) {
     if (this.useMockAPI) {
       return mockApi.updateSystemSettings(settings)
     }
-    return this.request('/admin/settings', {
+    return this.request('/system-settings', {
       method: 'PUT',
       body: settings,
     })
+  }
+
+  async getPublicSettings() {
+    return this.request('/system-settings/public');
+  }
+
+  async backupDatabase() {
+    return this.request('/system-settings/backup', {
+      method: 'POST'
+    });
+  }
+
+  async generateSystemReport() {
+    return this.request('/system-settings/reports?reportType=system');
+  }
+
+  async getSystemHealth() {
+    return this.request('/system-settings/health');
   }
 
   // Content moderation (multi-type)
@@ -1071,7 +1104,7 @@ class ApiClient {
     return this.request(`/museum-admin/virtual-submissions?${q.toString()}`)
   }
 
-  // Museum Admin Communications endpoints
+  // Museum Admin Communications endpoints (using same endpoints as Super Admin)
   async getMuseumCommunications(params = {}) {
     const queryParams = new URLSearchParams()
     Object.entries(params).forEach(([key, value]) => {
@@ -1079,45 +1112,45 @@ class ApiClient {
         queryParams.append(key, value)
       }
     })
-    return this.request(`/museum-admin/communications?${queryParams}`)
+    return this.request(`/communications?${queryParams}`)
   }
 
   async getMuseumCommunication(id) {
-    return this.request(`/museum-admin/communications/${id}`)
+    return this.request(`/communications/${id}`)
   }
 
   async createMuseumCommunication(communicationData) {
-    return this.request('/museum-admin/communications', {
+    return this.request('/communications', {
       method: 'POST',
       body: communicationData,
     })
   }
 
   async replyToMuseumCommunication(id, replyData) {
-    return this.request(`/museum-admin/communications/${id}/reply`, {
+    return this.request(`/communications/${id}/reply`, {
       method: 'POST',
       body: replyData,
     })
   }
 
   async markMuseumCommunicationAsRead(id) {
-    return this.request(`/museum-admin/communications/${id}/read`, {
+    return this.request(`/communications/${id}/read`, {
       method: 'PUT',
     })
   }
 
   async archiveMuseumCommunication(id) {
-    return this.request(`/museum-admin/communications/${id}/archive`, {
+    return this.request(`/communications/${id}/archive`, {
       method: 'PUT',
     })
   }
 
   async getMuseumUnreadCount() {
-    return this.request('/museum-admin/communications/unread-count')
+    return this.request('/communications/unread-count')
   }
 
   async getMuseumCommunicationConversation(id) {
-    return this.request(`/museum-admin/communications/${id}/conversation`)
+    return this.request(`/communications/${id}/conversation`)
   }
 
   // User/Visitor endpoints
@@ -2629,21 +2662,10 @@ class ApiClient {
     return this.request(`/visitor-registration/analytics?${queryParams}`)
   }
 
-  // Audit Logs endpoints
-  async getAuditLogs(params = {}) {
-    const queryParams = new URLSearchParams(params).toString()
-    return this.request(`/super-admin/audit-logs?${queryParams}`)
-  }
-
-  async getAuditLogsSummary(params = {}) {
-    const queryParams = new URLSearchParams(params).toString()
-    return this.request(`/super-admin/audit-logs/summary?${queryParams}`)
-  }
-
-  // Super Admin Analytics endpoints
-  async getSuperAdminAnalytics(params = {}) {
-    const queryParams = new URLSearchParams(params).toString()
-    return this.request(`/super-admin/analytics?${queryParams}`)
+  async refreshVisitorData() {
+    return this.request('/visitor-registration/refresh', {
+      method: 'POST'
+    })
   }
 }
 

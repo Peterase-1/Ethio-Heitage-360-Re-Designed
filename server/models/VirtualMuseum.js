@@ -192,3 +192,5 @@ virtualMuseumSchema.statics.getByMuseum = function (museumId) {
 const VirtualMuseum = mongoose.model('VirtualMuseum', virtualMuseumSchema);
 
 module.exports = VirtualMuseum;
+
+

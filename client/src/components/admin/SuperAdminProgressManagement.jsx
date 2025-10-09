@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Container,
   Grid,
   Paper,
   Typography,
@@ -68,7 +67,7 @@ const SuperAdminProgressManagement = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  
+
   const [userProgress, setUserProgress] = useState([]);
   const [achievements, setAchievements] = useState([]);
   const [analytics, setAnalytics] = useState({});
@@ -154,24 +153,24 @@ const SuperAdminProgressManagement = () => {
         progressAdminAPI.getAllUsersProgress({ page: 1, limit: 50, search: searchTerm }),
         progressAdminAPI.getProgressAnalytics()
       ]);
-      
+
       if (progressRes.success) {
         setUserProgress(progressRes.userProgress || progressRes.data || []);
       } else {
         // Fallback to mock data if API fails
         setUserProgress(mockUserProgress);
       }
-      
+
       if (analyticsRes.success) {
         setAnalytics(analyticsRes.analytics || analyticsRes.data || mockAnalytics);
       } else {
         // Fallback to mock data if API fails
         setAnalytics(mockAnalytics);
       }
-      
+
       // For now, use mock achievements until achievement system is implemented
       setAchievements(mockAchievements);
-      
+
       setLoading(false);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -180,7 +179,7 @@ const SuperAdminProgressManagement = () => {
       setAchievements(mockAchievements);
       setAnalytics(mockAnalytics);
       setLoading(false);
-      
+
       setSnackbar({
         open: true,
         message: error.message || 'Error loading data - using demo data',
@@ -202,7 +201,7 @@ const SuperAdminProgressManagement = () => {
     if (!window.confirm('Are you sure you want to reset this user\'s progress?')) {
       return;
     }
-    
+
     try {
       const result = await progressAdminAPI.resetUserProgress(userId, 'all');
       if (result.success) {
@@ -220,13 +219,13 @@ const SuperAdminProgressManagement = () => {
 
   const handleToggleAchievement = async (achievementId, field) => {
     try {
-      const updatedAchievements = achievements.map(achievement => 
-        achievement._id === achievementId 
+      const updatedAchievements = achievements.map(achievement =>
+        achievement._id === achievementId
           ? { ...achievement, [field]: !achievement[field] }
           : achievement
       );
       setAchievements(updatedAchievements);
-      
+
       toast.success(`Achievement ${field} updated successfully`);
     } catch (error) {
       toast.error('Error updating achievement');
@@ -241,7 +240,7 @@ const SuperAdminProgressManagement = () => {
 
   const filteredUsers = userProgress.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
+      user.email.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
 
@@ -254,7 +253,7 @@ const SuperAdminProgressManagement = () => {
   );
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Box>
       <Typography variant="h4" gutterBottom>
         Progress Management
       </Typography>
@@ -342,7 +341,7 @@ const SuperAdminProgressManagement = () => {
                         </TableCell>
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Chip 
+                            <Chip
                               label={`${user.totalProgress}%`}
                               color={getProgressColor(user.totalProgress)}
                               size="small"
@@ -362,14 +361,14 @@ const SuperAdminProgressManagement = () => {
                           {user.lastActivity.toLocaleDateString()}
                         </TableCell>
                         <TableCell>
-                          <IconButton 
-                            size="small" 
+                          <IconButton
+                            size="small"
                             onClick={() => handleViewUser(user)}
                           >
                             <Visibility />
                           </IconButton>
-                          <IconButton 
-                            size="small" 
+                          <IconButton
+                            size="small"
                             color="error"
                             onClick={() => handleResetProgress(user.userId)}
                           >
@@ -425,17 +424,17 @@ const SuperAdminProgressManagement = () => {
                   </Typography>
 
                   <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                    <Chip 
-                      label={`${achievement.points} points`} 
-                      color="primary" 
+                    <Chip
+                      label={`${achievement.points} points`}
+                      color="primary"
                       size="small"
                     />
-                    <Chip 
-                      label={achievement.category} 
-                      variant="outlined" 
+                    <Chip
+                      label={achievement.category}
+                      variant="outlined"
                       size="small"
                     />
-                    <Chip 
+                    <Chip
                       label={achievement.isActive ? 'Active' : 'Inactive'}
                       color={achievement.isActive ? 'success' : 'default'}
                       size="small"
@@ -604,7 +603,7 @@ const SuperAdminProgressManagement = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Container>
+    </Box>
   );
 };
 

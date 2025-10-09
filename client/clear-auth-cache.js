@@ -20,3 +20,5 @@ console.log('🔄 Please refresh the page and log in again');
 
 // Force page reload
 window.location.reload();
+
+

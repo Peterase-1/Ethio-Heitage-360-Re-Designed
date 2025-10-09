@@ -38,6 +38,7 @@ const PerformanceMetricsDashboard = () => {
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetchMetrics();
@@ -57,26 +58,160 @@ const PerformanceMetricsDashboard = () => {
     setLoading(true);
     setError(null);
     try {
-      const [overviewResponse, systemHealthResponse] = await Promise.all([
-        api.getPerformanceOverview({ timeRange: '1h' }),
-        api.getSystemHealth({ timeRange: '1h' })
-      ]);
+      // Try to get real performance metrics first
+      const response = await api.getPerformanceMetrics({ timeRange: '1h' });
 
-      if (overviewResponse.success && systemHealthResponse.success) {
+      if (response.success && response.data) {
+        console.log('📊 Real backend data received:', response.data);
         setMetrics({
-          system: systemHealthResponse.data,
-          performance: overviewResponse.data,
-          alerts: overviewResponse.data?.alerts || []
+          system: {
+            systemMetrics: {
+              avgCpuUsage: response.data.serverHealth?.cpuUsage || 0,
+              avgMemoryUsage: response.data.serverHealth?.memoryUsage || 0,
+              avgNetworkLatency: response.data.serverHealth?.diskUsage || 0
+            },
+            apiMetrics: {
+              avgResponseTime: response.data.responseTime?.average || 0,
+              totalApiCalls: response.data.throughput?.totalRequests || 0,
+              avgErrorRate: 0,
+              avgThroughput: response.data.throughput?.requestsPerDay || 0
+            },
+            dbMetrics: {
+              totalQueries: response.data.throughput?.totalRequests || 0
+            }
+          },
+          performance: {
+            healthScore: {
+              score: response.data.serverHealth?.uptime || 0,
+              status: response.data.responseTime?.status || 'good'
+            },
+            responseTime: response.data.responseTime,
+            throughput: response.data.throughput,
+            serverHealth: response.data.serverHealth
+          },
+          alerts: response.data.alerts || []
         });
-        setLastUpdated(new Date());
+        setLastUpdated(new Date(response.data.lastUpdated));
       } else {
-        throw new Error('Failed to fetch performance metrics');
+        // Fallback to performance overview and system health
+        const [overviewResponse, systemHealthResponse] = await Promise.all([
+          api.getPerformanceOverview({ timeRange: '1h' }),
+          api.getSystemHealth({ timeRange: '1h' })
+        ]);
+
+        if (overviewResponse.success && systemHealthResponse.success) {
+          setMetrics({
+            system: systemHealthResponse.data,
+            performance: overviewResponse.data,
+            alerts: overviewResponse.data?.alerts || []
+          });
+          setLastUpdated(new Date());
+        } else {
+          throw new Error('Failed to fetch performance metrics');
+        }
       }
     } catch (error) {
       console.error('Failed to fetch metrics:', error);
       setError(error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExportMetrics = async () => {
+    try {
+      setExporting(true);
+
+      // Generate performance report using the system settings API
+      const response = await api.request('/system-settings/reports?reportType=performance&format=html');
+
+      if (response.success && response.data.downloadUrl) {
+        // Create download link
+        const fullUrl = `${window.location.origin}${response.data.downloadUrl}`;
+        const link = document.createElement('a');
+        link.href = fullUrl;
+        link.download = response.data.filename;
+        link.target = '_blank';
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        console.log('✅ Performance metrics exported successfully');
+      } else {
+        // Fallback: Generate CSV export locally
+        exportMetricsAsCSV();
+      }
+    } catch (error) {
+      console.error('Error exporting metrics:', error);
+      // Fallback: Generate CSV export locally
+      exportMetricsAsCSV();
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const exportMetricsAsCSV = () => {
+    try {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `performance-metrics-${timestamp}.csv`;
+
+      // Prepare CSV data
+      const csvData = [
+        ['Performance Metrics Report'],
+        ['Generated:', new Date().toLocaleString()],
+        [''],
+        ['System Metrics'],
+        ['CPU Usage (%)', metrics.system?.systemMetrics?.avgCpuUsage || 0],
+        ['Memory Usage (%)', metrics.system?.systemMetrics?.avgMemoryUsage || 0],
+        ['Network Latency (ms)', metrics.system?.systemMetrics?.avgNetworkLatency || 0],
+        [''],
+        ['API Metrics'],
+        ['Total API Calls', metrics.system?.apiMetrics?.totalApiCalls || 0],
+        ['Average Response Time (ms)', metrics.system?.apiMetrics?.avgResponseTime || 0],
+        ['Error Rate (%)', metrics.system?.apiMetrics?.avgErrorRate || 0],
+        ['Throughput (req/s)', metrics.system?.apiMetrics?.avgThroughput || 0],
+        [''],
+        ['Performance Data'],
+        ['Response Time Average (ms)', metrics.performance?.responseTime?.average || 0],
+        ['Response Time Peak (ms)', metrics.performance?.responseTime?.peak || 0],
+        ['Response Time Status', metrics.performance?.responseTime?.status || 'Unknown'],
+        ['Server CPU Usage (%)', metrics.performance?.serverHealth?.cpuUsage || 0],
+        ['Server Memory Usage (%)', metrics.performance?.serverHealth?.memoryUsage || 0],
+        ['Server Disk Usage (%)', metrics.performance?.serverHealth?.diskUsage || 0],
+        ['Server Uptime (hours)', metrics.performance?.serverHealth?.uptime || 0],
+        ['Throughput Requests/Day', metrics.performance?.throughput?.requestsPerDay || 0],
+        ['Throughput Total Requests', metrics.performance?.throughput?.totalRequests || 0],
+        ['Throughput Trend', metrics.performance?.throughput?.trend || 'stable'],
+        [''],
+        ['Health Score'],
+        ['Score', metrics.performance?.healthScore?.score || 0],
+        ['Status', metrics.performance?.healthScore?.status || 'Unknown'],
+        [''],
+        ['Alerts'],
+        ...(metrics.alerts?.map(alert => [alert.type, alert.message, alert.details || '']) || [['No alerts']])
+      ];
+
+      // Convert to CSV string
+      const csvContent = csvData.map(row =>
+        row.map(cell => `"${cell}"`).join(',')
+      ).join('\n');
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      console.log('✅ CSV export completed');
+    } catch (error) {
+      console.error('Error creating CSV export:', error);
+      alert('Failed to export metrics. Please try again.');
     }
   };
 
@@ -176,8 +311,8 @@ const PerformanceMetricsDashboard = () => {
             <div className="w-full bg-gray-200 rounded-full h-3">
               <div
                 className={`h-3 rounded-full transition-all duration-500 ${score >= 90 ? 'bg-green-500' :
-                    score >= 75 ? 'bg-blue-500' :
-                      score >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                  score >= 75 ? 'bg-blue-500' :
+                    score >= 60 ? 'bg-yellow-500' : 'bg-red-500'
                   }`}
                 style={{ width: `${score}%` }}
               ></div>
@@ -256,12 +391,90 @@ const PerformanceMetricsDashboard = () => {
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
           </button>
-          <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 flex items-center space-x-2">
-            <Download className="h-4 w-4" />
-            <span>Export</span>
+          <button
+            onClick={handleExportMetrics}
+            disabled={exporting}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 flex items-center space-x-2"
+          >
+            <Download className={`h-4 w-4 ${exporting ? 'animate-pulse' : ''}`} />
+            <span>{exporting ? 'Exporting...' : 'Export'}</span>
           </button>
         </div>
       </div>
+
+      {/* Real Backend Metrics */}
+      {metrics.performance && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <Activity className="h-5 w-5 mr-2 text-green-600" />
+            Real-Time Backend Metrics
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-4 bg-blue-50 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-600">Response Time</span>
+                <Clock className="h-4 w-4 text-blue-600" />
+              </div>
+              <div className="text-2xl font-bold text-blue-600">
+                {metrics.performance.responseTime?.average || 0}ms
+              </div>
+              <div className="text-sm text-gray-500">
+                Peak: {metrics.performance.responseTime?.peak || 0}ms
+              </div>
+              <div className={`text-xs font-medium ${metrics.performance.responseTime?.status === 'good' ? 'text-green-600' :
+                metrics.performance.responseTime?.status === 'warning' ? 'text-yellow-600' : 'text-red-600'
+                }`}>
+                Status: {metrics.performance.responseTime?.status || 'Unknown'}
+              </div>
+            </div>
+
+            <div className="p-4 bg-green-50 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-600">CPU Usage</span>
+                <Cpu className="h-4 w-4 text-green-600" />
+              </div>
+              <div className="text-2xl font-bold text-green-600">
+                {metrics.performance.serverHealth?.cpuUsage || 0}%
+              </div>
+              <div className="text-sm text-gray-500">
+                Memory: {metrics.performance.serverHealth?.memoryUsage || 0}%
+              </div>
+              <div className="text-sm text-gray-500">
+                Disk: {metrics.performance.serverHealth?.diskUsage || 0}%
+              </div>
+            </div>
+
+            <div className="p-4 bg-purple-50 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-600">Throughput</span>
+                <BarChart3 className="h-4 w-4 text-purple-600" />
+              </div>
+              <div className="text-2xl font-bold text-purple-600">
+                {metrics.performance.throughput?.requestsPerDay || 0}
+              </div>
+              <div className="text-sm text-gray-500">
+                Total: {metrics.performance.throughput?.totalRequests || 0}
+              </div>
+              <div className="text-sm text-gray-500">
+                Trend: {metrics.performance.throughput?.trend || 'stable'}
+              </div>
+            </div>
+
+            <div className="p-4 bg-orange-50 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-600">Server Uptime</span>
+                <Server className="h-4 w-4 text-orange-600" />
+              </div>
+              <div className="text-2xl font-bold text-orange-600">
+                {metrics.performance.serverHealth?.uptime || 0}h
+              </div>
+              <div className="text-sm text-gray-500">
+                Last Updated: {lastUpdated ? lastUpdated.toLocaleTimeString() : 'Never'}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* System Health Score */}
       {metrics.performance?.healthScore && (
@@ -340,7 +553,7 @@ const PerformanceMetricsDashboard = () => {
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
                   className={`h-2 rounded-full ${(metrics.system?.systemMetrics?.avgCpuUsage || 0) > 80 ? 'bg-red-500' :
-                      (metrics.system?.systemMetrics?.avgCpuUsage || 0) > 60 ? 'bg-yellow-500' : 'bg-green-500'
+                    (metrics.system?.systemMetrics?.avgCpuUsage || 0) > 60 ? 'bg-yellow-500' : 'bg-green-500'
                     }`}
                   style={{ width: `${Math.min(metrics.system?.systemMetrics?.avgCpuUsage || 0, 100)}%` }}
                 ></div>
@@ -354,7 +567,7 @@ const PerformanceMetricsDashboard = () => {
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
                   className={`h-2 rounded-full ${(metrics.system?.systemMetrics?.avgMemoryUsage || 0) > 85 ? 'bg-red-500' :
-                      (metrics.system?.systemMetrics?.avgMemoryUsage || 0) > 70 ? 'bg-yellow-500' : 'bg-green-500'
+                    (metrics.system?.systemMetrics?.avgMemoryUsage || 0) > 70 ? 'bg-yellow-500' : 'bg-green-500'
                     }`}
                   style={{ width: `${Math.min(metrics.system?.systemMetrics?.avgMemoryUsage || 0, 100)}%` }}
                 ></div>
@@ -368,7 +581,7 @@ const PerformanceMetricsDashboard = () => {
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
                   className={`h-2 rounded-full ${(metrics.system?.systemMetrics?.avgNetworkLatency || 0) > 200 ? 'bg-red-500' :
-                      (metrics.system?.systemMetrics?.avgNetworkLatency || 0) > 100 ? 'bg-yellow-500' : 'bg-green-500'
+                    (metrics.system?.systemMetrics?.avgNetworkLatency || 0) > 100 ? 'bg-yellow-500' : 'bg-green-500'
                     }`}
                   style={{ width: `${Math.min((metrics.system?.systemMetrics?.avgNetworkLatency || 0) / 2, 100)}%` }}
                 ></div>

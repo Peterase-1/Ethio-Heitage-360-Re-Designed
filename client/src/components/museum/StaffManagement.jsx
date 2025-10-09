@@ -240,7 +240,15 @@ const StaffManagement = () => {
       setSuccess('Permissions updated successfully');
     } catch (err) {
       console.error('Update permissions error:', err);
-      setError(err.message || 'Failed to update permissions');
+
+      // Check if it's a 404 error (staff member not found)
+      if (err.status === 404) {
+        setError('Staff member not found. Please refresh the staff list.');
+        // Optionally refresh the staff list
+        loadStaff();
+      } else {
+        setError(err.message || 'Failed to update permissions');
+      }
     }
   };
 

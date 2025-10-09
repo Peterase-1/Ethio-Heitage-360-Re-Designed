@@ -75,7 +75,7 @@ const visitorRegistrationSchema = new mongoose.Schema({
       type: Number, // in hours
       required: true,
       min: 0.5,
-      max: 8
+      max: 24 // Increased from 8 to 24 hours to allow full day visits
     }
   },
 
@@ -90,7 +90,8 @@ const visitorRegistrationSchema = new mongoose.Schema({
   registeredBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: false, // Optional for public registrations
+    default: null
   },
 
   // Payment Information (Mock)
@@ -177,3 +178,4 @@ visitorRegistrationSchema.index({ status: 1 });
 visitorRegistrationSchema.index({ 'visitDetails.visitDate': -1 });
 
 module.exports = mongoose.model('VisitorRegistration', visitorRegistrationSchema);
+

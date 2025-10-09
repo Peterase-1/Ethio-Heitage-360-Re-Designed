@@ -101,9 +101,9 @@ const CommunicationsCenter = () => {
   useEffect(() => {
     if (museums.length === 0) {
       setMuseums([
-        { _id: '507f1f77bcf86cd799439011', name: 'National Museum of Ethiopia' },
-        { _id: '507f1f77bcf86cd799439012', name: 'Ethnological Museum' },
-        { _id: '507f1f77bcf86cd799439013', name: 'Addis Ababa Museum' }
+        { _id: '68dc100078cb0dddd38f803f', name: 'National Museum of Ethiopia' },
+        { _id: '68dc100078cb0dddd38f8044', name: 'Ethnological Museum Edited' },
+        { _id: '68dc100078cb0dddd38f804a', name: 'Addis Ababa Museum' }
       ]);
     }
     if (users.length === 0) {
@@ -179,7 +179,12 @@ const CommunicationsCenter = () => {
       console.log('Filtered Museum Admin users:', museumAdmins);
     } catch (error) {
       console.error('Error loading museum admin users:', error);
-      setUsers([]);
+      // Set fallback data for development
+      setUsers([
+        { _id: '68dab082333d4614c1c2bc59', name: 'Museum Administrator', email: 'museum.admin@ethioheritage360.com', role: 'museumAdmin' },
+        { _id: '68dc100078cb0dddd38f8045', name: 'Museum Admin 2', email: 'admin2@museum.com', role: 'museumAdmin' },
+        { _id: '68dc100078cb0dddd38f8046', name: 'Museum Admin 3', email: 'admin3@museum.com', role: 'museumAdmin' }
+      ]);
     }
   };
 
@@ -208,7 +213,8 @@ const CommunicationsCenter = () => {
         message: newMessage.message.trim(), // Backend expects 'message' not 'content'
         type: newMessage.type,
         priority: newMessage.priority,
-        museum: newMessage.museum && newMessage.museum.trim() !== '' ? newMessage.museum : undefined, // Museum ID (optional)
+        // Only include museum if it's selected and not empty
+        ...(newMessage.museum && newMessage.museum.trim() !== '' && { museum: newMessage.museum }),
         tags: newMessage.tags || [],
         internalNotes: newMessage.internalNotes || ''
       };
@@ -220,6 +226,7 @@ const CommunicationsCenter = () => {
       console.log('Recipient ID length:', newMessage.to?.length);
       console.log('Museum ID type:', typeof newMessage.museum);
       console.log('Museum ID length:', newMessage.museum?.length);
+      console.log('Museum included in data:', 'museum' in communicationData);
       await api.createCommunication(communicationData);
 
       setComposeDialog(false);
