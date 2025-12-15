@@ -1,10 +1,10 @@
 import React from 'react';
-import { 
-  Award, 
-  Download, 
-  Share, 
-  Calendar, 
-  CheckCircle, 
+import {
+  Award,
+  Download,
+  Share,
+  Calendar,
+  CheckCircle,
   Star,
   ExternalLink
 } from 'lucide-react';
@@ -20,26 +20,26 @@ const CertificateCard = ({ certificate }) => {
 
   const getCategoryColor = (category) => {
     const colors = {
-      history: 'bg-blue-100 text-blue-800',
-      culture: 'bg-purple-100 text-purple-800',
-      archaeology: 'bg-amber-100 text-amber-800',
-      language: 'bg-emerald-100 text-emerald-800',
-      art: 'bg-pink-100 text-pink-800',
-      traditions: 'bg-indigo-100 text-indigo-800'
+      history: 'bg-blue-500/10 text-blue-500',
+      culture: 'bg-purple-500/10 text-purple-500',
+      archaeology: 'bg-amber-500/10 text-amber-500',
+      language: 'bg-emerald-500/10 text-emerald-500',
+      art: 'bg-pink-500/10 text-pink-500',
+      traditions: 'bg-indigo-500/10 text-indigo-500'
     };
-    return colors[category] || 'bg-gray-100 text-gray-800';
+    return colors[category] || 'bg-muted text-muted-foreground';
   };
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
       case 'beginner':
-        return 'text-green-600';
+        return 'text-green-500';
       case 'intermediate':
-        return 'text-yellow-600';
+        return 'text-yellow-500';
       case 'advanced':
-        return 'text-red-600';
+        return 'text-red-500';
       default:
-        return 'text-gray-600';
+        return 'text-muted-foreground';
     }
   };
 
@@ -60,7 +60,7 @@ const CertificateCard = ({ certificate }) => {
               </div>
             </div>
           </div>
-          
+
           <div className="flex gap-2">
             <span className={`px-2 py-1 text-xs font-medium rounded-full ${getCategoryColor(certificate.category)}`}>
               {certificate.category}
