@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, Search, Filter, Grid, List, Heart, BookOpen, Star, 
-  CheckCircle, Microscope, Folder, MoreVertical, Eye, Edit, 
+import {
+  Plus, Search, Filter, Grid, List, Heart, BookOpen, Star,
+  CheckCircle, Microscope, Folder, MoreVertical, Eye, Edit,
   Trash2, Share2, Copy, Users, Calendar, Clock
 } from 'lucide-react';
 import collectionService from '../../services/collectionService';
@@ -14,7 +14,7 @@ const CollectionsGrid = ({ showCreateButton = true, limit, category, type }) => 
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({});
   const [pagination, setPagination] = useState({ current: 1, pages: 1, total: 0 });
-  
+
   // UI State
   const [viewMode, setViewMode] = useState('grid');
   const [searchQuery, setSearchQuery] = useState('');
@@ -23,7 +23,7 @@ const CollectionsGrid = ({ showCreateButton = true, limit, category, type }) => 
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState('updatedAt');
   const [sortOrder, setSortOrder] = useState('desc');
-  
+
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -44,7 +44,7 @@ const CollectionsGrid = ({ showCreateButton = true, limit, category, type }) => 
       };
 
       const result = await collectionService.getUserCollections(params);
-      
+
       if (result.success) {
         setCollections(result.data);
         setPagination(result.pagination);
@@ -124,29 +124,29 @@ const CollectionsGrid = ({ showCreateButton = true, limit, category, type }) => 
 
     if (viewMode === 'list') {
       return (
-        <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+        <div className="bg-card border border-border rounded-lg p-4 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4 flex-1 min-w-0">
               {/* Collection Icon/Color */}
-              <div 
+              <div
                 className="w-12 h-12 rounded-lg flex items-center justify-center text-white text-xl font-bold"
                 style={{ backgroundColor: collection.cover?.color || categoryInfo.color || '#3B82F6' }}
               >
                 {categoryInfo.icon || typeInfo.icon || '📁'}
               </div>
-              
+
               {/* Collection Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2 mb-1">
-                  <h3 className="text-lg font-semibold text-gray-900 truncate">{collection.name}</h3>
+                  <h3 className="text-lg font-semibold text-foreground truncate">{collection.name}</h3>
                   {collection.isPublic && (
                     <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
                       Public
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-gray-600 truncate mb-2">{collection.description}</p>
-                <div className="flex items-center space-x-4 text-xs text-gray-500">
+                <p className="text-sm text-muted-foreground truncate mb-2">{collection.description}</p>
+                <div className="flex items-center space-x-4 text-xs text-muted-foreground">
                   <span className="flex items-center">
                     <BookOpen className="h-3 w-3 mr-1" />
                     {collection.stats?.totalItems || 0} items
@@ -162,32 +162,32 @@ const CollectionsGrid = ({ showCreateButton = true, limit, category, type }) => 
                 </div>
               </div>
             </div>
-            
+
             {/* Actions */}
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => handleViewCollection(collection)}
-                className="px-3 py-1.5 text-sm bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors"
+                className="px-3 py-1.5 text-sm bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors"
               >
                 <Eye className="h-4 w-4" />
               </button>
-              
+
               <div className="relative">
                 <button
                   onClick={() => setShowDropdown(showDropdown === collection._id ? null : collection._id)}
-                  className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <MoreVertical className="h-4 w-4" />
                 </button>
-                
+
                 {showDropdown === collection._id && (
-                  <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                  <div className="absolute right-0 mt-1 w-48 bg-card rounded-md shadow-lg border border-border z-10">
                     <button
                       onClick={() => {
                         handleEditCollection(collection);
                         setShowDropdown(null);
                       }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                      className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted flex items-center"
                     >
                       <Edit className="h-4 w-4 mr-2" />
                       Edit
@@ -197,7 +197,7 @@ const CollectionsGrid = ({ showCreateButton = true, limit, category, type }) => 
                         handleDuplicateCollection(collection);
                         setShowDropdown(null);
                       }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                      className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted flex items-center"
                     >
                       <Copy className="h-4 w-4 mr-2" />
                       Duplicate
@@ -208,18 +208,18 @@ const CollectionsGrid = ({ showCreateButton = true, limit, category, type }) => 
                         toast.success('Collection link copied');
                         setShowDropdown(null);
                       }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                      className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted flex items-center"
                     >
                       <Share2 className="h-4 w-4 mr-2" />
                       Share
                     </button>
-                    <hr className="my-1" />
+                    <hr className="my-1 border-border" />
                     <button
                       onClick={() => {
                         handleDeleteCollection(collection);
                         setShowDropdown(null);
                       }}
-                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center"
+                      className="w-full text-left px-4 py-2 text-sm text-destructive hover:bg-destructive/10 flex items-center"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete
@@ -235,20 +235,20 @@ const CollectionsGrid = ({ showCreateButton = true, limit, category, type }) => 
 
     // Grid view
     return (
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group">
+      <div className="bg-card border border-border rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group">
         <div
           onClick={() => handleViewCollection(collection)}
           className="p-6"
         >
           {/* Header */}
           <div className="flex items-start justify-between mb-4">
-            <div 
+            <div
               className="w-12 h-12 rounded-lg flex items-center justify-center text-white text-xl font-bold"
               style={{ backgroundColor: collection.cover?.color || categoryInfo.color || '#3B82F6' }}
             >
               {categoryInfo.icon || typeInfo.icon || '📁'}
             </div>
-            
+
             <div className="flex items-center space-x-1">
               {collection.isPublic && (
                 <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
@@ -261,54 +261,54 @@ const CollectionsGrid = ({ showCreateButton = true, limit, category, type }) => 
                     e.stopPropagation();
                     setShowDropdown(showDropdown === collection._id ? null : collection._id);
                   }}
-                  className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="p-1 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <MoreVertical className="h-4 w-4" />
                 </button>
               </div>
             </div>
           </div>
-          
+
           {/* Content */}
           <div className="mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-1">{collection.name}</h3>
-            <p className="text-sm text-gray-600 line-clamp-2 mb-3">{collection.description || 'No description'}</p>
-            
+            <h3 className="text-lg font-semibold text-foreground mb-2 line-clamp-1">{collection.name}</h3>
+            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{collection.description || 'No description'}</p>
+
             {/* Tags */}
             {collection.tags && collection.tags.length > 0 && (
               <div className="flex flex-wrap gap-1 mb-3">
                 {collection.tags.slice(0, 3).map((tag, index) => (
-                  <span key={index} className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">
+                  <span key={index} className="px-2 py-1 text-xs bg-secondary text-secondary-foreground rounded-full">
                     {tag}
                   </span>
                 ))}
                 {collection.tags.length > 3 && (
-                  <span className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">
+                  <span className="px-2 py-1 text-xs bg-secondary text-secondary-foreground rounded-full">
                     +{collection.tags.length - 3}
                   </span>
                 )}
               </div>
             )}
           </div>
-          
+
           {/* Progress Bar */}
           {collection.stats?.totalItems > 0 && (
             <div className="mb-4">
-              <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+              <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
                 <span>Progress</span>
                 <span>{completionPercentage}%</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+              <div className="w-full bg-secondary rounded-full h-2">
+                <div
+                  className="bg-primary h-2 rounded-full transition-all duration-300"
                   style={{ width: `${completionPercentage}%` }}
                 />
               </div>
             </div>
           )}
-          
+
           {/* Stats */}
-          <div className="flex items-center justify-between text-sm text-gray-500">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
             <div className="flex items-center space-x-3">
               <span className="flex items-center">
                 <BookOpen className="h-4 w-4 mr-1" />
@@ -326,16 +326,16 @@ const CollectionsGrid = ({ showCreateButton = true, limit, category, type }) => 
             </span>
           </div>
         </div>
-        
+
         {/* Dropdown Menu */}
         {showDropdown === collection._id && (
-          <div className="absolute right-2 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+          <div className="absolute right-2 mt-1 w-48 bg-card rounded-md shadow-lg border border-border z-10">
             <button
               onClick={() => {
                 handleEditCollection(collection);
                 setShowDropdown(null);
               }}
-              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+              className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted flex items-center"
             >
               <Edit className="h-4 w-4 mr-2" />
               Edit
@@ -345,7 +345,7 @@ const CollectionsGrid = ({ showCreateButton = true, limit, category, type }) => 
                 handleDuplicateCollection(collection);
                 setShowDropdown(null);
               }}
-              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+              className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted flex items-center"
             >
               <Copy className="h-4 w-4 mr-2" />
               Duplicate
@@ -356,18 +356,18 @@ const CollectionsGrid = ({ showCreateButton = true, limit, category, type }) => 
                 toast.success('Collection link copied');
                 setShowDropdown(null);
               }}
-              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+              className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted flex items-center"
             >
               <Share2 className="h-4 w-4 mr-2" />
               Share
             </button>
-            <hr className="my-1" />
+            <hr className="my-1 border-border" />
             <button
               onClick={() => {
                 handleDeleteCollection(collection);
                 setShowDropdown(null);
               }}
-              className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center"
+              className="w-full text-left px-4 py-2 text-sm text-destructive hover:bg-destructive/10 flex items-center"
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Delete
@@ -387,11 +387,11 @@ const CollectionsGrid = ({ showCreateButton = true, limit, category, type }) => 
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-white border border-gray-200 rounded-lg p-6 animate-pulse">
-              <div className="h-12 bg-gray-200 rounded-lg mb-4"></div>
-              <div className="h-4 bg-gray-200 rounded mb-2"></div>
-              <div className="h-3 bg-gray-200 rounded mb-4"></div>
-              <div className="h-2 bg-gray-200 rounded"></div>
+            <div key={i} className="bg-card border border-border rounded-lg p-6 animate-pulse">
+              <div className="h-12 bg-muted rounded-lg mb-4"></div>
+              <div className="h-4 bg-muted rounded mb-2"></div>
+              <div className="h-3 bg-muted rounded mb-4"></div>
+              <div className="h-2 bg-muted rounded"></div>
             </div>
           ))}
         </div>
@@ -405,40 +405,38 @@ const CollectionsGrid = ({ showCreateButton = true, limit, category, type }) => 
       {!limit && (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">My Collections</h2>
+            <h2 className="text-2xl font-bold text-foreground">My Collections</h2>
             {stats.totalCollections > 0 && (
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 {stats.totalCollections} collections • {stats.totalItems} total items
               </p>
             )}
           </div>
-          
+
           <div className="flex items-center space-x-3">
             {/* View Mode Toggle */}
-            <div className="flex items-center bg-gray-100 rounded-lg p-1">
+            <div className="flex items-center bg-muted rounded-lg p-1">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-md transition-colors ${
-                  viewMode === 'grid' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-                }`}
+                className={`p-2 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                  }`}
               >
                 <Grid className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 rounded-md transition-colors ${
-                  viewMode === 'list' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-                }`}
+                className={`p-2 rounded-md transition-colors ${viewMode === 'list' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                  }`}
               >
                 <List className="h-4 w-4" />
               </button>
             </div>
-            
+
             {/* Create Button */}
             {showCreateButton && (
               <button
                 onClick={handleCreateCollection}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 New Collection
@@ -447,43 +445,43 @@ const CollectionsGrid = ({ showCreateButton = true, limit, category, type }) => 
           </div>
         </div>
       )}
-      
+
       {/* Search and Filters */}
       {!limit && (
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search collections..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
               />
             </div>
           </div>
-          
+
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex items-center px-4 py-2 border border-input rounded-lg hover:bg-muted transition-colors text-foreground"
           >
             <Filter className="h-4 w-4 mr-2" />
             Filters
           </button>
         </div>
       )}
-      
+
       {/* Filter Panel */}
       {showFilters && (
-        <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+        <div className="bg-muted/40 rounded-lg p-4 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+              <label className="block text-sm font-medium text-foreground mb-1">Category</label>
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-input rounded-md focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
               >
                 <option value="">All Categories</option>
                 {collectionService.getCategories().map(category => (
@@ -493,13 +491,13 @@ const CollectionsGrid = ({ showCreateButton = true, limit, category, type }) => 
                 ))}
               </select>
             </div>
-            
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+              <label className="block text-sm font-medium text-foreground mb-1">Type</label>
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-input rounded-md focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
               >
                 <option value="">All Types</option>
                 {collectionService.getTypes().map(type => (
@@ -509,9 +507,9 @@ const CollectionsGrid = ({ showCreateButton = true, limit, category, type }) => 
                 ))}
               </select>
             </div>
-            
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+              <label className="block text-sm font-medium text-foreground mb-1">Sort By</label>
               <select
                 value={`${sortBy}-${sortOrder}`}
                 onChange={(e) => {
@@ -519,7 +517,7 @@ const CollectionsGrid = ({ showCreateButton = true, limit, category, type }) => 
                   setSortBy(field);
                   setSortOrder(order);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-input rounded-md focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
               >
                 <option value="updatedAt-desc">Recently Updated</option>
                 <option value="createdAt-desc">Recently Created</option>
@@ -531,20 +529,20 @@ const CollectionsGrid = ({ showCreateButton = true, limit, category, type }) => 
           </div>
         </div>
       )}
-      
+
       {/* Collections Grid/List */}
       {collections.length === 0 ? (
         <div className="text-center py-12">
           <div className="max-w-md mx-auto">
-            <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No collections yet</h3>
-            <p className="text-gray-600 mb-6">
+            <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">No collections yet</h3>
+            <p className="text-muted-foreground mb-6">
               Start organizing your learning journey by creating your first collection.
             </p>
             {showCreateButton && (
               <button
                 onClick={handleCreateCollection}
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Create Collection
@@ -553,41 +551,41 @@ const CollectionsGrid = ({ showCreateButton = true, limit, category, type }) => 
           </div>
         </div>
       ) : (
-        <div className={viewMode === 'grid' 
-          ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
+        <div className={viewMode === 'grid'
+          ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           : "space-y-3"
         }>
           {collections.map(collection => (
-            <CollectionCard 
-              key={collection._id} 
-              collection={collection} 
+            <CollectionCard
+              key={collection._id}
+              collection={collection}
               viewMode={viewMode}
             />
           ))}
         </div>
       )}
-      
+
       {/* Pagination */}
       {pagination.pages > 1 && (
         <div className="flex items-center justify-center space-x-2">
           <button
             disabled={pagination.current === 1}
-            className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-3 py-2 text-sm border border-input rounded-md hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed text-foreground"
           >
             Previous
           </button>
-          <span className="px-3 py-2 text-sm text-gray-700">
+          <span className="px-3 py-2 text-sm text-foreground">
             Page {pagination.current} of {pagination.pages}
           </span>
           <button
             disabled={pagination.current === pagination.pages}
-            className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-3 py-2 text-sm border border-input rounded-md hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed text-foreground"
           >
             Next
           </button>
         </div>
       )}
-      
+
       {/* Modals */}
       {showCreateModal && (
         <CreateCollectionModal
@@ -604,7 +602,7 @@ const CollectionsGrid = ({ showCreateButton = true, limit, category, type }) => 
           editCollection={selectedCollection}
         />
       )}
-      
+
       {showDetailsModal && selectedCollection && (
         <CollectionDetailsModal
           isOpen={showDetailsModal}
