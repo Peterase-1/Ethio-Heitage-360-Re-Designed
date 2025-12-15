@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  User, 
-  Settings, 
-  Shield, 
-  ChevronDown, 
+import {
+  User,
+  Settings,
+  Shield,
+  ChevronDown,
   Building2,
   Calendar,
   Eye,
@@ -38,20 +38,20 @@ const UserProfileDropdown = ({ className = "" }) => {
   const getRoleIcon = (role) => {
     switch (role) {
       case 'superAdmin':
-        return <Crown className="h-4 w-4 text-yellow-600" />;
+        return <Crown className="h-4 w-4 text-primary" />;
       case 'museumAdmin':
-        return <Building2 className="h-4 w-4 text-blue-600" />;
+        return <Building2 className="h-4 w-4 text-sky-600" />;
       case 'organizer':
-        return <Calendar className="h-4 w-4 text-green-600" />;
+        return <Calendar className="h-4 w-4 text-emerald-600" />;
       default:
-        return <Eye className="h-4 w-4 text-gray-600" />;
+        return <Eye className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
   const getRoleDisplayName = (role) => {
     const roleNames = {
       superAdmin: 'Super Administrator',
-      museumAdmin: 'Museum Administrator', 
+      museumAdmin: 'Museum Administrator',
       organizer: 'Tour Organizer',
       user: 'Visitor'
     };
@@ -68,13 +68,13 @@ const UserProfileDropdown = ({ className = "" }) => {
   };
 
   const lastLogin = localStorage.getItem('lastLogin');
-  const formattedLastLogin = lastLogin 
+  const formattedLastLogin = lastLogin
     ? new Date(lastLogin).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
     : 'Unknown';
 
   return (
@@ -82,53 +82,52 @@ const UserProfileDropdown = ({ className = "" }) => {
       {/* Profile Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+        className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted transition-colors duration-200"
         aria-expanded={isOpen}
         aria-haspopup="true"
       >
         {/* Avatar */}
-        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium text-sm">
+        <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium text-sm">
           {user.avatar ? (
-            <img 
-              src={user.avatar} 
-              alt={user.name} 
+            <img
+              src={user.avatar}
+              alt={user.name}
               className="h-full w-full rounded-full object-cover"
             />
           ) : (
             getInitials(user.name || user.email)
           )}
         </div>
-        
+
         {/* Name and Role */}
         <div className="hidden md:block text-left">
-          <p className="text-sm font-medium text-gray-900 truncate max-w-32">
+          <p className="text-sm font-medium text-foreground truncate max-w-32">
             {user.name || user.email}
           </p>
-          <p className="text-xs text-gray-500 flex items-center gap-1">
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
             {getRoleIcon(user.role)}
             {getRoleDisplayName(user.role)}
           </p>
         </div>
-        
+
         {/* Dropdown Arrow */}
-        <ChevronDown 
-          className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${
-            isOpen ? 'rotate-180' : ''
-          }`} 
+        <ChevronDown
+          className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''
+            }`}
         />
       </button>
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+        <div className="absolute right-0 mt-2 w-80 bg-card rounded-lg shadow-xl border border-border z-50">
           {/* User Info Header */}
-          <div className="px-4 py-3 border-b border-gray-200">
+          <div className="px-4 py-3 border-b border-border">
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium">
+              <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium">
                 {user.avatar ? (
-                  <img 
-                    src={user.avatar} 
-                    alt={user.name} 
+                  <img
+                    src={user.avatar}
+                    alt={user.name}
                     className="h-full w-full rounded-full object-cover"
                   />
                 ) : (
@@ -136,41 +135,41 @@ const UserProfileDropdown = ({ className = "" }) => {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 truncate">
+                <p className="text-sm font-semibold text-foreground truncate">
                   {user.name || 'Unnamed User'}
                 </p>
-                <p className="text-sm text-gray-600 truncate">
+                <p className="text-sm text-muted-foreground truncate">
                   {user.email}
                 </p>
                 <div className="flex items-center gap-1 mt-1">
                   {getRoleIcon(user.role)}
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-muted-foreground">
                     {getRoleDisplayName(user.role)}
                   </span>
                 </div>
               </div>
             </div>
-            
+
             {/* Last Login */}
-            <div className="mt-2 text-xs text-gray-500">
+            <div className="mt-2 text-xs text-muted-foreground">
               Last login: {formattedLastLogin}
             </div>
           </div>
 
           {/* Menu Items */}
           <div className="py-2">
-            <button className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors">
+            <button className="w-full px-4 py-2 text-left text-foreground hover:bg-muted flex items-center gap-3 transition-colors">
               <User className="h-4 w-4" />
               <span className="text-sm">Profile Settings</span>
             </button>
-            
-            <button className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors">
+
+            <button className="w-full px-4 py-2 text-left text-foreground hover:bg-muted flex items-center gap-3 transition-colors">
               <Settings className="h-4 w-4" />
               <span className="text-sm">Preferences</span>
             </button>
-            
+
             {(user.role === 'superAdmin' || user.role === 'museumAdmin') && (
-              <button className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors">
+              <button className="w-full px-4 py-2 text-left text-foreground hover:bg-muted flex items-center gap-3 transition-colors">
                 <Shield className="h-4 w-4" />
                 <span className="text-sm">Security</span>
               </button>
@@ -178,8 +177,8 @@ const UserProfileDropdown = ({ className = "" }) => {
           </div>
 
           {/* Logout Section */}
-          <div className="border-t border-gray-200 py-2">
-            <LogoutButton 
+          <div className="border-t border-border py-2">
+            <LogoutButton
               variant="dropdown"
               showConfirmModal={true}
               onLogoutStart={() => setIsOpen(false)}
