@@ -1,38 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Container,
-  Grid,
-  Paper,
-  Typography,
-  Box,
-  Card,
-  CardContent,
-  LinearProgress,
-  Avatar,
-  Chip,
-  Button,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemAvatar,
-  Badge,
-  Alert,
-  Skeleton
-} from '@mui/material';
-import {
-  School as SchoolIcon,
-  Assignment as AssignmentIcon,
-  EmojiEvents as TrophyIcon,
-  Schedule as ScheduleIcon,
-  TrendingUp as TrendingUpIcon,
-  Book as BookIcon,
-  Certificate as CertificateIcon,
-  Notifications as NotificationIcon,
-  PlayArrow as PlayIcon,
-  CheckCircle as CheckIcon
-} from '@mui/icons-material';
+  School,
+  BookOpen,
+  Trophy,
+  TrendingUp,
+  Award,
+  PlayCircle,
+  CheckCircle,
+  Clock,
+  LayoutDashboard,
+  FileText
+} from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const StudentDashboard = () => {
@@ -47,7 +26,7 @@ const StudentDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch dashboard stats
       const statsResponse = await fetch('/api/learning/stats', {
         headers: {
@@ -69,7 +48,7 @@ const StudentDashboard = () => {
           }
         })
       ]);
-      
+
       const progressData = await progressResponse.json();
       const enrollmentsData = await enrollmentsResponse.json();
 
@@ -102,20 +81,20 @@ const StudentDashboard = () => {
 
       // Generate recent activity based on actual enrollments
       const recentActivities = [];
-      
+
       if (enrollmentsData.enrollments && enrollmentsData.enrollments.length > 0) {
         enrollmentsData.enrollments.slice(0, 4).forEach((enrollment, index) => {
           const course = enrollment.course;
           const daysAgo = index + 1;
-          
+
           recentActivities.push({
             id: index + 1,
             type: 'course_enroll',
             title: `Enrolled in: ${course.title}`,
             time: `${daysAgo} day${daysAgo > 1 ? 's' : ''} ago`,
-            icon: <SchoolIcon color="info" />
+            icon: <School className="w-5 h-5 text-blue-500" />
           });
-          
+
           // Add lesson completion activities for enrolled courses
           if (enrollment.detailedProgress?.lessonsCompleted > 0) {
             recentActivities.push({
@@ -123,12 +102,12 @@ const StudentDashboard = () => {
               type: 'lesson_complete',
               title: `Completed lessons in: ${course.title}`,
               time: `${daysAgo} day${daysAgo > 1 ? 's' : ''} ago`,
-              icon: <CheckIcon color="success" />
+              icon: <CheckCircle className="w-5 h-5 text-green-500" />
             });
           }
         });
       }
-      
+
       // Add some default activities if no real data
       if (recentActivities.length === 0) {
         recentActivities.push(
@@ -137,18 +116,18 @@ const StudentDashboard = () => {
             type: 'welcome',
             title: 'Welcome to Ethiopian Heritage Learning!',
             time: 'Today',
-            icon: <SchoolIcon color="primary" />
+            icon: <School className="w-5 h-5 text-primary" />
           },
           {
             id: 2,
             type: 'info',
             title: 'Start by enrolling in your first course',
             time: 'Now',
-            icon: <BookIcon color="info" />
+            icon: <BookOpen className="w-5 h-5 text-blue-500" />
           }
         );
       }
-      
+
       setRecentActivity(recentActivities.slice(0, 4));
 
     } catch (error) {
@@ -186,7 +165,7 @@ const StudentDashboard = () => {
   };
 
   // Mock data for charts
-  const progressData = [
+  const chartData = [
     { name: 'Week 1', completed: 2, total: 5 },
     { name: 'Week 2', completed: 4, total: 7 },
     { name: 'Week 3', completed: 6, total: 10 },
@@ -203,361 +182,355 @@ const StudentDashboard = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Grid container spacing={3}>
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[...Array(8)].map((_, index) => (
-            <Grid item xs={12} sm={6} md={3} key={index}>
-              <Card>
-                <CardContent>
-                  <Skeleton variant="text" height={30} />
-                  <Skeleton variant="text" height={40} />
-                  <Skeleton variant="rectangular" height={60} />
-                </CardContent>
-              </Card>
-            </Grid>
+            <div key={index} className="bg-card border border-border rounded-lg p-6 space-y-4">
+              <div className="h-6 bg-muted rounded w-1/2 animate-pulse"></div>
+              <div className="h-8 bg-muted rounded w-3/4 animate-pulse"></div>
+              <div className="h-12 bg-muted rounded w-full animate-pulse"></div>
+            </div>
           ))}
-        </Grid>
-      </Container>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" gutterBottom>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-foreground mb-2">
           My Learning Dashboard
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
+        </h1>
+        <p className="text-muted-foreground">
           Track your progress in Ethiopian heritage studies
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
       {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="h4" color="primary">
-                    {dashboardData?.stats.enrolledCourses || 0}
-                  </Typography>
-                  <Typography color="text.secondary">
-                    Enrolled Courses
-                  </Typography>
-                </Box>
-                <Avatar sx={{ bgcolor: 'primary.main' }}>
-                  <SchoolIcon />
-                </Avatar>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-4xl font-bold text-primary mb-1">
+                {dashboardData?.stats.enrolledCourses || 0}
+              </p>
+              <p className="text-muted-foreground text-sm font-medium">
+                Enrolled Courses
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+              <School className="w-6 h-6" />
+            </div>
+          </div>
+        </div>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="h4" color="success.main">
-                    {dashboardData?.stats.completedLessons || 0}
-                  </Typography>
-                  <Typography color="text.secondary">
-                    Lessons Completed
-                  </Typography>
-                </Box>
-                <Avatar sx={{ bgcolor: 'success.main' }}>
-                  <BookIcon />
-                </Avatar>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+        <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-4xl font-bold text-green-500 mb-1">
+                {dashboardData?.stats.completedLessons || 0}
+              </p>
+              <p className="text-muted-foreground text-sm font-medium">
+                Lessons Completed
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center text-green-500">
+              <BookOpen className="w-6 h-6" />
+            </div>
+          </div>
+        </div>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="h4" color="warning.main">
-                    {dashboardData?.stats.currentStreak || 0}
-                  </Typography>
-                  <Typography color="text.secondary">
-                    Day Streak
-                  </Typography>
-                </Box>
-                <Avatar sx={{ bgcolor: 'warning.main' }}>
-                  <TrendingUpIcon />
-                </Avatar>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+        <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-4xl font-bold text-yellow-500 mb-1">
+                {dashboardData?.stats.currentStreak || 0}
+              </p>
+              <p className="text-muted-foreground text-sm font-medium">
+                Day Streak
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-yellow-500/10 rounded-full flex items-center justify-center text-yellow-500">
+              <TrendingUp className="w-6 h-6" />
+            </div>
+          </div>
+        </div>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography variant="h4" color="info.main">
-                    {dashboardData?.stats.certificates || 0}
-                  </Typography>
-                  <Typography color="text.secondary">
-                    Certificates
-                  </Typography>
-                </Box>
-                <Avatar sx={{ bgcolor: 'info.main' }}>
-                  <CertificateIcon />
-                </Avatar>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+        <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-4xl font-bold text-blue-500 mb-1">
+                {dashboardData?.stats.certificates || 0}
+              </p>
+              <p className="text-muted-foreground text-sm font-medium">
+                Certificates
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500">
+              <Award className="w-6 h-6" />
+            </div>
+          </div>
+        </div>
+      </div>
 
-      <Grid container spacing={3}>
-        {/* Current Courses */}
-        <Grid item xs={12} md={8}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Continue Learning
-              </Typography>
-              <Box sx={{ mb: 3 }}>
-                {dashboardData?.enrollments?.length > 0 ? (
-                  dashboardData.enrollments.slice(0, 3).map((enrollment, index) => {
-                    const course = enrollment.course;
-                    const progress = enrollment.progress || 0;
-                    const detailedProgress = enrollment.detailedProgress;
-                    
-                    return (
-                      <Box key={course._id || index} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                          <Typography variant="subtitle1">
-                            {course.title}
-                          </Typography>
-                          <Chip 
-                            label={`${Math.round(progress)}%`}
-                            color={enrollment.status === 'completed' ? 'success' : 'primary'}
-                            size="small"
-                          />
-                        </Box>
-                        <LinearProgress
-                          variant="determinate"
-                          value={progress}
-                          sx={{ mb: 1, height: 8, borderRadius: 4 }}
-                        />
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                          <Typography variant="body2" color="text.secondary">
-                            {detailedProgress?.lessonsCompleted || 0} of {course.totalLessons || 'N/A'} lessons completed
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {course.difficulty} • {course.category}
-                          </Typography>
-                        </Box>
-                        {detailedProgress?.totalTimeSpent > 0 && (
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                            Time spent: {Math.round(detailedProgress.totalTimeSpent / 60)} hours
-                            {detailedProgress.averageScore > 0 && ` • Average score: ${detailedProgress.averageScore}%`}
-                          </Typography>
-                        )}
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Button 
-                            size="small" 
-                            variant="outlined"
-                            color="primary"
-                            startIcon={<PlayIcon />}
-                            onClick={() => alert(`Continue learning: ${course.title}\n\nCourse functionality coming soon!`)}
-                          >
-                            Continue Learning
-                          </Button>
-                          <Button 
-                            size="small" 
-                            variant="text"
-                            onClick={() => alert(`Course Details: ${course.title}\n\nDescription: ${course.description || 'N/A'}\n\nInstructor: ${course.instructor || 'N/A'}`)}
-                          >
-                            View Details
-                          </Button>
-                        </Box>
-                      </Box>
-                    );
-                  })
-                ) : (
-                  <Alert severity="info" sx={{ mb: 2 }}>
-                    No enrolled courses yet. <Link to="/courses" style={{ textDecoration: 'none' }}>Browse courses</Link> to get started!
-                  </Alert>
-                )}
-              </Box>
-            </CardContent>
-          </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main Content Area */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* Current Courses */}
+          <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+            <h2 className="text-xl font-semibold text-foreground mb-4">
+              Continue Learning
+            </h2>
+            <div className="space-y-4">
+              {dashboardData?.enrollments?.length > 0 ? (
+                dashboardData.enrollments.slice(0, 3).map((enrollment, index) => {
+                  const course = enrollment.course;
+                  const progress = enrollment.progress || 0;
+                  const detailedProgress = enrollment.detailedProgress;
+
+                  return (
+                    <div key={course._id || index} className="border border-border rounded-lg p-4 bg-background">
+                      <div className="flex justify-between items-center mb-2">
+                        <h3 className="font-semibold text-foreground">{course.title}</h3>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${enrollment.status === 'completed'
+                            ? 'bg-green-500/10 text-green-500'
+                            : 'bg-primary/10 text-primary'
+                          }`}>
+                          {Math.round(progress)}%
+                        </span>
+                      </div>
+
+                      <div className="w-full bg-secondary rounded-full h-2 mb-3">
+                        <div
+                          className="bg-primary h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${progress}%` }}
+                        ></div>
+                      </div>
+
+                      <div className="flex justify-between items-center mb-3 text-sm text-muted-foreground">
+                        <span>{detailedProgress?.lessonsCompleted || 0} of {course.totalLessons || 'N/A'} lessons completed</span>
+                        <span>{course.difficulty} • {course.category}</span>
+                      </div>
+
+                      {detailedProgress?.totalTimeSpent > 0 && (
+                        <div className="text-xs text-muted-foreground mb-3">
+                          Time spent: {Math.round(detailedProgress.totalTimeSpent / 60)} hours
+                          {detailedProgress.averageScore > 0 && ` • Average score: ${detailedProgress.averageScore}%`}
+                        </div>
+                      )}
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => alert(`Continue learning: ${course.title}\n\nCourse functionality coming soon!`)}
+                          className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-primary border border-primary rounded-md hover:bg-primary/5 transition-colors"
+                        >
+                          <PlayCircle className="w-4 h-4" />
+                          Continue Learning
+                        </button>
+                        <button
+                          onClick={() => alert(`Course Details: ${course.title}\n\nDescription: ${course.description || 'N/A'}\n\nInstructor: ${course.instructor || 'N/A'}`)}
+                          className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          View Details
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="bg-blue-500/10 border border-blue-500/20 text-blue-600 p-4 rounded-lg flex gap-2 items-start">
+                  <div className="mt-0.5">ℹ️</div>
+                  <div>
+                    No enrolled courses yet. <Link to="/education-hub/courses" className="underline font-medium hover:text-blue-800">Browse courses</Link> to get started!
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Progress Chart */}
-          <Card sx={{ mt: 3 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Learning Progress
-              </Typography>
-              <Box sx={{ height: 300 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={progressData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="completed" stroke="#8884d8" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+          <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+            <h2 className="text-xl font-semibold text-foreground mb-4">
+              Learning Progress
+            </h2>
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--popover))',
+                      borderColor: 'hsl(var(--border))',
+                      color: 'hsl(var(--popover-foreground))',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Line type="monotone" dataKey="completed" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
 
         {/* Sidebar */}
-        <Grid item xs={12} md={4}>
+        <div className="space-y-8">
           {/* Recent Activity */}
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Recent Activity
-              </Typography>
-              <List>
-                {recentActivity.map((activity) => (
-                  <ListItem key={activity.id} sx={{ px: 0 }}>
-                    <ListItemAvatar>
-                      {activity.icon}
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={activity.title}
-                      secondary={activity.time}
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            </CardContent>
-          </Card>
+          <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+            <h2 className="text-xl font-semibold text-foreground mb-4">
+              Recent Activity
+            </h2>
+            <div className="space-y-4">
+              {recentActivity.map((activity) => (
+                <div key={activity.id} className="flex gap-3">
+                  <div className="mt-1 flex-shrink-0">
+                    {activity.icon}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{activity.title}</p>
+                    <p className="text-xs text-muted-foreground">{activity.time}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
           {/* Achievements */}
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Recent Achievements
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {dashboardData?.progress.achievements?.length > 0 ? (
-                  dashboardData.progress.achievements.slice(0, 6).map((achievement, index) => (
-                    <Chip
-                      key={index}
-                      label={achievement.achievementId}
-                      color="primary"
-                      variant="outlined"
-                      size="small"
-                      icon={<TrophyIcon />}
-                    />
-                  ))
-                ) : (
-                  <>
-                    <Chip label="First Steps" color="success" size="small" icon={<TrophyIcon />} />
-                    <Chip label="Dedicated Learner" color="warning" size="small" icon={<TrophyIcon />} />
-                    <Chip label="History Explorer" color="info" size="small" icon={<TrophyIcon />} />
-                  </>
-                )}
-              </Box>
-              <Button
-                component={Link}
-                to="/learning/achievements"
-                size="small"
-                sx={{ mt: 2 }}
-              >
-                View All Achievements
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+            <h2 className="text-xl font-semibold text-foreground mb-4">
+              Recent Achievements
+            </h2>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {dashboardData?.progress.achievements?.length > 0 ? (
+                dashboardData.progress.achievements.slice(0, 6).map((achievement, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20"
+                  >
+                    <Trophy className="w-3 h-3" />
+                    {achievement.achievementId}
+                  </span>
+                ))
+              ) : (
+                <>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-500 border border-green-500/20">
+                    <Trophy className="w-3 h-3" />
+                    First Steps
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">
+                    <Trophy className="w-3 h-3" />
+                    Dedicated Learner
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                    <Trophy className="w-3 h-3" />
+                    History Explorer
+                  </span>
+                </>
+              )}
+            </div>
+            <Link
+              to="/learning/achievements"
+              className="text-sm font-medium text-primary hover:underline"
+            >
+              View All Achievements
+            </Link>
+          </div>
 
           {/* Learning Stats */}
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Study Categories
-              </Typography>
-              <Box sx={{ height: 200 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={categoryData}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={60}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={(entry) => entry.name}
-                    >
-                      {categoryData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+          <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+            <h2 className="text-xl font-semibold text-foreground mb-4">
+              Study Categories
+            </h2>
+            <div className="h-[200px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={60}
+                    fill="#8884d8"
+                    dataKey="value"
+                    labelLine={false}
+                  >
+                    {categoryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--popover))',
+                      borderColor: 'hsl(var(--border))',
+                      color: 'hsl(var(--popover-foreground))',
+                      borderRadius: '8px'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="mt-4 flex flex-wrap justify-center gap-3">
+                {categoryData.map((entry, index) => (
+                  <div key={index} className="flex items-center gap-1.5 text-xs">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }}></div>
+                    <span className="text-muted-foreground">{entry.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Quick Actions */}
-      <Paper sx={{ p: 3, mt: 4 }}>
-        <Typography variant="h6" gutterBottom>
+      <div className="bg-card border border-border rounded-lg p-6 shadow-sm mt-8">
+        <h2 className="text-xl font-semibold text-foreground mb-4">
           Quick Actions
-        </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              component={Link}
-              to="/learning/courses"
-              variant="outlined"
-              fullWidth
-              startIcon={<SchoolIcon />}
-            >
-              Browse Courses
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              component={Link}
-              to="/learning/assignments"
-              variant="outlined"
-              fullWidth
-              startIcon={<AssignmentIcon />}
-            >
-              View Assignments
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              component={Link}
-              to="/learning/certificates"
-              variant="outlined"
-              fullWidth
-              startIcon={<CertificateIcon />}
-            >
-              My Certificates
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              component={Link}
-              to="/learning/progress"
-              variant="outlined"
-              fullWidth
-              startIcon={<TrendingUpIcon />}
-            >
-              Progress Report
-            </Button>
-          </Grid>
-        </Grid>
-      </Paper>
-    </Container>
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <Link
+            to="/education-hub/courses"
+            className="flex flex-col items-center justify-center p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors group"
+          >
+            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary group-hover:scale-110 transition-transform mb-3">
+              <School className="w-5 h-5" />
+            </div>
+            <span className="font-medium text-foreground">Browse Courses</span>
+          </Link>
+
+          <Link
+            to="/learning/assignments"
+            className="flex flex-col items-center justify-center p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors group"
+          >
+            <div className="w-10 h-10 bg-green-500/10 rounded-full flex items-center justify-center text-green-500 group-hover:scale-110 transition-transform mb-3">
+              <FileText className="w-5 h-5" />
+            </div>
+            <span className="font-medium text-foreground">View Assignments</span>
+          </Link>
+
+          <Link
+            to="/learning/certificates"
+            className="flex flex-col items-center justify-center p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors group"
+          >
+            <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform mb-3">
+              <Award className="w-5 h-5" />
+            </div>
+            <span className="font-medium text-foreground">My Certificates</span>
+          </Link>
+
+          <Link
+            to="/learning/progress"
+            className="flex flex-col items-center justify-center p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors group"
+          >
+            <div className="w-10 h-10 bg-yellow-500/10 rounded-full flex items-center justify-center text-yellow-500 group-hover:scale-110 transition-transform mb-3">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+            <span className="font-medium text-foreground">Progress Report</span>
+          </Link>
+        </div>
+      </div>
+    </div>
   );
 };
 
