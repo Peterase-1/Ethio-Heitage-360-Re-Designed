@@ -26,29 +26,29 @@ const InteractiveMap = ({ sites, selectedSite, onSiteSelect }) => {
     // Simple projection (not accurate, but works for demo)
     const mapWidth = 800;
     const mapHeight = 600;
-    
+
     // Ethiopia bounds approximately
     const minLat = 3, maxLat = 18;
     const minLng = 33, maxLng = 48;
-    
+
     const x = ((site.lng - minLng) / (maxLng - minLng)) * mapWidth;
     const y = ((maxLat - site.lat) / (maxLat - minLat)) * mapHeight;
-    
+
     return { x: `${x}px`, y: `${y}px` };
   };
 
   return (
     <div className="relative h-full bg-background">
       {/* Map Container */}
-      <div 
+      <div
         ref={mapRef}
-        className="relative w-full h-full bg-gradient-to-br from-green-100 to-blue-100 overflow-hidden"
+        className="relative w-full h-full bg-gradient-to-br from-green-500/5 to-blue-500/5 overflow-hidden"
         style={{
           backgroundImage: `
-            linear-gradient(45deg, rgba(34, 197, 94, 0.1) 25%, transparent 25%),
-            linear-gradient(-45deg, rgba(34, 197, 94, 0.1) 25%, transparent 25%),
-            linear-gradient(45deg, transparent 75%, rgba(34, 197, 94, 0.1) 75%),
-            linear-gradient(-45deg, transparent 75%, rgba(34, 197, 94, 0.1) 75%)
+            linear-gradient(45deg, rgba(var(--primary), 0.05) 25%, transparent 25%),
+            linear-gradient(-45deg, rgba(var(--primary), 0.05) 25%, transparent 25%),
+            linear-gradient(45deg, transparent 75%, rgba(var(--primary), 0.05) 75%),
+            linear-gradient(-45deg, transparent 75%, rgba(var(--primary), 0.05) 75%)
           `,
           backgroundSize: '60px 60px',
           backgroundPosition: '0 0, 0 30px, 30px -30px, -30px 0px'
@@ -65,35 +65,31 @@ const InteractiveMap = ({ sites, selectedSite, onSiteSelect }) => {
         {sites.map(site => {
           const position = getMarkerPosition(site);
           const isSelected = selectedSite?.id === site.id;
-          
+
           return (
             <div
               key={site.id}
               onClick={() => handleMarkerClick(site)}
-              className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-200 hover:scale-110 ${
-                isSelected ? 'z-20 scale-125' : 'z-10'
-              }`}
+              className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-200 hover:scale-110 ${isSelected ? 'z-20 scale-125' : 'z-10'
+                }`}
               style={{ left: position.x, top: position.y }}
             >
               {/* Marker Pin */}
-              <div className={`relative ${
-                isSelected ? 'animate-pulse' : ''
-              }`}>
-                <MapPin 
-                  className={`w-8 h-8 ${
-                    site.category === 'UNESCO World Heritage' 
-                      ? 'text-yellow-600' 
+              <div className={`relative ${isSelected ? 'animate-pulse' : ''
+                }`}>
+                <MapPin
+                  className={`w-8 h-8 ${site.category === 'UNESCO World Heritage'
+                      ? 'text-yellow-500'
                       : site.category === 'Natural Heritage'
-                      ? 'text-green-600'
-                      : 'text-primary'
-                  } drop-shadow-lg`}
+                        ? 'text-green-500'
+                        : 'text-primary'
+                    } drop-shadow-lg`}
                   fill="currentColor"
                 />
-                
+
                 {/* Site Label */}
-                <div className={`absolute top-8 left-1/2 transform -translate-x-1/2 transition-all duration-200 ${
-                  isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100'
-                }`}>
+                <div className={`absolute top-8 left-1/2 transform -translate-x-1/2 transition-all duration-200 ${isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100'
+                  }`}>
                   <div className="bg-card border border-border rounded-lg px-3 py-2 shadow-lg whitespace-nowrap">
                     <div className="text-sm font-semibold text-foreground">
                       {site.name}
@@ -115,17 +111,17 @@ const InteractiveMap = ({ sites, selectedSite, onSiteSelect }) => {
       {/* Map Controls */}
       <div className="absolute top-4 right-4 bg-card border border-border rounded-lg p-2 shadow-lg">
         <div className="flex flex-col space-y-2">
-          <button 
+          <button
             onClick={() => setZoom(Math.min(zoom + 1, 12))}
             className="p-2 hover:bg-muted rounded text-foreground transition-colors"
           >
-            +
+            <ZoomIn className="w-4 h-4" />
           </button>
-          <button 
+          <button
             onClick={() => setZoom(Math.max(zoom - 1, 4))}
             className="p-2 hover:bg-muted rounded text-foreground transition-colors"
           >
-            -
+            <ZoomOut className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -151,7 +147,7 @@ const InteractiveMap = ({ sites, selectedSite, onSiteSelect }) => {
                 {selectedSite.category}
               </div>
             </div>
-            <button 
+            <button
               onClick={() => onSiteSelect(null)}
               className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors"
             >
@@ -166,11 +162,11 @@ const InteractiveMap = ({ sites, selectedSite, onSiteSelect }) => {
         <h4 className="text-sm font-semibold text-foreground mb-2">Legend</h4>
         <div className="space-y-1 text-xs">
           <div className="flex items-center">
-            <MapPin className="w-4 h-4 text-yellow-600 mr-2" />
+            <MapPin className="w-4 h-4 text-yellow-500 mr-2" />
             <span>UNESCO World Heritage</span>
           </div>
           <div className="flex items-center">
-            <MapPin className="w-4 h-4 text-green-600 mr-2" />
+            <MapPin className="w-4 h-4 text-green-500 mr-2" />
             <span>Natural Heritage</span>
           </div>
           <div className="flex items-center">

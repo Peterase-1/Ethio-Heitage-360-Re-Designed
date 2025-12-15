@@ -1,11 +1,11 @@
 import React from 'react';
-import { 
-  FileText, 
-  Download, 
-  Clock, 
-  Star, 
-  Eye, 
-  Calendar 
+import {
+  FileText,
+  Download,
+  Clock,
+  Star,
+  Eye,
+  Calendar
 } from 'lucide-react';
 
 const StudyGuideCard = ({ guide }) => {
@@ -25,26 +25,26 @@ const StudyGuideCard = ({ guide }) => {
 
   const getCategoryColor = (category) => {
     const colors = {
-      history: 'bg-blue-100 text-blue-800',
-      culture: 'bg-purple-100 text-purple-800',
-      archaeology: 'bg-amber-100 text-amber-800',
-      language: 'bg-emerald-100 text-emerald-800',
-      art: 'bg-pink-100 text-pink-800',
-      traditions: 'bg-indigo-100 text-indigo-800'
+      history: 'bg-blue-500/10 text-blue-500',
+      culture: 'bg-purple-500/10 text-purple-500',
+      archaeology: 'bg-amber-500/10 text-amber-500',
+      language: 'bg-emerald-500/10 text-emerald-500',
+      art: 'bg-pink-500/10 text-pink-500',
+      traditions: 'bg-indigo-500/10 text-indigo-500'
     };
-    return colors[category] || 'bg-gray-100 text-gray-800';
+    return colors[category] || 'bg-muted text-muted-foreground';
   };
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
       case 'beginner':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-500/10 text-green-500';
       case 'intermediate':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-500/10 text-yellow-500';
       case 'advanced':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-500/10 text-red-500';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -60,16 +60,16 @@ const StudyGuideCard = ({ guide }) => {
               {guide.difficulty}
             </span>
           </div>
-          
+
           <h3 className="text-lg font-bold text-foreground mb-2 line-clamp-2">
             {guide.title}
           </h3>
-          
+
           <p className="text-muted-foreground text-sm mb-4 line-clamp-3">
             {guide.description}
           </p>
         </div>
-        
+
         <div className="flex-shrink-0 ml-4">
           <FileText className="h-8 w-8 text-primary" />
         </div>
