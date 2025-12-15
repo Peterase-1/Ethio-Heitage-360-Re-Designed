@@ -237,10 +237,11 @@ const MuseumAdminSidebar = () => {
           }}
           className={`w-full flex items-center justify-between px-4 py-3 text-left rounded-lg transition-all duration-200 ${isItemActive
             ? 'text-white shadow-sm'
-            : 'text-black hover:bg-gray-50 hover:shadow-sm'
+            : 'text-foreground hover:bg-muted hover:shadow-sm'
             }`}
           style={{
-            backgroundColor: isItemActive ? '#8B5A3C' : 'transparent'
+            backgroundColor: isItemActive ? 'hsl(var(--primary))' : 'transparent',
+            color: isItemActive ? 'hsl(var(--primary-foreground))' : 'inherit'
           }}
         >
           <div className="flex items-center space-x-3">
@@ -267,10 +268,11 @@ const MuseumAdminSidebar = () => {
                   onClick={() => handleNavigation(subItem.path)}
                   className={`w-full text-left px-3 py-2 text-sm rounded-md transition-all duration-200 flex items-center space-x-2 ${isActive(subItem.path)
                     ? 'text-white shadow-sm'
-                    : 'text-black hover:bg-gray-50 hover:shadow-sm'
+                    : 'text-foreground hover:bg-muted hover:shadow-sm'
                     }`}
                   style={{
-                    backgroundColor: isActive(subItem.path) ? '#8B5A3C' : 'transparent'
+                    backgroundColor: isActive(subItem.path) ? 'hsl(var(--primary))' : 'transparent',
+                    color: isActive(subItem.path) ? 'hsl(var(--primary-foreground))' : 'inherit'
                   }}
                 >
                   <SubIcon className="h-4 w-4" />
@@ -286,16 +288,16 @@ const MuseumAdminSidebar = () => {
 
 
   return (
-    <div className="w-80 bg-white shadow-lg border-r border-gray-200 flex flex-col min-h-screen flex-shrink-0">
+    <div className="w-80 bg-background shadow-lg border-r border-border flex flex-col min-h-screen flex-shrink-0">
       {/* Header */}
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-6 border-b border-border">
         <div className="flex items-center space-x-3 mb-4">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#8B5A3C' }}>
-            <Building2 className="h-6 w-6 text-white" />
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-primary">
+            <Building2 className="h-6 w-6 text-primary-foreground" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-black tracking-tight">Museum Admin</h2>
-            <p className="text-sm text-black font-medium" style={{ opacity: 0.7 }}>{user?.museumName || 'Museum Dashboard'}</p>
+            <h2 className="text-xl font-semibold text-foreground tracking-tight">Museum Admin</h2>
+            <p className="text-sm text-muted-foreground font-medium">{user?.museumName || 'Museum Dashboard'}</p>
           </div>
         </div>
       </div>
@@ -311,7 +313,7 @@ const MuseumAdminSidebar = () => {
       >
         {/* Core Features */}
         <div className="p-4">
-          <h3 className="text-sm font-semibold tracking-wide mb-3" style={{ color: '#8B5A3C' }}>
+          <h3 className="text-sm font-semibold tracking-wide mb-3 text-primary">
             Core Management
           </h3>
           <nav className="space-y-1">
@@ -320,8 +322,8 @@ const MuseumAdminSidebar = () => {
         </div>
 
         {/* Analytics Section */}
-        <div className="p-4 border-t border-gray-100">
-          <h3 className="text-sm font-semibold tracking-wide mb-3" style={{ color: '#8B5A3C' }}>
+        <div className="p-4 border-t border-border">
+          <h3 className="text-sm font-semibold tracking-wide mb-3 text-primary">
             Analytics & Insights
           </h3>
           <nav className="space-y-1">
@@ -330,8 +332,8 @@ const MuseumAdminSidebar = () => {
         </div>
 
         {/* Communication Section */}
-        <div className="p-4 border-t border-gray-100">
-          <h3 className="text-sm font-semibold tracking-wide mb-3" style={{ color: '#8B5A3C' }}>
+        <div className="p-4 border-t border-border">
+          <h3 className="text-sm font-semibold tracking-wide mb-3 text-primary">
             Communications
           </h3>
           <nav className="space-y-1">
@@ -340,8 +342,8 @@ const MuseumAdminSidebar = () => {
         </div>
 
         {/* Settings Section */}
-        <div className="p-4 border-t border-gray-100">
-          <h3 className="text-sm font-semibold tracking-wide mb-3" style={{ color: '#8B5A3C' }}>
+        <div className="p-4 border-t border-border">
+          <h3 className="text-sm font-semibold tracking-wide mb-3 text-primary">
             Configuration
           </h3>
           <nav className="space-y-1">
@@ -351,21 +353,20 @@ const MuseumAdminSidebar = () => {
       </div>
 
       {/* User Profile & Logout */}
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-4 border-t border-border">
         <div className="flex items-center space-x-3 mb-3">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#8B5A3C' }}>
-            <User className="h-5 w-5 text-white" />
+          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-primary">
+            <User className="h-5 w-5 text-primary-foreground" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-semibold text-black tracking-wide">{user?.name || 'Museum Admin'}</p>
-            <p className="text-xs font-medium text-black" style={{ opacity: 0.7 }}>{user?.email}</p>
+            <p className="text-sm font-semibold text-foreground tracking-wide">{user?.name || 'Museum Admin'}</p>
+            <p className="text-xs font-medium text-muted-foreground">{user?.email}</p>
           </div>
         </div>
 
         <button
           onClick={handleLogout}
-          className="w-full flex items-center space-x-3 px-3 py-2 text-left hover:bg-gray-50 rounded-lg transition-all duration-200"
-          style={{ color: '#8B5A3C' }}
+          className="w-full flex items-center space-x-3 px-3 py-2 text-left hover:bg-muted rounded-lg transition-all duration-200 text-primary"
         >
           <LogOut className="h-4 w-4" />
           <span className="text-sm font-semibold tracking-wide">Sign Out</span>

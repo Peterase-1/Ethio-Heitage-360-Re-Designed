@@ -1,19 +1,41 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
-  Box, Button, Card, CardContent, CardMedia, Chip, Dialog, DialogActions,
-  DialogContent, DialogTitle, Divider, Grid, IconButton, LinearProgress,
-  MenuItem, Paper, Select, Table, TableBody, TableCell, TableContainer,
-  TableHead, TablePagination, TableRow, TextField, Typography, useTheme,
-  Avatar, FormControl, InputLabel, Snackbar, Alert, Tooltip, CardHeader, List, ListItem, ListItemAvatar, ListItemText, Collapse
-} from '@mui/material';
+  Search,
+  Filter,
+  CheckCircle,
+  XCircle,
+  Trash2,
+  Edit2,
+  Eye,
+  RefreshCw,
+  Plus,
+  Landmark,
+  X
+} from 'lucide-react';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
 import {
-  Search as SearchIcon, FilterList as FilterListIcon, CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon, Delete as DeleteIcon, Edit as EditIcon, Visibility as VisibilityIcon,
-  Refresh as RefreshIcon, Add as AddIcon, Museum as MuseumIcon, Close as CloseIcon
-} from '@mui/icons-material';
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "../ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Separator } from '../ui/separator';
+import { toast } from 'sonner';
 
-const MuseumManagement = ({ museums, onAdd, onUpdate, onDelete, loading = false, setMuseums, enqueueSnackbar }) => {
-  const theme = useTheme();
+const MuseumManagement = ({ museums, onAdd, onUpdate, onDelete, loading = false, setMuseums }) => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,20 +51,10 @@ const MuseumManagement = ({ museums, onAdd, onUpdate, onDelete, loading = false,
     contactPhone: '',
     website: '',
   });
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
-
-  const handleChangePage = (event, newPage) => setPage(newPage);
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
 
   const handleSearchChange = (event) => {
     setSearchQuery(event.target.value);
+    setPage(0);
   };
 
   const handleFormChange = (event) => {
@@ -69,10 +81,10 @@ const MuseumManagement = ({ museums, onAdd, onUpdate, onDelete, loading = false,
       name: museum.name,
       location: museum.location,
       description: museum.description,
-      imageUrl: museum.imageUrl,
-      contactEmail: museum.contactEmail,
-      contactPhone: museum.contactPhone,
-      website: museum.website,
+      imageUrl: museum.imageUrl || '',
+      contactEmail: museum.contactEmail || '',
+      contactPhone: museum.contactPhone || '',
+      website: museum.website || '',
     });
     setEditDialogOpen(true);
   };
@@ -86,16 +98,15 @@ const MuseumManagement = ({ museums, onAdd, onUpdate, onDelete, loading = false,
     try {
       if (selectedMuseum) {
         await onUpdate(selectedMuseum.id, formData);
-        enqueueSnackbar('Museum updated successfully!', { variant: 'success' });
+        toast.success('Museum updated successfully!');
       } else {
         await onAdd(formData);
-        enqueueSnackbar('Museum added successfully!', { variant: 'success' });
+        toast.success('Museum added successfully!');
       }
       setEditDialogOpen(false);
-      setSnackbar({ open: true, message: 'Operation successful!', severity: 'success' });
     } catch (error) {
       console.error('Error saving museum:', error);
-      setSnackbar({ open: true, message: 'Operation failed!', severity: 'error' });
+      toast.error('Operation failed!');
     }
   };
 
@@ -103,10 +114,10 @@ const MuseumManagement = ({ museums, onAdd, onUpdate, onDelete, loading = false,
     try {
       await onDelete(selectedMuseum.id);
       setDeleteDialogOpen(false);
-      setSnackbar({ open: true, message: 'Museum deleted successfully!', severity: 'success' });
+      toast.success('Museum deleted successfully!');
     } catch (error) {
       console.error('Error deleting museum:', error);
-      setSnackbar({ open: true, message: 'Deletion failed!', severity: 'error' });
+      toast.error('Deletion failed!');
     }
   };
 
@@ -121,215 +132,231 @@ const MuseumManagement = ({ museums, onAdd, onUpdate, onDelete, loading = false,
     page * rowsPerPage + rowsPerPage
   );
 
+  const totalPages = Math.ceil(filteredMuseums.length / rowsPerPage);
+
   return (
-    <Paper sx={{ p: 3, mb: 3 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h5" component="h2" fontWeight="bold">
-          Museum Management
-        </Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddClick}>
-          Add New Museum
+    <Card className="mb-6">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+        <CardTitle className="text-2xl font-bold">Museum Management</CardTitle>
+        <Button onClick={handleAddClick} className="bg-primary hover:bg-primary/90">
+          <Plus className="mr-2 h-4 w-4" /> Add New Museum
         </Button>
-      </Box>
+      </CardHeader>
 
-      <Divider sx={{ my: 2 }} />
+      <CardContent>
+        <div className="flex items-center gap-4 mb-6">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search Museums..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              className="pl-8"
+            />
+          </div>
+        </div>
 
-      <Box display="flex" gap={2} mb={2} flexWrap="wrap">
-        <TextField
-          label="Search Museums"
-          variant="outlined"
-          size="small"
-          value={searchQuery}
-          onChange={handleSearchChange}
-          InputProps={{
-            startAdornment: <SearchIcon sx={{ mr: 1 }} />,
-          }}
-        />
-      </Box>
-
-      {loading ? (
-        <LinearProgress sx={{ my: 2 }} />
-      ) : filteredMuseums.length === 0 ? (
-        <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
-          No museums found matching your criteria.
-        </Typography>
-      ) : (
-        <TableContainer component={Paper} sx={{ mt: 2 }}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Image</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Location</TableCell>
-                <TableCell>Contact</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {paginatedMuseums.map((museum) => (
-                <TableRow key={museum.id}>
-                  <TableCell>
-                    <CardMedia
-                      component="img"
-                      sx={{ width: 60, height: 60, borderRadius: 1, objectFit: 'cover' }}
-                      image={museum.imageUrl || 'https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=60&h=60&fit=crop&crop=center'}
-                      alt={museum.name}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="subtitle2">{museum.name}</Typography>
-                    <Typography variant="body2" color="text.secondary">{museum.description.substring(0, 50)}...</Typography>
-                  </TableCell>
-                  <TableCell>{museum.location}</TableCell>
-                  <TableCell>
-                    <Typography variant="body2">{museum.contactEmail}</Typography>
-                    <Typography variant="body2">{museum.contactPhone}</Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', gap: 0.5 }}>
-                      <Tooltip title="Edit Museum">
-                        <IconButton size="small" color="primary" onClick={() => handleEditClick(museum)}>
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete Museum">
-                        <IconButton size="small" color="error" onClick={() => handleDeleteClick(museum)}>
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  </TableCell>
+        {loading ? (
+          <div className="flex justify-center p-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : filteredMuseums.length === 0 ? (
+          <div className="text-center p-8 text-muted-foreground">
+            No museums found matching your criteria.
+          </div>
+        ) : (
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[80px]">Image</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <TablePagination
-            rowsPerPageOptions={[5, 10, 25]}
-            component="div"
-            count={filteredMuseums.length}
-            rowsPerPage={rowsPerPage}
-            page={page}
-            onPageChange={handleChangePage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-          />
-        </TableContainer>
-      )}
+              </TableHeader>
+              <TableBody>
+                {paginatedMuseums.map((museum) => (
+                  <TableRow key={museum.id}>
+                    <TableCell>
+                      <img
+                        src={museum.imageUrl || 'https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=60&h=60&fit=crop&crop=center'}
+                        alt={museum.name}
+                        className="h-10 w-10 rounded-md object-cover"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">{museum.name}</div>
+                      <div className="text-xs text-muted-foreground truncate max-w-[200px]">
+                        {museum.description?.substring(0, 50)}...
+                      </div>
+                    </TableCell>
+                    <TableCell>{museum.location}</TableCell>
+                    <TableCell>
+                      <div className="text-sm">{museum.contactEmail}</div>
+                      <div className="text-xs text-muted-foreground">{museum.contactPhone}</div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleEditClick(museum)}
+                        >
+                          <Edit2 className="h-4 w-4 text-primary" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleDeleteClick(museum)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {filteredMuseums.length > 0 && (
+          <div className="flex items-center justify-end space-x-2 py-4">
+            <div className="text-sm text-muted-foreground flex-1">
+              Page {page + 1} of {totalPages}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              disabled={page >= totalPages - 1}
+            >
+              Next
+            </Button>
+          </div>
+        )}
+      </CardContent>
 
       {/* Add/Edit Museum Dialog */}
-      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>{selectedMuseum ? 'Edit Museum' : 'Add New Museum'}</DialogTitle>
-        <DialogContent dividers>
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <TextField
-                autoFocus
-                margin="dense"
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedMuseum ? 'Edit Museum' : 'Add New Museum'}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Museum Name</Label>
+              <Input
+                id="name"
                 name="name"
-                label="Museum Name"
-                type="text"
-                fullWidth
                 value={formData.name}
                 onChange={handleFormChange}
+                placeholder="e.g. National Museum"
               />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                margin="dense"
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
                 name="location"
-                label="Location"
-                type="text"
-                fullWidth
                 value={formData.location}
                 onChange={handleFormChange}
+                placeholder="e.g. Addis Ababa"
               />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                margin="dense"
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
                 name="description"
-                label="Description"
-                type="text"
-                fullWidth
-                multiline
-                rows={3}
                 value={formData.description}
                 onChange={handleFormChange}
+                rows={3}
+                placeholder="Brief description of the museum"
               />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                margin="dense"
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="imageUrl">Image URL</Label>
+              <Input
+                id="imageUrl"
                 name="imageUrl"
-                label="Image URL"
-                type="text"
-                fullWidth
                 value={formData.imageUrl}
                 onChange={handleFormChange}
+                placeholder="https://..."
               />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                margin="dense"
-                name="contactEmail"
-                label="Contact Email"
-                type="email"
-                fullWidth
-                value={formData.contactEmail}
-                onChange={handleFormChange}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                margin="dense"
-                name="contactPhone"
-                label="Contact Phone"
-                type="text"
-                fullWidth
-                value={formData.contactPhone}
-                onChange={handleFormChange}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                margin="dense"
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="contactEmail">Contact Email</Label>
+                <Input
+                  id="contactEmail"
+                  name="contactEmail"
+                  type="email"
+                  value={formData.contactEmail}
+                  onChange={handleFormChange}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="contactPhone">Contact Phone</Label>
+                <Input
+                  id="contactPhone"
+                  name="contactPhone"
+                  value={formData.contactPhone}
+                  onChange={handleFormChange}
+                />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="website">Website URL</Label>
+              <Input
+                id="website"
                 name="website"
-                label="Website URL"
-                type="text"
-                fullWidth
                 value={formData.website}
                 onChange={handleFormChange}
               />
-            </Grid>
-          </Grid>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSave} className="bg-primary text-primary-foreground hover:bg-primary/90">
+              {selectedMuseum ? 'Update' : 'Add'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleSave} variant="contained" color="primary">
-            {selectedMuseum ? 'Update' : 'Add'}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Delete Museum Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Delete Museum: {selectedMuseum?.name}</DialogTitle>
-        <DialogContent>
-          <Typography>Are you sure you want to delete this museum? This action cannot be undone.</Typography>
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Delete Museum</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            Are you sure you want to delete <span className="font-semibold">{selectedMuseum?.name}</span>? This action cannot be undone.
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleDelete} variant="destructive">
+              Delete
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleDelete} color="error" variant="contained">
-            Delete
-          </Button>
-        </DialogActions>
       </Dialog>
-
-      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
-        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Paper>
+    </Card>
   );
 };
 
