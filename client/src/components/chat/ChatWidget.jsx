@@ -36,23 +36,23 @@ const ChatWidget = ({ isOpen, toggleChat }) => {
   };
 
   return (
-    <div className={`fixed bottom-4 right-4 bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300 ${isOpen ? 'w-80 h-96' : 'w-16 h-16'}`}>
+    <div className={`fixed bottom-4 right-4 bg-card border border-border rounded-lg shadow-lg overflow-hidden transition-all duration-300 ${isOpen ? 'w-80 h-96' : 'w-16 h-16'}`}>
       {!isOpen ? (
         <button
           onClick={toggleChat}
-          className="w-full h-full flex items-center justify-center bg-amber-600 text-white rounded-lg hover:bg-amber-700"
+          className="w-full h-full flex items-center justify-center bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
         >
           <MessageSquare className="h-8 w-8" />
         </button>
       ) : (
         <div className="flex flex-col h-full">
-          <div className="flex items-center justify-between p-4 bg-amber-600 text-white">
+          <div className="flex items-center justify-between p-4 bg-primary text-primary-foreground">
             <h3 className="font-semibold">Chat with Support</h3>
-            <button onClick={toggleChat} className="p-1 rounded-full hover:bg-amber-700">
+            <button onClick={toggleChat} className="p-1 rounded-full hover:bg-primary/80">
               <X className="h-5 w-5" />
             </button>
           </div>
-          <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-gray-50">
+          <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-muted/20">
             {messages.map((msg) => (
               <div
                 key={msg.id}
@@ -61,11 +61,11 @@ const ChatWidget = ({ isOpen, toggleChat }) => {
                 <div
                   className={`flex items-start space-x-2 ${msg.sender === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}
                 >
-                  <div className={`p-2 rounded-full ${msg.sender === 'user' ? 'bg-amber-600 text-white' : 'bg-gray-300 text-gray-800'}`}>
+                  <div className={`p-2 rounded-full ${msg.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}`}>
                     {msg.sender === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
                   </div>
                   <div
-                    className={`max-w-[70%] p-3 rounded-lg ${msg.sender === 'user' ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-800'}`}
+                    className={`max-w-[70%] p-3 rounded-lg ${msg.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}`}
                   >
                     {msg.text}
                   </div>
@@ -74,18 +74,18 @@ const ChatWidget = ({ isOpen, toggleChat }) => {
             ))}
             <div ref={messagesEndRef} />
           </div>
-          <div className="p-4 border-t border-gray-200 flex items-center">
+          <div className="p-4 border-t border-border flex items-center bg-card">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Type a message..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              className="flex-1 px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
             />
             <button
               onClick={handleSend}
-              className="ml-2 p-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700"
+              className="ml-2 p-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
             >
               <Send className="h-5 w-5" />
             </button>

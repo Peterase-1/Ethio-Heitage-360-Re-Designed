@@ -19,7 +19,7 @@ const EnhancedChatbot = () => {
   useEffect(() => {
     const userRole = user?.role || 'visitor';
     const config = getChatbotConfigForRole(userRole);
-    
+
     const welcomeMessage = {
       id: 'welcome',
       text: config.welcomeMessage,
@@ -158,7 +158,7 @@ const EnhancedChatbot = () => {
       <div className="fixed bottom-6 right-6 z-50">
         <button
           onClick={toggleChat}
-          className="w-16 h-16 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center justify-center group"
+          className="w-16 h-16 bg-primary text-primary-foreground rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center justify-center group"
           aria-label="Open chat"
         >
           <MessageSquare className="h-8 w-8 group-hover:scale-110 transition-transform" />
@@ -170,16 +170,16 @@ const EnhancedChatbot = () => {
   // Full screen chat
   if (isFullScreen) {
     return (
-      <div className="fixed inset-0 bg-white dark:bg-gray-900 flex flex-col z-50">
+      <div className="fixed inset-0 bg-background flex flex-col z-50">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md">
+        <div className="flex items-center justify-between p-4 bg-primary text-primary-foreground shadow-md">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center">
               <Bot className="h-6 w-6" />
             </div>
             <div>
               <h3 className="font-semibold text-lg">EthioHeritage360 Assistant</h3>
-              <p className="text-sm text-amber-100">Always here to help</p>
+              <p className="text-sm text-primary-foreground/80">Always here to help</p>
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -208,14 +208,14 @@ const EnhancedChatbot = () => {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 p-6 overflow-y-auto bg-gray-50 dark:bg-gray-800 space-y-4">
+        <div className="flex-1 p-6 overflow-y-auto bg-muted/20 space-y-4">
           {messages.map((msg) => (
             <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`flex items-start space-x-3 max-w-[80%] ${msg.sender === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                <div className={`p-2 rounded-full ${msg.sender === 'user' ? 'bg-amber-600 text-white' : 'bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200'}`}>
+                <div className={`p-2 rounded-full ${msg.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}`}>
                   {msg.sender === 'user' ? <User className="h-5 w-5" /> : <Bot className="h-5 w-5" />}
                 </div>
-                <div className={`p-4 rounded-2xl shadow-sm ${msg.sender === 'user' ? 'bg-amber-500 text-white' : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600'}`}>
+                <div className={`p-4 rounded-2xl shadow-sm ${msg.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-card text-card-foreground border border-border'}`}>
                   <p className="whitespace-pre-wrap">{msg.text}</p>
                   {msg.references && msg.references.length > 0 && (
                     <div className="mt-3 space-y-2">
@@ -229,8 +229,8 @@ const EnhancedChatbot = () => {
                               <>
                                 {ref.title && <div className="font-medium text-gray-800 dark:text-gray-200">{ref.title}</div>}
                                 {ref.url && (
-                                  <a href={ref.url} target="_blank" rel="noopener noreferrer" 
-                                     className="text-amber-600 dark:text-amber-400 hover:underline flex items-center mt-1">
+                                  <a href={ref.url} target="_blank" rel="noopener noreferrer"
+                                    className="text-amber-600 dark:text-amber-400 hover:underline flex items-center mt-1">
                                     <ExternalLink className="w-3 h-3 mr-1" />
                                     {ref.url}
                                   </a>
@@ -245,12 +245,12 @@ const EnhancedChatbot = () => {
                   )}
                   {msg.suggestions && msg.suggestions.length > 0 && (
                     <div className="mt-3 space-y-2">
-                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Suggested questions:</p>
+                      <p className="text-sm font-medium text-muted-foreground">Suggested questions:</p>
                       {msg.suggestions.map((suggestion, index) => (
                         <button
                           key={index}
                           onClick={() => handleSuggestionClick(suggestion)}
-                          className="block w-full text-left text-sm bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 p-2 rounded-lg transition-colors"
+                          className="block w-full text-left text-sm bg-muted hover:bg-muted/80 p-2 rounded-lg transition-colors text-foreground"
                         >
                           {suggestion}
                         </button>
@@ -287,7 +287,7 @@ const EnhancedChatbot = () => {
         </div>
 
         {/* Input */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+        <div className="p-4 border-t border-border bg-background">
           <div className="flex items-end space-x-3">
             <div className="flex-1">
               <textarea
@@ -295,7 +295,7 @@ const EnhancedChatbot = () => {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Ask me about Ethiopian heritage, tours, or anything else..."
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-2xl focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                className="w-full px-4 py-3 border border-input rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent resize-none bg-background text-foreground"
                 rows="2"
                 disabled={isLoading}
               />
@@ -303,7 +303,7 @@ const EnhancedChatbot = () => {
             <button
               onClick={handleSend}
               disabled={!input.trim() || isLoading}
-              className="p-3 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-2xl hover:from-amber-700 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105"
+              className="p-3 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105"
             >
               <Send className="h-6 w-6" />
             </button>
@@ -315,16 +315,16 @@ const EnhancedChatbot = () => {
 
   // Regular chat window
   return (
-    <div className="fixed bottom-6 right-6 w-96 h-[32rem] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden z-50 border border-gray-200 dark:border-gray-700">
+    <div className="fixed bottom-6 right-6 w-96 h-[32rem] bg-card rounded-2xl shadow-2xl overflow-hidden z-50 border border-border">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-amber-600 to-orange-600 text-white">
+      <div className="flex items-center justify-between p-4 bg-primary text-primary-foreground">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+          <div className="w-8 h-8 bg-primary-foreground/20 rounded-full flex items-center justify-center">
             <Bot className="h-5 w-5" />
           </div>
           <div>
             <h3 className="font-semibold">Heritage Assistant</h3>
-            <p className="text-xs text-amber-100">Online now</p>
+            <p className="text-xs text-primary-foreground/80">Online now</p>
           </div>
         </div>
         <div className="flex items-center space-x-1">
@@ -353,14 +353,14 @@ const EnhancedChatbot = () => {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 p-4 h-80 overflow-y-auto bg-gray-50 dark:bg-gray-800 space-y-3">
+      <div className="flex-1 p-4 h-80 overflow-y-auto bg-muted/20 space-y-3">
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`flex items-start space-x-2 max-w-[85%] ${msg.sender === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
-              <div className={`p-1.5 rounded-full ${msg.sender === 'user' ? 'bg-amber-600 text-white' : 'bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200'}`}>
+              <div className={`p-1.5 rounded-full ${msg.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}`}>
                 {msg.sender === 'user' ? <User className="h-3 w-3" /> : <Bot className="h-3 w-3" />}
               </div>
-              <div className={`p-3 rounded-lg shadow-sm ${msg.sender === 'user' ? 'bg-amber-500 text-white' : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600'}`}>
+              <div className={`p-3 rounded-lg shadow-sm ${msg.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-card text-card-foreground border border-border'}`}>
                 <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
                 {msg.references && msg.references.length > 0 && (
                   <div className="mt-2 space-y-1">
@@ -374,8 +374,8 @@ const EnhancedChatbot = () => {
                             <>
                               {ref.title && <div className="font-medium text-gray-800 dark:text-gray-200 truncate">{ref.title}</div>}
                               {ref.url && (
-                                <a href={ref.url} target="_blank" rel="noopener noreferrer" 
-                                   className="text-amber-600 dark:text-amber-400 hover:underline flex items-center mt-1 truncate">
+                                <a href={ref.url} target="_blank" rel="noopener noreferrer"
+                                  className="text-amber-600 dark:text-amber-400 hover:underline flex items-center mt-1 truncate">
                                   <ExternalLink className="w-3 h-3 mr-1 flex-shrink-0" />
                                   <span className="truncate">{ref.url}</span>
                                 </a>
@@ -389,12 +389,12 @@ const EnhancedChatbot = () => {
                 )}
                 {msg.suggestions && msg.suggestions.length > 0 && (
                   <div className="mt-2 space-y-1">
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Quick questions:</p>
+                    <p className="text-xs font-medium text-muted-foreground">Quick questions:</p>
                     {msg.suggestions.slice(0, 2).map((suggestion, index) => (
                       <button
                         key={index}
                         onClick={() => handleSuggestionClick(suggestion)}
-                        className="block w-full text-left text-xs bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 p-2 rounded transition-colors"
+                        className="block w-full text-left text-xs bg-muted hover:bg-muted/80 p-2 rounded transition-colors text-foreground"
                       >
                         {suggestion}
                       </button>
@@ -431,7 +431,7 @@ const EnhancedChatbot = () => {
       </div>
 
       {/* Input */}
-      <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+      <div className="p-3 border-t border-border bg-background">
         <div className="flex items-center space-x-2">
           <input
             type="text"
@@ -439,13 +439,13 @@ const EnhancedChatbot = () => {
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Ask about heritage sites, tours..."
-            className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            className="flex-1 px-3 py-2 text-sm border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
             disabled={isLoading}
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
-            className="p-2 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-lg hover:from-amber-700 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            className="p-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           >
             <Send className="h-4 w-4" />
           </button>
