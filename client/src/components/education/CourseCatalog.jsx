@@ -1,36 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import {
-  Grid,
-  Card,
-  CardMedia,
-  CardContent,
-  Typography,
-  Chip,
-  Box,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Button,
-  Rating,
-  Skeleton,
-  Container,
-  Paper,
-  IconButton,
-  Tooltip
-} from '@mui/material';
-import {
-  Search as SearchIcon,
-  BookmarkBorder as BookmarkIcon,
-  Bookmark as BookmarkedIcon,
-  People as PeopleIcon,
-  AccessTime as TimeIcon,
-  School as SchoolIcon,
-  Star as StarIcon
-} from '@mui/icons-material';
-import { toast } from 'react-toastify';
+import { Search, BookOpen, Filter, X, Loader } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import CourseCard from './CourseCard';
+import { educationApi } from '../../services/educationApi';
+import api from '../../utils/api';
 
 const CourseCatalog = () => {
   const [courses, setCourses] = useState([]);
@@ -50,17 +23,20 @@ const CourseCatalog = () => {
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const queryParams = new URLSearchParams({
+      const params = {
         category: filters.category,
         difficulty: filters.difficulty,
-        limit: 20
-      });
+        limit: 20,
+        // search: filters.search // Assuming API supports search, otherwise we filter client-side as before
+      };
 
-      const response = await fetch(`/api/learning/courses?${queryParams}`);
-      const data = await response.json();
+      const result = await educationApi.getCourses(params);
 
-      if (data.success) {
-        setCourses(data.courses || []);
+      if (result.success) {
+        setCourses(result.courses || []);
+      } else if (result.data) {
+        // handle case where result structure might be different
+        setCourses(result.data.courses || []);
       }
     } catch (error) {
       console.error('Error fetching courses:', error);
@@ -74,26 +50,20 @@ const CourseCatalog = () => {
     try {
       const isBookmarked = bookmarkedCourses.has(courseId);
       const method = isBookmarked ? 'DELETE' : 'POST';
-      
-      const response = await fetch(`/api/learning/courses/${courseId}/bookmark`, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
 
-      if (response.ok) {
-        const newBookmarked = new Set(bookmarkedCourses);
-        if (isBookmarked) {
-          newBookmarked.delete(courseId);
-          toast.success('Removed from bookmarks');
-        } else {
-          newBookmarked.add(courseId);
-          toast.success('Added to bookmarks');
-        }
-        setBookmarkedCourses(newBookmarked);
+      // Using direct API call since it's not in educationApi yet
+      await api.request(`/education-hub/courses/${courseId}/bookmark`, { method });
+
+      const newBookmarked = new Set(bookmarkedCourses);
+      if (isBookmarked) {
+        newBookmarked.delete(courseId);
+        toast.success('Removed from bookmarks');
+      } else {
+        newBookmarked.add(courseId);
+        toast.success('Added to bookmarks');
       }
+      setBookmarkedCourses(newBookmarked);
+
     } catch (error) {
       console.error('Error bookmarking course:', error);
       toast.error('Failed to update bookmark');
@@ -105,273 +75,131 @@ const CourseCatalog = () => {
     course.description.toLowerCase().includes(filters.search.toLowerCase())
   );
 
-  const getDifficultyColor = (difficulty) => {
-    switch (difficulty) {
-      case 'beginner': return 'success';
-      case 'intermediate': return 'warning';
-      case 'advanced': return 'error';
-      default: return 'default';
-    }
+  const clearFilters = () => {
+    setFilters({ search: '', category: '', difficulty: '', sortBy: 'createdAt' });
   };
-
-  const formatDuration = (minutes) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-  };
-
-  if (loading) {
-    return (
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Grid container spacing={3}>
-          {[...Array(6)].map((_, index) => (
-            <Grid item xs={12} sm={6} md={4} key={index}>
-              <Card>
-                <Skeleton variant="rectangular" height={200} />
-                <CardContent>
-                  <Skeleton variant="text" height={30} />
-                  <Skeleton variant="text" height={20} />
-                  <Skeleton variant="text" height={20} />
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
-    );
-  }
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
+    <div className="container mx-auto px-4 py-8">
       {/* Header */}
-      <Paper elevation={2} sx={{ p: 3, mb: 4, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-        <Typography variant="h3" color="white" gutterBottom align="center">
+      <div className="bg-primary/10 rounded-2xl p-8 mb-8 text-center">
+        <h1 className="text-4xl font-bold text-primary mb-3">
           Ethiopian Heritage Learning Center
-        </Typography>
-        <Typography variant="h6" color="rgba(255,255,255,0.9)" align="center">
+        </h1>
+        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
           Discover the rich history and culture of Ethiopia through our comprehensive courses
-        </Typography>
-      </Paper>
+        </p>
+      </div>
 
       {/* Filters */}
-      <Paper elevation={1} sx={{ p: 3, mb: 4 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
+      <div className="bg-card border border-border rounded-xl p-4 mb-8 shadow-sm">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
               placeholder="Search courses..."
               value={filters.search}
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-              InputProps={{
-                startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
-              }}
+              className="w-full pl-10 pr-4 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-foreground"
             />
-          </Grid>
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth>
-              <InputLabel>Category</InputLabel>
-              <Select
-                value={filters.category}
-                onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-                label="Category"
-              >
-                <MenuItem value="">All Categories</MenuItem>
-                <MenuItem value="history">History</MenuItem>
-                <MenuItem value="culture">Culture</MenuItem>
-                <MenuItem value="archaeology">Archaeology</MenuItem>
-                <MenuItem value="language">Language</MenuItem>
-                <MenuItem value="art">Art</MenuItem>
-                <MenuItem value="traditions">Traditions</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth>
-              <InputLabel>Difficulty</InputLabel>
-              <Select
-                value={filters.difficulty}
-                onChange={(e) => setFilters({ ...filters, difficulty: e.target.value })}
-                label="Difficulty"
-              >
-                <MenuItem value="">All Levels</MenuItem>
-                <MenuItem value="beginner">Beginner</MenuItem>
-                <MenuItem value="intermediate">Intermediate</MenuItem>
-                <MenuItem value="advanced">Advanced</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth>
-              <InputLabel>Sort By</InputLabel>
-              <Select
-                value={filters.sortBy}
-                onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
-                label="Sort By"
-              >
-                <MenuItem value="createdAt">Newest</MenuItem>
-                <MenuItem value="title">Title</MenuItem>
-                <MenuItem value="difficulty">Difficulty</MenuItem>
-                <MenuItem value="estimatedDuration">Duration</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={2}>
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={() => setFilters({ search: '', category: '', difficulty: '', sortBy: 'createdAt' })}
+          </div>
+
+          <div className="relative">
+            <select
+              value={filters.category}
+              onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+              className="w-full px-4 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-foreground appearance-none"
             >
-              Clear Filters
-            </Button>
-          </Grid>
-        </Grid>
-      </Paper>
+              <option value="">All Categories</option>
+              <option value="history">History</option>
+              <option value="culture">Culture</option>
+              <option value="archaeology">Archaeology</option>
+              <option value="language">Language</option>
+              <option value="art">Art</option>
+              <option value="traditions">Traditions</option>
+            </select>
+            <Filter className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          </div>
+
+          <div className="relative">
+            <select
+              value={filters.difficulty}
+              onChange={(e) => setFilters({ ...filters, difficulty: e.target.value })}
+              className="w-full px-4 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-foreground appearance-none"
+            >
+              <option value="">All Levels</option>
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="advanced">Advanced</option>
+            </select>
+            <Filter className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          </div>
+
+          <button
+            onClick={clearFilters}
+            className="flex items-center justify-center px-4 py-2 border border-input rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X className="h-4 w-4 mr-2" />
+            Clear Filters
+          </button>
+        </div>
+      </div>
 
       {/* Course Grid */}
-      {filteredCourses.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <SchoolIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-          <Typography variant="h5" color="text.secondary" gutterBottom>
-            No courses found
-          </Typography>
-          <Typography color="text.secondary">
-            Try adjusting your search criteria or check back later for new courses.
-          </Typography>
-        </Paper>
-      ) : (
-        <Grid container spacing={3}>
-          {filteredCourses.map((course) => (
-            <Grid item xs={12} sm={6} md={4} key={course._id}>
-              <Card
-                sx={{
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: 4
-                  }
-                }}
-              >
-                <Box sx={{ position: 'relative' }}>
-                  <CardMedia
-                    component="img"
-                    height="200"
-                    image={course.image || `https://picsum.photos/400/200?random=${course._id}`}
-                    alt={course.title}
-                  />
-                  <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
-                    <Tooltip title={bookmarkedCourses.has(course._id) ? 'Remove bookmark' : 'Add bookmark'}>
-                      <IconButton
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleBookmark(course._id);
-                        }}
-                        sx={{
-                          backgroundColor: 'rgba(255,255,255,0.9)',
-                          '&:hover': { backgroundColor: 'rgba(255,255,255,1)' }
-                        }}
-                      >
-                        {bookmarkedCourses.has(course._id) ? (
-                          <BookmarkedIcon color="primary" />
-                        ) : (
-                          <BookmarkIcon />
-                        )}
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                  <Box sx={{ position: 'absolute', top: 8, left: 8 }}>
-                    <Chip
-                      label={course.difficulty}
-                      size="small"
-                      color={getDifficultyColor(course.difficulty)}
-                      sx={{ textTransform: 'capitalize' }}
-                    />
-                  </Box>
-                </Box>
-
-                <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                  <Typography variant="h6" component="h2" gutterBottom noWrap>
-                    {course.title}
-                  </Typography>
-                  
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{
-                      flexGrow: 1,
-                      mb: 2,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 3,
-                      WebkitBoxOrient: 'vertical'
-                    }}
-                  >
-                    {course.description}
-                  </Typography>
-
-                  <Box sx={{ mb: 2 }}>
-                    <Chip
-                      label={course.category}
-                      size="small"
-                      variant="outlined"
-                      sx={{ textTransform: 'capitalize', mr: 1 }}
-                    />
-                    {course.instructor && (
-                      <Typography variant="caption" color="text.secondary">
-                        by {course.instructor}
-                      </Typography>
-                    )}
-                  </Box>
-
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <TimeIcon fontSize="small" color="action" />
-                      <Typography variant="caption">
-                        {formatDuration(course.estimatedDuration)}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <SchoolIcon fontSize="small" color="action" />
-                      <Typography variant="caption">
-                        {course.lessons?.length || 0} lessons
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Rating value={4.5} precision={0.5} size="small" readOnly />
-                    <Typography variant="caption" color="text.secondary">
-                      (4.5)
-                    </Typography>
-                  </Box>
-
-                  <Button
-                    onClick={() => alert(`Course: ${course.title}\n\nDescription: ${course.description}\n\nInstructor: ${course.instructor}\n\nDifficulty: ${course.difficulty}\n\nCourse functionality coming soon!`)}
-                    variant="contained"
-                    fullWidth
-                    sx={{ mt: 2 }}
-                  >
-                    View Course Info
-                  </Button>
-                </CardContent>
-              </Card>
-            </Grid>
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="bg-card border border-border rounded-lg p-4 h-[350px] animate-pulse">
+              <div className="h-48 bg-muted rounded-lg mb-4" />
+              <div className="h-6 bg-muted rounded w-3/4 mb-2" />
+              <div className="h-4 bg-muted rounded w-1/2 mb-4" />
+              <div className="flex justify-between mt-auto">
+                <div className="h-8 bg-muted rounded w-20" />
+                <div className="h-8 bg-muted rounded w-20" />
+              </div>
+            </div>
           ))}
-        </Grid>
+        </div>
+      ) : filteredCourses.length === 0 ? (
+        <div className="text-center py-12 bg-card border border-border rounded-xl">
+          <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-foreground mb-2">No courses found</h3>
+          <p className="text-muted-foreground max-w-md mx-auto">
+            Try adjusting your search criteria or check back later for new courses.
+          </p>
+          <button
+            onClick={clearFilters}
+            className="mt-6 px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            Clear Filters
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredCourses.map((course) => (
+            <CourseCard
+              key={course._id || course.id}
+              course={course}
+              isBookmarked={bookmarkedCourses.has(course._id || course.id)}
+              onToggleBookmark={handleBookmark}
+            />
+          ))}
+        </div>
       )}
 
       {/* Load More Button */}
-      {filteredCourses.length > 0 && filteredCourses.length % 20 === 0 && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-          <Button variant="outlined" size="large" onClick={fetchCourses}>
+      {filteredCourses.length > 0 && filteredCourses.length % 20 === 0 && !loading && (
+        <div className="flex justify-center mt-8">
+          <button
+            onClick={fetchCourses}
+            className="px-6 py-3 border border-input rounded-lg hover:bg-muted text-foreground font-medium transition-colors"
+          >
             Load More Courses
-          </Button>
-        </Box>
+          </button>
+        </div>
       )}
-    </Container>
+    </div>
   );
 };
 

@@ -1,21 +1,22 @@
 import React, { useState } from 'react';
-import { 
-  Clock, 
-  Users, 
-  Star, 
-  BookOpen, 
-  Play, 
+import {
+  Clock,
+  Users,
+  Star,
+  BookOpen,
+  Play,
   CheckCircle,
   ArrowRight,
   Calendar,
-  Award
+  Award,
+  Bookmark
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { educationApi } from '../../services/educationApi';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../hooks/useAuth';
 
-const CourseCard = ({ course, viewMode = 'grid', showProgress = false }) => {
+const CourseCard = ({ course, viewMode = 'grid', showProgress = false, isBookmarked = false, onToggleBookmark = null }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [enrolling, setEnrolling] = useState(false);
@@ -56,26 +57,26 @@ const CourseCard = ({ course, viewMode = 'grid', showProgress = false }) => {
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
       case 'beginner':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-green-500/10 text-green-500 border-green-500/20';
       case 'intermediate':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
       case 'advanced':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-red-500/10 text-red-500 border-red-500/20';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-muted text-muted-foreground border-border';
     }
   };
 
   const getCategoryColor = (category) => {
     const colors = {
-      history: 'bg-blue-100 text-blue-800',
-      culture: 'bg-purple-100 text-purple-800',
-      archaeology: 'bg-amber-100 text-amber-800',
-      language: 'bg-emerald-100 text-emerald-800',
-      art: 'bg-pink-100 text-pink-800',
-      traditions: 'bg-indigo-100 text-indigo-800'
+      history: 'bg-blue-500/10 text-blue-500',
+      culture: 'bg-purple-500/10 text-purple-500',
+      archaeology: 'bg-amber-500/10 text-amber-500',
+      language: 'bg-emerald-500/10 text-emerald-500',
+      art: 'bg-pink-500/10 text-pink-500',
+      traditions: 'bg-indigo-500/10 text-indigo-500'
     };
-    return colors[category] || 'bg-gray-100 text-gray-800';
+    return colors[category] || 'bg-muted text-muted-foreground';
   };
 
   if (viewMode === 'list') {
@@ -142,7 +143,7 @@ const CourseCard = ({ course, viewMode = 'grid', showProgress = false }) => {
                   <span className="font-medium">{course.progressPercentage || 0}%</span>
                 </div>
                 <div className="w-full bg-muted rounded-full h-2">
-                  <div 
+                  <div
                     className="bg-primary h-2 rounded-full transition-all duration-300"
                     style={{ width: `${course.progressPercentage || 0}%` }}
                   />
@@ -225,7 +226,7 @@ const CourseCard = ({ course, viewMode = 'grid', showProgress = false }) => {
           className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
           loading="lazy"
         />
-        
+
         {/* Overlays */}
         <div className="absolute top-3 left-3 flex gap-2">
           <span className={`px-2 py-1 text-xs font-medium rounded-full ${getCategoryColor(course.category)}`}>
@@ -238,15 +239,29 @@ const CourseCard = ({ course, viewMode = 'grid', showProgress = false }) => {
           )}
         </div>
 
-        <div className="absolute top-3 right-3">
-          <span className={`px-2 py-1 text-xs font-medium rounded-full border bg-white/90 ${getDifficultyColor(course.difficulty)}`}>
+        <div className="absolute top-3 right-3 flex flex-col gap-2">
+          <span className={`px-2 py-1 text-xs font-medium rounded-full border bg-background/90 backdrop-blur-sm ${getDifficultyColor(course.difficulty)}`}>
             {course.difficulty}
           </span>
+          {onToggleBookmark && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleBookmark(course.id || course._id);
+              }}
+              className={`p-1.5 rounded-full backdrop-blur-sm transition-colors ${isBookmarked
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-background/90 text-muted-foreground hover:bg-background hover:text-foreground'
+                }`}
+            >
+              <Bookmark className="h-4 w-4" fill={isBookmarked ? "currentColor" : "none"} />
+            </button>
+          )}
         </div>
 
         {course.isEnrolled && (
           <div className="absolute bottom-3 right-3">
-            <div className="bg-green-500 text-white p-1.5 rounded-full">
+            <div className="bg-green-500 text-white p-1.5 rounded-full shadow-sm">
               <CheckCircle className="h-4 w-4" />
             </div>
           </div>
@@ -294,7 +309,7 @@ const CourseCard = ({ course, viewMode = 'grid', showProgress = false }) => {
               <span className="font-medium">{course.progressPercentage || 0}%</span>
             </div>
             <div className="w-full bg-muted rounded-full h-2">
-              <div 
+              <div
                 className="bg-primary h-2 rounded-full transition-all duration-300"
                 style={{ width: `${course.progressPercentage || 0}%` }}
               />
