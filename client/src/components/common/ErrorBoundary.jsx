@@ -22,20 +22,20 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <Box p={3} textAlign="center">
-          <Typography variant="h6" color="error" gutterBottom>
+        <div className="p-8 text-center flex flex-col items-center justify-center min-h-[200px]">
+          <h2 className="text-xl font-semibold text-destructive mb-2">
             Something went wrong
-          </Typography>
-          <Typography variant="body2" color="text.secondary" paragraph>
+          </h2>
+          <p className="text-muted-foreground mb-4">
             An error occurred while loading this component. Please try refreshing the page.
-          </Typography>
-          <Button
-            variant="contained"
+          </p>
+          <button
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
             onClick={() => window.location.reload()}
           >
             Refresh Page
-          </Button>
-        </Box>
+          </button>
+        </div>
       );
     }
 
