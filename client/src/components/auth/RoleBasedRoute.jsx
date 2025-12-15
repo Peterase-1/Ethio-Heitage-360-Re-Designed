@@ -7,10 +7,10 @@ const RoleBasedRoute = ({ children, allowedRoles, fallbackRoute = '/' }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-amber-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Checking permissions...</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Checking permissions...</p>
         </div>
       </div>
     );
@@ -24,7 +24,7 @@ const RoleBasedRoute = ({ children, allowedRoles, fallbackRoute = '/' }) => {
   const hasAccess = allowedRoles.some(allowedRole => {
     // Direct match
     if (allowedRole === user.role) return true;
-    
+
     // Handle backend to frontend role mapping
     const roleMap = {
       'superAdmin': ['super_admin', 'superAdmin'],
@@ -36,11 +36,11 @@ const RoleBasedRoute = ({ children, allowedRoles, fallbackRoute = '/' }) => {
       'museum': ['museumAdmin', 'museum_admin', 'museum'],
       'visitor': ['user', 'visitor']
     };
-    
+
     const mappedRoles = roleMap[allowedRole] || [];
     return mappedRoles.includes(user.role);
   });
-  
+
   if (!hasAccess) {
     // Redirect to appropriate dashboard based on user role
     const redirectRoutes = {
