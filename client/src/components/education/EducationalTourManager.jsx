@@ -233,27 +233,27 @@ const EducationalTourManager = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'published': return 'bg-heritage-moss text-white';
-      case 'draft': return 'bg-heritage-sand text-heritage-dark';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      case 'completed': return 'bg-heritage-terra text-white';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'published': return 'bg-green-500/10 text-green-500';
+      case 'draft': return 'bg-yellow-500/10 text-yellow-500';
+      case 'cancelled': return 'bg-destructive/10 text-destructive';
+      case 'completed': return 'bg-blue-500/10 text-blue-500';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
-      case 'Beginner': return 'bg-heritage-sand text-heritage-dark';
-      case 'Intermediate': return 'bg-heritage-amber text-white';
-      case 'Advanced': return 'bg-heritage-terra text-white';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'Beginner': return 'bg-green-500/10 text-green-500';
+      case 'Intermediate': return 'bg-yellow-500/10 text-yellow-500';
+      case 'Advanced': return 'bg-red-500/10 text-red-500';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-heritage-moss"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -261,15 +261,15 @@ const EducationalTourManager = () => {
   return (
     <div className="space-y-6">
       {/* Header with Stats */}
-      <div className="bg-white rounded-lg shadow-sm p-6 border border-heritage-sand/20">
+      <div className="bg-card rounded-lg shadow-sm p-6 border border-border">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-heritage-dark flex items-center gap-2">
-            <BookOpen className="w-7 h-7 text-heritage-moss" />
+          <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <BookOpen className="w-7 h-7 text-primary" />
             Educational Tour Management
           </h2>
           <button
             onClick={() => setShowCreateForm(true)}
-            className="bg-heritage-moss text-white px-4 py-2 rounded-lg hover:bg-heritage-moss/90 transition-colors flex items-center gap-2"
+            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             Create New Tour
@@ -278,38 +278,37 @@ const EducationalTourManager = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="bg-heritage-moss/5 p-4 rounded-lg border border-heritage-moss/10">
-            <div className="text-2xl font-bold text-heritage-moss">{stats.totalTours}</div>
-            <div className="text-heritage-dark/70 text-sm">Total Tours</div>
+          <div className="bg-primary/5 p-4 rounded-lg border border-primary/10">
+            <div className="text-2xl font-bold text-primary">{stats.totalTours}</div>
+            <div className="text-muted-foreground text-sm">Total Tours</div>
           </div>
-          <div className="bg-heritage-amber/5 p-4 rounded-lg border border-heritage-amber/10">
-            <div className="text-2xl font-bold text-heritage-amber">{stats.publishedTours}</div>
-            <div className="text-heritage-dark/70 text-sm">Published</div>
+          <div className="bg-orange-500/5 p-4 rounded-lg border border-orange-500/10">
+            <div className="text-2xl font-bold text-orange-500">{stats.publishedTours}</div>
+            <div className="text-muted-foreground text-sm">Published</div>
           </div>
-          <div className="bg-heritage-terra/5 p-4 rounded-lg border border-heritage-terra/10">
-            <div className="text-2xl font-bold text-heritage-terra">{stats.totalEnrollments}</div>
-            <div className="text-heritage-dark/70 text-sm">Total Enrollments</div>
+          <div className="bg-blue-500/5 p-4 rounded-lg border border-blue-500/10">
+            <div className="text-2xl font-bold text-blue-500">{stats.totalEnrollments}</div>
+            <div className="text-muted-foreground text-sm">Total Enrollments</div>
           </div>
-          <div className="bg-heritage-sand/20 p-4 rounded-lg border border-heritage-sand/30">
-            <div className="text-2xl font-bold text-heritage-dark flex items-center gap-1">
+          <div className="bg-secondary p-4 rounded-lg border border-border">
+            <div className="text-2xl font-bold text-foreground flex items-center gap-1">
               <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
               {stats.averageRating}
             </div>
-            <div className="text-heritage-dark/70 text-sm">Avg Rating</div>
+            <div className="text-muted-foreground text-sm">Avg Rating</div>
           </div>
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex space-x-1 bg-heritage-sand/10 p-1 rounded-lg">
+        <div className="flex space-x-1 bg-muted p-1 rounded-lg">
           {['all', 'draft', 'published', 'completed'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors capitalize ${
-                activeTab === tab
-                  ? 'bg-white text-heritage-moss shadow-sm'
-                  : 'text-heritage-dark/70 hover:text-heritage-dark'
-              }`}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors capitalize ${activeTab === tab
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+                }`}
             >
               {tab} {tab === 'all' ? `(${tours.length})` : `(${tours.filter(t => t.status === tab).length})`}
             </button>
@@ -320,11 +319,11 @@ const EducationalTourManager = () => {
       {/* Tours List */}
       <div className="grid gap-6">
         {filteredTours.map((tour) => (
-          <div key={tour._id} className="bg-white rounded-lg shadow-sm border border-heritage-sand/20 p-6">
+          <div key={tour._id} className="bg-card rounded-lg shadow-sm border border-border p-6">
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <h3 className="text-xl font-semibold text-heritage-dark">{tour.title}</h3>
+                  <h3 className="text-xl font-semibold text-foreground">{tour.title}</h3>
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(tour.status)}`}>
                     {tour.status}
                   </span>
@@ -332,23 +331,23 @@ const EducationalTourManager = () => {
                     {tour.difficulty}
                   </span>
                 </div>
-                <p className="text-heritage-dark/70 mb-3">{tour.shortDescription}</p>
-                
+                <p className="text-muted-foreground mb-3">{tour.shortDescription}</p>
+
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                  <div className="flex items-center gap-2 text-heritage-dark/70">
+                  <div className="flex items-center gap-2 text-muted-foreground">
                     <Calendar className="w-4 h-4" />
                     {new Date(tour.startDate).toLocaleDateString()}
                   </div>
-                  <div className="flex items-center gap-2 text-heritage-dark/70">
+                  <div className="flex items-center gap-2 text-muted-foreground">
                     <MapPin className="w-4 h-4" />
                     {tour.location.name}
                   </div>
-                  <div className="flex items-center gap-2 text-heritage-dark/70">
+                  <div className="flex items-center gap-2 text-muted-foreground">
                     <Users className="w-4 h-4" />
                     {tour.enrollments?.filter(e => e.status === 'confirmed').length || 0}/{tour.maxParticipants}
                   </div>
-                  <div className="flex items-center gap-2 text-heritage-dark/70">
-                    <span className="text-heritage-moss font-medium">{tour.pricing.price} {tour.pricing.currency}</span>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <span className="text-primary font-medium">{tour.pricing.price} {tour.pricing.currency}</span>
                   </div>
                 </div>
               </div>
@@ -359,13 +358,13 @@ const EducationalTourManager = () => {
                     setEditingTour(tour._id);
                     setFormData({ ...tour });
                   }}
-                  className="p-2 text-heritage-dark/70 hover:text-heritage-moss hover:bg-heritage-moss/5 rounded-lg transition-colors"
+                  className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                 >
                   <Edit3 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handleDeleteTour(tour._id)}
-                  className="p-2 text-heritage-dark/70 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -373,7 +372,7 @@ const EducationalTourManager = () => {
             </div>
 
             {/* Tour Stats */}
-            <div className="flex items-center gap-6 text-sm text-heritage-dark/70 pt-4 border-t border-heritage-sand/20">
+            <div className="flex items-center gap-6 text-sm text-muted-foreground pt-4 border-t border-border">
               <div className="flex items-center gap-1">
                 <Eye className="w-4 h-4" />
                 {tour.stats.views} views
@@ -396,13 +395,13 @@ const EducationalTourManager = () => {
 
         {filteredTours.length === 0 && (
           <div className="text-center py-12">
-            <BookOpen className="w-12 h-12 text-heritage-sand mx-auto mb-4" />
-            <p className="text-heritage-dark/70">
+            <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">
               {activeTab === 'all' ? 'No tours created yet.' : `No ${activeTab} tours found.`}
             </p>
             <button
               onClick={() => setShowCreateForm(true)}
-              className="mt-4 text-heritage-moss hover:underline"
+              className="mt-4 text-primary hover:underline"
             >
               Create your first educational tour
             </button>
@@ -412,10 +411,10 @@ const EducationalTourManager = () => {
 
       {/* Create/Edit Tour Modal */}
       {(showCreateForm || editingTour) && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-heritage-sand/20">
-              <h3 className="text-xl font-semibold text-heritage-dark">
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-card rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-border shadow-xl">
+            <div className="p-6 border-b border-border">
+              <h3 className="text-xl font-semibold text-foreground">
                 {editingTour ? 'Edit Tour' : 'Create New Educational Tour'}
               </h3>
             </div>
@@ -424,22 +423,22 @@ const EducationalTourManager = () => {
               {/* Basic Information */}
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-heritage-dark mb-1">Tour Title *</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Tour Title *</label>
                   <input
                     type="text"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full p-3 border border-heritage-sand/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-heritage-moss"
+                    className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground placeholder:text-muted-foreground"
                     required
                   />
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-heritage-dark mb-1">Category *</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Category *</label>
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full p-3 border border-heritage-sand/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-heritage-moss"
+                    className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground"
                   >
                     {categories.map(category => (
                       <option key={category} value={category}>{category}</option>
@@ -449,23 +448,23 @@ const EducationalTourManager = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-heritage-dark mb-1">Short Description</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Short Description</label>
                 <input
                   type="text"
                   value={formData.shortDescription}
                   onChange={(e) => setFormData({ ...formData, shortDescription: e.target.value })}
-                  className="w-full p-3 border border-heritage-sand/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-heritage-moss"
+                  className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground placeholder:text-muted-foreground"
                   maxLength="200"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-heritage-dark mb-1">Full Description *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Full Description *</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={4}
-                  className="w-full p-3 border border-heritage-sand/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-heritage-moss"
+                  className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground placeholder:text-muted-foreground"
                   required
                 />
               </div>
@@ -473,36 +472,36 @@ const EducationalTourManager = () => {
               {/* Date and Duration */}
               <div className="grid md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-heritage-dark mb-1">Start Date & Time *</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Start Date & Time *</label>
                   <input
                     type="datetime-local"
                     value={formData.startDate}
                     onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                    className="w-full p-3 border border-heritage-sand/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-heritage-moss"
+                    className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground"
                     required
                   />
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-heritage-dark mb-1">End Date & Time *</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">End Date & Time *</label>
                   <input
                     type="datetime-local"
                     value={formData.endDate}
                     onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                    className="w-full p-3 border border-heritage-sand/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-heritage-moss"
+                    className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground"
                     required
                   />
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-heritage-dark mb-1">Duration (hours) *</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Duration (hours) *</label>
                   <input
                     type="number"
                     min="1"
                     max="24"
                     value={formData.duration}
                     onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
-                    className="w-full p-3 border border-heritage-sand/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-heritage-moss"
+                    className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground"
                     required
                   />
                 </div>
@@ -511,7 +510,7 @@ const EducationalTourManager = () => {
               {/* Location */}
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-heritage-dark mb-1">Location Name *</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Location Name *</label>
                   <input
                     type="text"
                     value={formData.location.name}
@@ -519,13 +518,13 @@ const EducationalTourManager = () => {
                       ...formData,
                       location: { ...formData.location, name: e.target.value }
                     })}
-                    className="w-full p-3 border border-heritage-sand/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-heritage-moss"
+                    className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground placeholder:text-muted-foreground"
                     required
                   />
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-heritage-dark mb-1">Meeting Point *</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Meeting Point *</label>
                   <input
                     type="text"
                     value={formData.location.meetingPoint}
@@ -533,14 +532,14 @@ const EducationalTourManager = () => {
                       ...formData,
                       location: { ...formData.location, meetingPoint: e.target.value }
                     })}
-                    className="w-full p-3 border border-heritage-sand/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-heritage-moss"
+                    className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground placeholder:text-muted-foreground"
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-heritage-dark mb-1">Full Address *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Full Address *</label>
                 <input
                   type="text"
                   value={formData.location.address}
@@ -548,7 +547,7 @@ const EducationalTourManager = () => {
                     ...formData,
                     location: { ...formData.location, address: e.target.value }
                   })}
-                  className="w-full p-3 border border-heritage-sand/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-heritage-moss"
+                  className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground placeholder:text-muted-foreground"
                   required
                 />
               </div>
@@ -556,7 +555,7 @@ const EducationalTourManager = () => {
               {/* Pricing and Participants */}
               <div className="grid md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-heritage-dark mb-1">Price *</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Price *</label>
                   <input
                     type="number"
                     min="0"
@@ -565,36 +564,36 @@ const EducationalTourManager = () => {
                       ...formData,
                       pricing: { ...formData.pricing, price: parseFloat(e.target.value) }
                     })}
-                    className="w-full p-3 border border-heritage-sand/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-heritage-moss"
+                    className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground"
                     required
                   />
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-heritage-dark mb-1">Currency</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Currency</label>
                   <select
                     value={formData.pricing.currency}
                     onChange={(e) => setFormData({
                       ...formData,
                       pricing: { ...formData.pricing, currency: e.target.value }
                     })}
-                    className="w-full p-3 border border-heritage-sand/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-heritage-moss"
+                    className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground"
                   >
                     <option value="ETB">ETB</option>
                     <option value="USD">USD</option>
                     <option value="EUR">EUR</option>
                   </select>
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-heritage-dark mb-1">Max Participants *</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Max Participants *</label>
                   <input
                     type="number"
                     min="1"
                     max="100"
                     value={formData.maxParticipants}
                     onChange={(e) => setFormData({ ...formData, maxParticipants: parseInt(e.target.value) })}
-                    className="w-full p-3 border border-heritage-sand/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-heritage-moss"
+                    className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground"
                     required
                   />
                 </div>
@@ -602,27 +601,27 @@ const EducationalTourManager = () => {
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-heritage-dark mb-1">Difficulty Level</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Difficulty Level</label>
                   <select
                     value={formData.difficulty}
                     onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
-                    className="w-full p-3 border border-heritage-sand/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-heritage-moss"
+                    className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground"
                   >
                     {difficulties.map(difficulty => (
                       <option key={difficulty} value={difficulty}>{difficulty}</option>
                     ))}
                   </select>
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-heritage-dark mb-1">Fitness Level</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Fitness Level</label>
                   <select
                     value={formData.requirements.fitnessLevel}
                     onChange={(e) => setFormData({
                       ...formData,
                       requirements: { ...formData.requirements, fitnessLevel: e.target.value }
                     })}
-                    className="w-full p-3 border border-heritage-sand/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-heritage-moss"
+                    className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground"
                   >
                     <option value="Easy">Easy</option>
                     <option value="Moderate">Moderate</option>
@@ -633,21 +632,21 @@ const EducationalTourManager = () => {
 
               {/* Learning Objectives */}
               <div>
-                <label className="block text-sm font-medium text-heritage-dark mb-2">Learning Objectives</label>
+                <label className="block text-sm font-medium text-foreground mb-2">Learning Objectives</label>
                 {formData.learningObjectives.map((objective, index) => (
                   <div key={index} className="flex gap-2 mb-2">
                     <input
                       type="text"
                       value={objective}
                       onChange={(e) => updateLearningObjective(index, e.target.value)}
-                      className="flex-1 p-3 border border-heritage-sand/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-heritage-moss"
+                      className="flex-1 p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground placeholder:text-muted-foreground"
                       placeholder="What will participants learn?"
                     />
                     {formData.learningObjectives.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeLearningObjective(index)}
-                        className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="px-3 py-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -657,17 +656,17 @@ const EducationalTourManager = () => {
                 <button
                   type="button"
                   onClick={addLearningObjective}
-                  className="text-heritage-moss hover:underline text-sm"
+                  className="text-primary hover:underline text-sm"
                 >
                   + Add Learning Objective
                 </button>
               </div>
 
               {/* Form Actions */}
-              <div className="flex gap-3 pt-6 border-t border-heritage-sand/20">
+              <div className="flex gap-3 pt-6 border-t border-border">
                 <button
                   type="submit"
-                  className="bg-heritage-moss text-white px-6 py-2 rounded-lg hover:bg-heritage-moss/90 transition-colors"
+                  className="bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors"
                 >
                   {editingTour ? 'Update Tour' : 'Create Tour'}
                 </button>
@@ -678,7 +677,7 @@ const EducationalTourManager = () => {
                     setEditingTour(null);
                     resetForm();
                   }}
-                  className="bg-heritage-sand/20 text-heritage-dark px-6 py-2 rounded-lg hover:bg-heritage-sand/30 transition-colors"
+                  className="bg-secondary text-secondary-foreground px-6 py-2 rounded-lg hover:bg-secondary/80 transition-colors"
                 >
                   Cancel
                 </button>

@@ -152,20 +152,20 @@ const EnrolledTours = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'confirmed': return 'bg-heritage-moss text-white';
-      case 'pending': return 'bg-heritage-amber text-white';
-      case 'completed': return 'bg-heritage-terra text-white';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'confirmed': return 'bg-green-500/10 text-green-500';
+      case 'pending': return 'bg-yellow-500/10 text-yellow-500';
+      case 'completed': return 'bg-blue-500/10 text-blue-500';
+      case 'cancelled': return 'bg-destructive/10 text-destructive';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
-      case 'Beginner': return 'bg-heritage-sand text-heritage-dark';
-      case 'Intermediate': return 'bg-heritage-amber text-white';
-      case 'Advanced': return 'bg-heritage-terra text-white';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'Beginner': return 'bg-green-500/10 text-green-500';
+      case 'Intermediate': return 'bg-yellow-500/10 text-yellow-500';
+      case 'Advanced': return 'bg-red-500/10 text-red-500';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -176,9 +176,9 @@ const EnrolledTours = () => {
   };
 
   const getProgressColor = (progress) => {
-    if (progress >= 100) return 'bg-heritage-moss';
-    if (progress >= 50) return 'bg-heritage-amber';
-    return 'bg-heritage-sand';
+    if (progress >= 100) return 'bg-primary';
+    if (progress >= 50) return 'bg-yellow-500';
+    return 'bg-muted';
   };
 
   const formatDate = (dateString) => {
@@ -195,7 +195,7 @@ const EnrolledTours = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-heritage-moss"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -203,14 +203,14 @@ const EnrolledTours = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm p-6 border border-heritage-sand/20">
-        <h2 className="text-2xl font-bold text-heritage-dark mb-4 flex items-center gap-2">
-          <BookOpen className="w-7 h-7 text-heritage-moss" />
+      <div className="bg-card rounded-lg shadow-sm p-6 border border-border">
+        <h2 className="text-2xl font-bold text-foreground mb-4 flex items-center gap-2">
+          <BookOpen className="w-7 h-7 text-primary" />
           My Educational Tours
         </h2>
-        
+
         {/* Filter Tabs */}
-        <div className="flex space-x-1 bg-heritage-sand/10 p-1 rounded-lg">
+        <div className="flex space-x-1 bg-muted p-1 rounded-lg">
           {[
             { key: 'all', label: 'All Tours', count: enrolledTours.length },
             { key: 'upcoming', label: 'Upcoming', count: enrolledTours.filter(t => new Date(t.startDate) > new Date()).length },
@@ -220,11 +220,10 @@ const EnrolledTours = () => {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                activeTab === tab.key
-                  ? 'bg-white text-heritage-moss shadow-sm'
-                  : 'text-heritage-dark/70 hover:text-heritage-dark'
-              }`}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === tab.key
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+                }`}
             >
               {tab.label} ({tab.count})
             </button>
@@ -238,15 +237,15 @@ const EnrolledTours = () => {
           const progress = calculateProgress(tour);
           const isUpcoming = new Date(tour.startDate) > new Date();
           const isOngoing = new Date(tour.startDate) <= new Date() && new Date(tour.endDate) >= new Date();
-          
+
           return (
-            <div key={tour._id} className="bg-white rounded-lg shadow-sm border border-heritage-sand/20 overflow-hidden">
+            <div key={tour._id} className="bg-card rounded-lg shadow-sm border border-border overflow-hidden">
               <div className="p-6">
                 {/* Tour Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-xl font-semibold text-heritage-dark">{tour.title}</h3>
+                      <h3 className="text-xl font-semibold text-foreground">{tour.title}</h3>
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(tour.userEnrollment.status)}`}>
                         {tour.userEnrollment.status}
                       </span>
@@ -254,23 +253,23 @@ const EnrolledTours = () => {
                         {tour.difficulty}
                       </span>
                     </div>
-                    <p className="text-heritage-dark/70 mb-3">{tour.shortDescription}</p>
-                    
+                    <p className="text-muted-foreground mb-3">{tour.shortDescription}</p>
+
                     {/* Tour Info Grid */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm mb-4">
-                      <div className="flex items-center gap-2 text-heritage-dark/70">
+                      <div className="flex items-center gap-2 text-muted-foreground">
                         <Calendar className="w-4 h-4" />
                         {formatDate(tour.startDate).split(' at ')[0]}
                       </div>
-                      <div className="flex items-center gap-2 text-heritage-dark/70">
+                      <div className="flex items-center gap-2 text-muted-foreground">
                         <Clock className="w-4 h-4" />
                         {new Date(tour.startDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                       </div>
-                      <div className="flex items-center gap-2 text-heritage-dark/70">
+                      <div className="flex items-center gap-2 text-muted-foreground">
                         <MapPin className="w-4 h-4" />
                         {tour.location.name}
                       </div>
-                      <div className="flex items-center gap-2 text-heritage-dark/70">
+                      <div className="flex items-center gap-2 text-muted-foreground">
                         <User className="w-4 h-4" />
                         {tour.organizerId.firstName} {tour.organizerId.lastName}
                       </div>
@@ -278,9 +277,9 @@ const EnrolledTours = () => {
                   </div>
 
                   <div className="ml-4 text-right">
-                    <div className="text-2xl font-bold text-heritage-moss">{tour.pricing.price} {tour.pricing.currency}</div>
-                    <div className="text-sm text-heritage-dark/70">
-                      Payment: <span className={tour.userEnrollment.paymentStatus === 'paid' ? 'text-heritage-moss' : 'text-heritage-amber'}>{tour.userEnrollment.paymentStatus}</span>
+                    <div className="text-2xl font-bold text-primary">{tour.pricing.price} {tour.pricing.currency}</div>
+                    <div className="text-sm text-muted-foreground">
+                      Payment: <span className={tour.userEnrollment.paymentStatus === 'paid' ? 'text-primary' : 'text-yellow-500'}>{tour.userEnrollment.paymentStatus}</span>
                     </div>
                   </div>
                 </div>
@@ -288,16 +287,16 @@ const EnrolledTours = () => {
                 {/* Progress Bar */}
                 <div className="mb-4">
                   <div className="flex items-center justify-between text-sm mb-2">
-                    <span className="text-heritage-dark/70">Course Progress</span>
-                    <span className="font-medium text-heritage-dark">{progress}% Complete</span>
+                    <span className="text-muted-foreground">Course Progress</span>
+                    <span className="font-medium text-foreground">{progress}% Complete</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
+                  <div className="w-full bg-secondary rounded-full h-2">
+                    <div
                       className={`h-2 rounded-full transition-all duration-300 ${getProgressColor(progress)}`}
                       style={{ width: `${progress}%` }}
                     ></div>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-heritage-dark/70 mt-1">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
                     <span>{tour.userEnrollment.progress.lessonsCompleted} of {tour.curriculum.length} lessons</span>
                     {tour.userEnrollment.progress.totalScore > 0 && (
                       <span>Score: {tour.userEnrollment.progress.totalScore}%</span>
@@ -308,24 +307,24 @@ const EnrolledTours = () => {
                 {/* Status Indicators */}
                 <div className="flex items-center gap-4 text-sm mb-4">
                   {isUpcoming && (
-                    <div className="flex items-center gap-1 text-heritage-amber">
+                    <div className="flex items-center gap-1 text-yellow-500">
                       <AlertCircle className="w-4 h-4" />
                       Starts {new Date(tour.startDate).toLocaleDateString()}
                     </div>
                   )}
                   {isOngoing && (
-                    <div className="flex items-center gap-1 text-heritage-moss">
+                    <div className="flex items-center gap-1 text-primary">
                       <Play className="w-4 h-4" />
                       In Progress
                     </div>
                   )}
                   {tour.userEnrollment.progress.certificateEarned && (
-                    <div className="flex items-center gap-1 text-heritage-terra">
+                    <div className="flex items-center gap-1 text-purple-500">
                       <Award className="w-4 h-4" />
                       Certificate Earned
                     </div>
                   )}
-                  <div className="flex items-center gap-1 text-heritage-dark/70">
+                  <div className="flex items-center gap-1 text-muted-foreground">
                     <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                     {tour.stats.averageRating.toFixed(1)} rating
                   </div>
@@ -333,41 +332,41 @@ const EnrolledTours = () => {
 
                 {/* Announcements */}
                 {tour.announcements && tour.announcements.length > 0 && (
-                  <div className="bg-heritage-sand/10 rounded-lg p-4 mb-4">
-                    <h4 className="font-medium text-heritage-dark mb-2">Latest Announcement</h4>
+                  <div className="bg-muted/50 rounded-lg p-4 mb-4">
+                    <h4 className="font-medium text-foreground mb-2">Latest Announcement</h4>
                     {tour.announcements[0].isImportant && (
-                      <div className="flex items-center gap-2 text-heritage-terra mb-2">
+                      <div className="flex items-center gap-2 text-destructive mb-2">
                         <AlertCircle className="w-4 h-4" />
                         <span className="font-medium">Important</span>
                       </div>
                     )}
-                    <h5 className="font-medium text-heritage-dark">{tour.announcements[0].title}</h5>
-                    <p className="text-heritage-dark/70 text-sm">{tour.announcements[0].message}</p>
+                    <h5 className="font-medium text-foreground">{tour.announcements[0].title}</h5>
+                    <p className="text-muted-foreground text-sm">{tour.announcements[0].message}</p>
                   </div>
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex items-center justify-between pt-4 border-t border-heritage-sand/20">
+                <div className="flex items-center justify-between pt-4 border-t border-border">
                   <button
                     onClick={() => setSelectedTour(tour)}
-                    className="text-heritage-moss hover:underline font-medium flex items-center gap-1"
+                    className="text-primary hover:underline font-medium flex items-center gap-1"
                   >
                     View Details <ChevronRight className="w-4 h-4" />
                   </button>
-                  
+
                   <div className="flex gap-2">
                     {isOngoing && (
-                      <button className="bg-heritage-moss text-white px-4 py-2 rounded-lg hover:bg-heritage-moss/90 transition-colors">
+                      <button className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
                         Continue Learning
                       </button>
                     )}
                     {isUpcoming && (
-                      <button className="bg-heritage-sand text-heritage-dark px-4 py-2 rounded-lg hover:bg-heritage-sand/80 transition-colors">
+                      <button className="bg-secondary text-secondary-foreground px-4 py-2 rounded-lg hover:bg-secondary/80 transition-colors">
                         Prepare for Tour
                       </button>
                     )}
                     {tour.userEnrollment.status === 'completed' && !tour.userEnrollment.feedback && (
-                      <button className="bg-heritage-amber text-white px-4 py-2 rounded-lg hover:bg-heritage-amber/90 transition-colors">
+                      <button className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition-colors">
                         Leave Feedback
                       </button>
                     )}
@@ -380,11 +379,11 @@ const EnrolledTours = () => {
 
         {filteredTours.length === 0 && (
           <div className="text-center py-12">
-            <BookOpen className="w-12 h-12 text-heritage-sand mx-auto mb-4" />
-            <p className="text-heritage-dark/70 mb-4">
+            <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground mb-4">
               {activeTab === 'all' ? 'No enrolled tours yet.' : `No ${activeTab} tours found.`}
             </p>
-            <Link to="/educational-tours" className="text-heritage-moss hover:underline">
+            <Link to="/educational-tours" className="text-primary hover:underline">
               Browse Available Tours
             </Link>
           </div>
@@ -393,17 +392,17 @@ const EnrolledTours = () => {
 
       {/* Tour Details Modal */}
       {selectedTour && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-heritage-sand/20">
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-card rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-border shadow-xl">
+            <div className="p-6 border-b border-border">
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-2xl font-semibold text-heritage-dark mb-2">{selectedTour.title}</h3>
-                  <p className="text-heritage-dark/70">{selectedTour.shortDescription}</p>
+                  <h3 className="text-2xl font-semibold text-foreground mb-2">{selectedTour.title}</h3>
+                  <p className="text-muted-foreground">{selectedTour.shortDescription}</p>
                 </div>
                 <button
                   onClick={() => setSelectedTour(null)}
-                  className="text-heritage-dark/70 hover:text-heritage-dark text-2xl"
+                  className="text-muted-foreground hover:text-foreground text-2xl"
                 >
                   ×
                 </button>
@@ -414,54 +413,54 @@ const EnrolledTours = () => {
               {/* Tour Information */}
               <div className="grid md:grid-cols-2 gap-6 mb-6">
                 <div>
-                  <h4 className="font-semibold text-heritage-dark mb-3">Tour Details</h4>
+                  <h4 className="font-semibold text-foreground mb-3">Tour Details</h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-heritage-dark/70" />
-                      <span>{formatDate(selectedTour.startDate)}</span>
+                      <Calendar className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">{formatDate(selectedTour.startDate)}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-heritage-dark/70" />
-                      <span>{selectedTour.duration} hours</span>
+                      <Clock className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">{selectedTour.duration} hours</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-heritage-dark/70" />
+                      <MapPin className="w-4 h-4 text-muted-foreground" />
                       <div>
-                        <div>{selectedTour.location.name}</div>
-                        <div className="text-heritage-dark/60">{selectedTour.location.address}</div>
-                        <div className="text-heritage-dark/60">Meeting: {selectedTour.location.meetingPoint}</div>
+                        <div className="text-foreground">{selectedTour.location.name}</div>
+                        <div className="text-muted-foreground">{selectedTour.location.address}</div>
+                        <div className="text-muted-foreground">Meeting: {selectedTour.location.meetingPoint}</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-heritage-dark/70" />
-                      <span>Led by {selectedTour.organizerId.firstName} {selectedTour.organizerId.lastName}</span>
+                      <User className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">Led by {selectedTour.organizerId.firstName} {selectedTour.organizerId.lastName}</span>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <h4 className="font-semibold text-heritage-dark mb-3">Your Progress</h4>
+                  <h4 className="font-semibold text-foreground mb-3">Your Progress</h4>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-heritage-dark/70">Enrollment Status</span>
+                      <span className="text-sm text-muted-foreground">Enrollment Status</span>
                       <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(selectedTour.userEnrollment.status)}`}>
                         {selectedTour.userEnrollment.status}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-heritage-dark/70">Payment</span>
-                      <span className={`text-sm ${selectedTour.userEnrollment.paymentStatus === 'paid' ? 'text-heritage-moss' : 'text-heritage-amber'}`}>
+                      <span className="text-sm text-muted-foreground">Payment</span>
+                      <span className={`text-sm ${selectedTour.userEnrollment.paymentStatus === 'paid' ? 'text-primary' : 'text-yellow-500'}`}>
                         {selectedTour.userEnrollment.paymentStatus}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-heritage-dark/70">Lessons Completed</span>
-                      <span className="text-sm text-heritage-dark">{selectedTour.userEnrollment.progress.lessonsCompleted}/{selectedTour.curriculum.length}</span>
+                      <span className="text-sm text-muted-foreground">Lessons Completed</span>
+                      <span className="text-sm text-foreground">{selectedTour.userEnrollment.progress.lessonsCompleted}/{selectedTour.curriculum.length}</span>
                     </div>
                     {selectedTour.userEnrollment.progress.totalScore > 0 && (
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-heritage-dark/70">Current Score</span>
-                        <span className="text-sm text-heritage-moss font-medium">{selectedTour.userEnrollment.progress.totalScore}%</span>
+                        <span className="text-sm text-muted-foreground">Current Score</span>
+                        <span className="text-sm text-primary font-medium">{selectedTour.userEnrollment.progress.totalScore}%</span>
                       </div>
                     )}
                   </div>
@@ -470,31 +469,30 @@ const EnrolledTours = () => {
 
               {/* Curriculum */}
               <div className="mb-6">
-                <h4 className="font-semibold text-heritage-dark mb-3">Course Curriculum</h4>
+                <h4 className="font-semibold text-foreground mb-3">Course Curriculum</h4>
                 <div className="space-y-3">
                   {selectedTour.curriculum.map((lesson, index) => (
-                    <div key={index} className="border border-heritage-sand/20 rounded-lg p-4">
+                    <div key={index} className="border border-border rounded-lg p-4">
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-3">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
-                            index < selectedTour.userEnrollment.progress.lessonsCompleted 
-                              ? 'bg-heritage-moss text-white' 
-                              : 'bg-heritage-sand/20 text-heritage-dark/70'
-                          }`}>
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${index < selectedTour.userEnrollment.progress.lessonsCompleted
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted text-muted-foreground'
+                            }`}>
                             {index < selectedTour.userEnrollment.progress.lessonsCompleted ? (
                               <CheckCircle className="w-4 h-4" />
                             ) : (
                               lesson.order
                             )}
                           </div>
-                          <h5 className="font-medium text-heritage-dark">{lesson.title}</h5>
+                          <h5 className="font-medium text-foreground">{lesson.title}</h5>
                         </div>
-                        <span className="text-sm text-heritage-dark/70">{lesson.duration} min</span>
+                        <span className="text-sm text-muted-foreground">{lesson.duration} min</span>
                       </div>
-                      <p className="text-heritage-dark/70 text-sm mb-2 ml-9">{lesson.description}</p>
-                      <div className="flex items-center gap-2 text-xs text-heritage-dark/60 ml-9">
+                      <p className="text-muted-foreground text-sm mb-2 ml-9">{lesson.description}</p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground ml-9">
                         {lesson.activities.map((activity, actIndex) => (
-                          <span key={actIndex} className="bg-heritage-sand/20 px-2 py-1 rounded">
+                          <span key={actIndex} className="bg-muted px-2 py-1 rounded">
                             {activity}
                           </span>
                         ))}
@@ -505,15 +503,15 @@ const EnrolledTours = () => {
               </div>
 
               {/* Actions */}
-              <div className="flex gap-3 pt-6 border-t border-heritage-sand/20">
+              <div className="flex gap-3 pt-6 border-t border-border">
                 <button
                   onClick={() => setSelectedTour(null)}
-                  className="bg-heritage-sand/20 text-heritage-dark px-6 py-2 rounded-lg hover:bg-heritage-sand/30 transition-colors"
+                  className="bg-secondary text-secondary-foreground px-6 py-2 rounded-lg hover:bg-secondary/80 transition-colors"
                 >
                   Close
                 </button>
                 {new Date(selectedTour.startDate) <= new Date() && new Date(selectedTour.endDate) >= new Date() && (
-                  <button className="bg-heritage-moss text-white px-6 py-2 rounded-lg hover:bg-heritage-moss/90 transition-colors">
+                  <button className="bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors">
                     Continue Learning
                   </button>
                 )}
