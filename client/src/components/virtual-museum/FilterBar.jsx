@@ -10,7 +10,7 @@ import { cultures, periods, regions, categories } from "../data/artifactData";
 
 export function FilterBar({ filters, onFiltersChange, totalResults, onClearFilters }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  
+
   const updateFilter = (key, value) => {
     onFiltersChange({
       ...filters,
@@ -53,7 +53,7 @@ export function FilterBar({ filters, onFiltersChange, totalResults, onClearFilte
 
   return (
     <div className="space-y-4">
-      <Card className="bg-white border-stone-200 shadow-sm">
+      <Card className="bg-card border-border shadow-sm">
         <CardContent className="p-6">
           {/* Top Row */}
           <div className="flex items-center gap-4 mb-4">
@@ -64,17 +64,17 @@ export function FilterBar({ filters, onFiltersChange, totalResults, onClearFilte
                 placeholder="Search artifacts..."
                 value={filters.search}
                 onChange={(e) => updateFilter('search', e.target.value)}
-                className="pl-10 bg-stone-50 border-stone-200 focus:border-emerald-400 focus:ring-emerald-300"
+                className="pl-10 bg-muted/50 border-border focus:border-primary focus:ring-primary/20"
               />
             </div>
 
             {/* View Toggle */}
-            <div className="flex rounded-lg overflow-hidden border border-stone-200 bg-stone-50">
+            <div className="flex rounded-lg overflow-hidden border border-border bg-muted/50">
               <Button
                 variant={filters.viewMode === 'grid' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => updateFilter('viewMode', 'grid')}
-                className={`rounded-none ${filters.viewMode === 'grid' ? 'bg-emerald-600 text-white' : 'text-stone-600'}`}
+                className={`rounded-none ${filters.viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
               >
                 <Grid className="w-4 h-4" />
               </Button>
@@ -82,7 +82,7 @@ export function FilterBar({ filters, onFiltersChange, totalResults, onClearFilte
                 variant={filters.viewMode === 'list' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => updateFilter('viewMode', 'list')}
-                className={`rounded-none ${filters.viewMode === 'list' ? 'bg-emerald-600 text-white' : 'text-stone-600'}`}
+                className={`rounded-none ${filters.viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
               >
                 <List className="w-4 h-4" />
               </Button>
@@ -95,14 +95,13 @@ export function FilterBar({ filters, onFiltersChange, totalResults, onClearFilte
                   <SlidersHorizontal className="w-4 h-4 mr-2" />
                   Advanced Filters
                   {activeFilterCount > 0 && (
-                    <Badge className="ml-2 bg-emerald-600 text-white text-xs">
+                    <Badge className="ml-2 bg-primary text-primary-foreground text-xs">
                       {activeFilterCount}
                     </Badge>
                   )}
                   <ChevronDown
-                    className={`w-4 h-4 ml-2 transition-transform duration-200 ${
-                      isExpanded ? 'rotate-180' : ''
-                    }`}
+                    className={`w-4 h-4 ml-2 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''
+                      }`}
                   />
                 </Button>
               </CollapsibleTrigger>
@@ -243,7 +242,7 @@ export function FilterBar({ filters, onFiltersChange, totalResults, onClearFilte
                       onClick={() =>
                         updateFilter('featured', filters.featured === true ? null : true)
                       }
-                      className={filters.featured === true ? 'bg-emerald-600 text-white' : ''}
+                      className={filters.featured === true ? 'bg-primary text-primary-foreground' : ''}
                     >
                       Featured Only
                     </Button>
@@ -271,7 +270,7 @@ export function FilterBar({ filters, onFiltersChange, totalResults, onClearFilte
               <span className="text-sm font-medium text-stone-700">Active Filters:</span>
               <div className="flex flex-wrap gap-2">
                 {filters.search && (
-                  <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                     Search: {filters.search}
                     <Button
                       variant="ghost"
@@ -284,7 +283,7 @@ export function FilterBar({ filters, onFiltersChange, totalResults, onClearFilte
                   </Badge>
                 )}
                 {filters.culture && filters.culture !== 'all' && (
-                  <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                     Culture: {filters.culture}
                     <Button
                       variant="ghost"
@@ -297,7 +296,7 @@ export function FilterBar({ filters, onFiltersChange, totalResults, onClearFilte
                   </Badge>
                 )}
                 {filters.period && filters.period !== 'all' && (
-                  <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                     Period: {filters.period}
                     <Button
                       variant="ghost"
@@ -316,7 +315,7 @@ export function FilterBar({ filters, onFiltersChange, totalResults, onClearFilte
           {/* Results Count */}
           <div className="flex justify-between items-center pt-4 border-t border-stone-100">
             <p className="text-sm text-stone-600">
-              Showing <span className="font-medium text-stone-800">{totalResults}</span> artifacts
+              Showing <span className="font-medium text-foreground">{totalResults}</span> artifacts
             </p>
           </div>
         </CardContent>

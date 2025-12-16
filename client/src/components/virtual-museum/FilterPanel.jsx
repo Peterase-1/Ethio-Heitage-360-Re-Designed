@@ -22,7 +22,7 @@ const FilterPanel = ({ filters, onFiltersChange, onClearFilters, artifacts }) =>
   const origins = [...new Set(artifacts.map(artifact => artifact.origin))];
   const museums = [...new Set(artifacts.map(artifact => artifact.museum))];
 
-  const hasActiveFilters = Object.values(filters).some(value => 
+  const hasActiveFilters = Object.values(filters).some(value =>
     typeof value === 'boolean' ? value : value !== ''
   );
 
@@ -149,59 +149,59 @@ const FilterPanel = ({ filters, onFiltersChange, onClearFilters, artifacts }) =>
 
       {/* Filter Summary */}
       {hasActiveFilters && (
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <p className="text-sm text-gray-600 mb-2">Active filters:</p>
+        <div className="mt-6 pt-6 border-t border-border">
+          <p className="text-sm text-muted-foreground mb-2">Active filters:</p>
           <div className="flex flex-wrap gap-2">
             {filters.category && (
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary/10 text-secondary-foreground">
                 Category: {filters.category}
                 <button
                   onClick={() => handleFilterChange('category', '')}
-                  className="ml-1 text-amber-600 hover:text-amber-800"
+                  className="ml-1 text-secondary-foreground/70 hover:text-secondary-foreground"
                 >
                   <X className="w-3 h-3" />
                 </button>
               </span>
             )}
             {filters.period && (
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-500">
                 Period: {filters.period}
                 <button
                   onClick={() => handleFilterChange('period', '')}
-                  className="ml-1 text-blue-600 hover:text-blue-800"
+                  className="ml-1 text-blue-500/70 hover:text-blue-500"
                 >
                   <X className="w-3 h-3" />
                 </button>
               </span>
             )}
             {filters.origin && (
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-500">
                 Origin: {filters.origin}
                 <button
                   onClick={() => handleFilterChange('origin', '')}
-                  className="ml-1 text-green-600 hover:text-green-800"
+                  className="ml-1 text-green-500/70 hover:text-green-500"
                 >
                   <X className="w-3 h-3" />
                 </button>
               </span>
             )}
             {filters.museum && (
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-500/10 text-purple-500">
                 Museum: {filters.museum.length > 20 ? filters.museum.substring(0, 20) + '...' : filters.museum}
                 <button
                   onClick={() => handleFilterChange('museum', '')}
-                  className="ml-1 text-purple-600 hover:text-purple-800"
+                  className="ml-1 text-purple-500/70 hover:text-purple-500"
                 >
                   <X className="w-3 h-3" />
                 </button>
               </span>
             )}
             {filters.has3D && (
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive">
                 3D Models Only
                 <button
                   onClick={() => handleFilterChange('has3D', false)}
-                  className="ml-1 text-red-600 hover:text-red-800"
+                  className="ml-1 text-destructive/70 hover:text-destructive"
                 >
                   <X className="w-3 h-3" />
                 </button>
