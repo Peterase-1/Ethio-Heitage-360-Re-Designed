@@ -32,7 +32,7 @@ export function VirtualMuseum() {
     let filtered = artifacts.filter((artifact) => {
       if (filters.search) {
         const searchTerm = filters.search.toLowerCase();
-        const matchesSearch = 
+        const matchesSearch =
           artifact.title.toLowerCase().includes(searchTerm) ||
           artifact.description.toLowerCase().includes(searchTerm) ||
           artifact.culture.toLowerCase().includes(searchTerm) ||
@@ -40,7 +40,7 @@ export function VirtualMuseum() {
           artifact.category.toLowerCase().includes(searchTerm) ||
           artifact.tags.some(tag => tag.toLowerCase().includes(searchTerm)) ||
           artifact.materials.some(material => material.toLowerCase().includes(searchTerm));
-        
+
         if (!matchesSearch) return false;
       }
 
@@ -159,8 +159,8 @@ export function VirtualMuseum() {
   };
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      <HeroSection 
+    <div className="min-h-screen bg-background">
+      <HeroSection
         onSearch={handleSearch}
         totalArtifacts={artifacts.length}
       />
@@ -174,7 +174,7 @@ export function VirtualMuseum() {
         />
 
         {filteredAndSortedArtifacts.length === 0 ? (
-          <EmptyState 
+          <EmptyState
             onClearFilters={handleClearFilters}
             hasActiveFilters={filters.search !== '' || filters.culture !== 'all' || filters.period !== 'all'}
           />
