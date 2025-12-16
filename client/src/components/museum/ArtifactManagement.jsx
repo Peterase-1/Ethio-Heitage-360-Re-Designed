@@ -1,13 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import MuseumAdminSidebar from '../dashboard/MuseumAdminSidebar';
 import {
-  Box, Typography, Container, Grid, Paper, Button, TextField,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Chip, IconButton, Dialog, DialogTitle, DialogContent, DialogActions,
-  FormControl, InputLabel, Select, MenuItem, Avatar, Card, CardContent,
-  CardMedia, CardActions, InputAdornment, Snackbar, Alert
-} from '@mui/material';
-import {
   Package,
   Plus,
   Search,
@@ -28,9 +21,44 @@ import {
   Shield,
   Grid3X3,
   List,
-  X
+  X,
+  Trash2,
+  Lock,
+  MoreVertical
 } from 'lucide-react';
 import api from '../../utils/api.js';
+import { Button } from '../ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Switch } from '../ui/switch';
+import { Separator } from '../ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "../ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../ui/table";
+import { Textarea } from "../ui/textarea";
+import { Badge } from "../ui/badge";
+import { toast } from 'sonner';
 
 const ArtifactManagement = () => {
   const [artifacts, setArtifacts] = useState([]);
@@ -44,7 +72,6 @@ const ArtifactManagement = () => {
   const [editingId, setEditingId] = useState(null);
   const [selectedArtifact, setSelectedArtifact] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [currentMuseumId, setCurrentMuseumId] = useState('');
   const [uploadingImages, setUploadingImages] = useState(false);
   const [selectedImages, setSelectedImages] = useState([]);
@@ -69,20 +96,6 @@ const ArtifactManagement = () => {
   const [formImages, setFormImages] = useState([]);
   const [uploadingFormImages, setUploadingFormImages] = useState(false);
 
-  const statusColors = {
-    'on_display': 'success',
-    'in_storage': 'default',
-    'under_conservation': 'warning',
-    'on_loan': 'info'
-  };
-
-  const conditionColors = {
-    'excellent': 'success',
-    'good': 'primary',
-    'fair': 'warning',
-    'fragile': 'error'
-  };
-
   const filteredArtifacts = artifacts.filter(artifact => {
     const matchesSearch = artifact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       artifact.category.toLowerCase().includes(searchTerm.toLowerCase());
@@ -91,37 +104,39 @@ const ArtifactManagement = () => {
     return matchesSearch && matchesStatus;
   });
 
+  const getStatusBadge = (status) => {
+    const styles = {
+      'on_display': 'bg-green-100 text-green-800 hover:bg-green-100 border-green-200',
+      'in_storage': 'bg-gray-100 text-gray-800 hover:bg-gray-100 border-gray-200',
+      'under_conservation': 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-yellow-200',
+      'on_loan': 'bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-200'
+    };
+    return <Badge className={`${styles[status] || styles['in_storage']} border`}>{status.replace('_', ' ')}</Badge>;
+  };
+
+  const getConditionBadge = (condition) => {
+    const styles = {
+      'excellent': 'bg-green-100 text-green-800 hover:bg-green-100 border-green-200',
+      'good': 'bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-200',
+      'fair': 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-yellow-200',
+      'fragile': 'bg-red-100 text-red-800 hover:bg-red-100 border-red-200'
+    };
+    return <Badge className={`${styles[condition] || styles['good']} border`}>{condition}</Badge>;
+  };
+
 
   const fetchArtifacts = async () => {
     setLoading(true);
     try {
-      // Debug authentication
-      const token = localStorage.getItem('token');
-      console.log('Token exists:', !!token);
-      console.log('Token preview:', token ? token.substring(0, 20) + '...' : 'No token');
-
       // Force fresh data by adding timestamp to prevent caching
       const response = await api.getArtifacts({ _t: Date.now() });
 
       // Handle the correct response structure: { success: true, data: { artifacts: [...] } }
       const list = response?.data?.artifacts || response?.artifacts || [];
       setArtifacts(list);
-      console.log('Fetched artifacts:', list.length, 'artifacts');
-      console.log('Artifact statuses:', list.map(a => ({ name: a.name, status: a.status })));
-      console.log('All unique statuses in database:', [...new Set(list.map(a => a.status))]);
-      console.log('Artifacts with images:', list.filter(a => a.media?.images?.length > 0).map(a => ({
-        name: a.name,
-        id: a._id || a.id,
-        images: a.media.images.map(img => img.url),
-        mediaStructure: a.media
-      })));
-
-      // Debug: Check if any artifacts have the expected image structure
-      const artifactsWithImages = list.filter(a => a.media?.images?.length > 0);
-      console.log(`Found ${artifactsWithImages.length} artifacts with images out of ${list.length} total artifacts`);
     } catch (e) {
       console.error('Failed to load artifacts', e);
-      setSnackbar({ open: true, message: 'Failed to load artifacts: ' + e.message, severity: 'error' });
+      toast.error('Failed to load artifacts: ' + e.message);
     } finally {
       setLoading(false);
     }
@@ -135,7 +150,6 @@ const ArtifactManagement = () => {
         const userData = await api.getCurrentUser();
         if (userData?.user?.museumId) {
           setCurrentMuseumId(userData.user.museumId);
-          console.log('Found museum ID from user profile:', userData.user.museumId);
         } else {
           // Fallback: try to get museum profile
           const profile = await api.getMuseumProfile();
@@ -143,12 +157,10 @@ const ArtifactManagement = () => {
           const id = museum?._id || museum?.id;
           if (id) {
             setCurrentMuseumId(id);
-            console.log('Found museum ID from museum profile:', id);
           }
         }
       } catch (e) {
         console.warn('Could not fetch museum information:', e.message);
-        console.warn('Will rely on backend to infer museum from user context');
       }
     })();
   }, []);
@@ -156,24 +168,23 @@ const ArtifactManagement = () => {
   const resetForm = () => {
     setNewArtifact({
       name: '',
-      category: 'sculptures', // Default to valid enum value
-      period: 'ancient', // Default to valid enum value
+      category: 'sculptures',
+      period: 'ancient',
       material: '',
       origin: '',
       status: 'in_storage',
       condition: 'good',
-      description: 'This artifact represents...', // Default description to meet validation
+      description: 'This artifact represents...',
       location: ''
     });
     setFormImages([]);
     setIsEditing(false);
     setEditingId(null);
-    // currentMuseumId remains set from profile
   };
 
   const handleSaveArtifact = async () => {
     if (!newArtifact.name || !newArtifact.category || !newArtifact.description || newArtifact.description.length < 10) {
-      setSnackbar({ open: true, message: 'Please fill required fields: name, category, and description (min 10 characters)', severity: 'error' });
+      toast.error('Please fill required fields: name, category, and description (min 10 characters)');
       return;
     }
     setSaving(true);
@@ -192,34 +203,27 @@ const ArtifactManagement = () => {
         ...(currentMuseumId ? { museum: currentMuseumId } : {}),
       };
 
-      console.log('Creating/updating artifact with payload:', payload);
-      console.log('Current museum ID:', currentMuseumId);
-      console.log('Form images to upload:', formImages.length);
-
       let artifactId;
       if (isEditing && editingId) {
         await api.updateArtifact(editingId, payload);
         artifactId = editingId;
       } else {
         const response = await api.createArtifact(payload);
-        console.log('Create artifact response:', response);
         artifactId = response.data._id || response.data.id;
       }
 
       // Upload images if any were selected
       if (formImages.length > 0 && artifactId) {
-        console.log('Uploading form images to artifact:', artifactId);
         await api.uploadArtifactImages(artifactId, formImages);
-        console.log('Form images uploaded successfully');
       }
 
       await fetchArtifacts();
       resetForm();
       setOpenDialog(false);
-      setSnackbar({ open: true, message: isEditing ? 'Artifact updated' : 'Artifact created', severity: 'success' });
+      toast.success(isEditing ? 'Artifact updated' : 'Artifact created');
     } catch (e) {
       console.error('Save artifact failed', e);
-      setSnackbar({ open: true, message: e.message || 'Save failed', severity: 'error' });
+      toast.error(e.message || 'Save failed');
     } finally {
       setSaving(false);
       setUploadingFormImages(false);
@@ -231,21 +235,17 @@ const ArtifactManagement = () => {
       const id = artifact._id || artifact.id;
       await api.toggleArtifactFeatured(id, !artifact.featured);
       setArtifacts(prev => prev.map(a => ((a._id || a.id) === id ? { ...a, featured: !artifact.featured } : a)));
-      setSnackbar({ open: true, message: `Artifact ${!artifact.featured ? 'featured' : 'unfeatured'} successfully`, severity: 'success' });
+      toast.success(`Artifact ${!artifact.featured ? 'featured' : 'unfeatured'} successfully`);
     } catch (e) {
       console.error('Toggle featured failed', e);
-      setSnackbar({ open: true, message: 'Failed to update featured status: ' + e.message, severity: 'error' });
+      toast.error('Failed to update featured status: ' + e.message);
     }
   };
 
   const handleDeleteArtifact = (artifact) => {
     // Check if artifact is under conservation
     if (artifact.status === 'conservation') {
-      setSnackbar({
-        open: true,
-        message: 'Cannot delete artifact under conservation. Please wait for conservation to complete.',
-        severity: 'warning'
-      });
+      toast.warning('Cannot delete artifact under conservation. Please wait for conservation to complete.');
       return;
     }
 
@@ -258,62 +258,49 @@ const ArtifactManagement = () => {
 
     try {
       const id = artifactToDelete._id || artifactToDelete.id;
-      console.log('Deleting artifact with ID:', id);
-      console.log('Artifact to delete:', artifactToDelete);
 
       await api.deleteArtifact(id);
       setArtifacts(prev => prev.filter(a => (a._id || a.id) !== id));
-      setSnackbar({ open: true, message: 'Artifact deleted successfully', severity: 'success' });
+      toast.success('Artifact deleted successfully');
       setDeleteDialogOpen(false);
       setArtifactToDelete(null);
     } catch (e) {
       console.error('Delete artifact failed', e);
-      console.error('Error details:', e);
-      setSnackbar({ open: true, message: 'Failed to delete artifact: ' + e.message, severity: 'error' });
+      toast.error('Failed to delete artifact: ' + e.message);
     }
   };
 
   const handleImageUpload = async (artifact) => {
     if (selectedImages.length === 0) {
-      setSnackbar({ open: true, message: 'Please select images to upload', severity: 'warning' });
+      toast.warning('Please select images to upload');
       return;
     }
 
     setUploadingImages(true);
     try {
       const id = artifact._id || artifact.id;
-      console.log('Uploading images for artifact ID:', id);
-      console.log('Selected images:', selectedImages);
-      console.log('Number of images:', selectedImages.length);
-
-      const uploadResponse = await api.uploadArtifactImages(id, selectedImages);
-      console.log('Upload response:', uploadResponse);
-      setSnackbar({ open: true, message: 'Images uploaded successfully', severity: 'success' });
+      await api.uploadArtifactImages(id, selectedImages);
+      toast.success('Images uploaded successfully');
       setSelectedImages([]);
       // Refresh artifacts to show updated images
-      console.log('Refreshing artifacts after upload...');
       await fetchArtifacts();
+      setUploadDialogOpen(false);
     } catch (e) {
       console.error('Image upload failed', e);
-      console.error('Error details:', e);
-      setSnackbar({ open: true, message: 'Failed to upload images: ' + e.message, severity: 'error' });
+      toast.error('Failed to upload images: ' + e.message);
     } finally {
       setUploadingImages(false);
     }
   };
 
   const handleImageSelect = (event) => {
-    console.log('File input changed, files:', event.target.files);
     const files = Array.from(event.target.files);
-    console.log('Selected files:', files);
     setSelectedImages(files);
   };
 
   // Image upload handlers for create/update forms
   const handleFormImageSelect = (event) => {
-    console.log('Form file input changed, files:', event.target.files);
     const files = Array.from(event.target.files);
-    console.log('Selected files for form:', files);
     setFormImages(files);
   };
 
@@ -337,7 +324,7 @@ const ArtifactManagement = () => {
   const renderGridView = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {filteredArtifacts.map((artifact) => (
-        <div key={artifact._id || artifact.id} className="group bg-white rounded-3xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-500 hover:-translate-y-2">
+        <Card key={artifact._id || artifact.id} className="group overflow-hidden border-border hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
           {/* Image Section */}
           <div className="relative h-64 overflow-hidden">
             {artifact.media?.images && artifact.media.images.length > 0 ? (
@@ -346,39 +333,24 @@ const ArtifactManagement = () => {
                   ? artifact.media.images[0].url
                   : `${api.baseURL.replace('/api', '')}${artifact.media.images[0].url}`;
 
-                console.log('🖼️ Constructing image URL:', {
-                  originalUrl: artifact.media.images[0].url,
-                  baseURL: api.baseURL,
-                  finalUrl: imageUrl
-                });
-
                 return (
                   <img
                     src={imageUrl}
                     alt={artifact.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    onLoad={() => console.log('✅ Image loaded successfully:', imageUrl)}
-                    onError={(e) => {
-                      console.error('❌ Image failed to load:', imageUrl, e);
-                      console.error('❌ Error details:', {
-                        src: imageUrl,
-                        baseURL: api.baseURL,
-                        originalUrl: artifact.media.images[0].url,
-                        error: e
-                      });
-                    }}
+                    onError={(e) => { e.target.src = '/placeholder-artifact.png'; }}
                   />
                 );
               })()
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                <Camera size={48} className="text-gray-600" />
+              <div className="w-full h-full bg-muted flex items-center justify-center">
+                <Camera size={48} className="text-muted-foreground" />
               </div>
             )}
 
             {/* Featured Badge */}
             {artifact.featured && (
-              <div className="absolute top-4 right-4 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+              <div className="absolute top-4 right-4 bg-yellow-500 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-md">
                 <Star size={12} fill="currentColor" />
                 Featured
               </div>
@@ -386,25 +358,19 @@ const ArtifactManagement = () => {
 
             {/* Status Badge */}
             <div className="absolute top-4 left-4">
-              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${artifact.status === 'on_display' ? 'bg-green-100 text-green-800' :
-                artifact.status === 'in_storage' ? 'bg-gray-100 text-gray-800' :
-                  artifact.status === 'under_conservation' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-blue-100 text-blue-800'
-                }`}>
-                {artifact.status.replace('_', ' ')}
-              </span>
+              {getStatusBadge(artifact.status)}
             </div>
           </div>
 
           {/* Content Section */}
-          <div className="p-6">
+          <CardContent className="p-6">
             <div className="flex items-start justify-between mb-3">
-              <h3 className="text-lg font-bold text-gray-900 group-hover:text-amber-800 transition-colors">
+              <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">
                 {artifact.name}
               </h3>
             </div>
 
-            <div className="flex items-center gap-2 mb-3 text-sm text-gray-600">
+            <div className="flex items-center gap-2 mb-3 text-sm text-muted-foreground">
               <Tag className="w-4 h-4" />
               <span className="capitalize">{artifact.category}</span>
               <span>•</span>
@@ -412,698 +378,555 @@ const ArtifactManagement = () => {
             </div>
 
             <div className="flex items-center gap-2 mb-4">
-              <span className={`px-2 py-1 rounded-lg text-xs font-medium ${artifact.condition === 'excellent' ? 'bg-green-100 text-green-800' :
-                artifact.condition === 'good' ? 'bg-blue-100 text-blue-800' :
-                  artifact.condition === 'fair' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                }`}>
-                {artifact.condition}
-              </span>
+              {getConditionBadge(artifact.condition)}
             </div>
 
-            <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+            <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
               {artifact.description}
             </p>
 
             {/* Action Buttons */}
-            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-              <div className="flex items-center gap-2">
-                <button
+            <div className="flex items-center justify-between pt-4 border-t border-border">
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setSelectedArtifact(artifact)}
-                  className="p-2 text-gray-600 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-colors"
+                  className="hover:text-primary hover:bg-primary/10"
                   title="View Details"
                 >
                   <Eye size={16} />
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => startEditArtifact(artifact)}
-                  className="p-2 text-gray-600 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-colors"
+                  className="hover:text-primary hover:bg-primary/10"
                   title="Edit"
                 >
                   <Edit size={16} />
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => {
-                    console.log('Upload button clicked for artifact:', artifact.name);
                     setSelectedArtifactForUpload(artifact);
                     setUploadDialogOpen(true);
-                    console.log('Upload dialog should be open now');
                   }}
-                  className="p-2 text-gray-600 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-colors"
+                  className="hover:text-primary hover:bg-primary/10"
                   title="Upload Images"
                 >
                   <Upload size={16} />
-                </button>
+                </Button>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => handleToggleFeatured(artifact)}
-                  className={`p-2 rounded-xl transition-colors ${artifact.featured
-                    ? 'text-yellow-500 hover:bg-yellow-50'
-                    : 'text-gray-600 hover:text-yellow-500 hover:bg-yellow-50'
-                    }`}
+                  className={artifact.featured ? "text-yellow-500 hover:text-yellow-600 hover:bg-yellow-50" : "text-muted-foreground hover:text-yellow-500 hover:bg-yellow-50"}
                   title="Toggle Featured"
                 >
                   <Star size={16} fill={artifact.featured ? 'currentColor' : 'none'} />
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => handleDeleteArtifact(artifact)}
-                  className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                  className="hover:text-destructive hover:bg-destructive/10"
                   title="Delete"
                 >
-                  <Delete size={16} />
-                </button>
+                  <Trash2 size={16} />
+                </Button>
               </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       ))}
     </div>
   );
 
   const renderTableView = () => (
-    <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider">Name</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider">Category</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider">Period</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider">Condition</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider">Location</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider">Featured</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {filteredArtifacts.map((artifact) => (
-              <tr key={artifact._id || artifact.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-gray-900">{artifact.name}</span>
-                    {artifact.featured && (
-                      <Star size={16} className="text-yellow-500" fill="currentColor" />
-                    )}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="text-sm text-gray-600 capitalize">{artifact.category}</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="text-sm text-gray-600">{artifact.period?.era || artifact.period || 'Unknown'}</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${artifact.status === 'on_display' ? 'bg-green-100 text-green-800' :
-                    artifact.status === 'in_storage' ? 'bg-gray-100 text-gray-800' :
-                      artifact.status === 'under_conservation' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-blue-100 text-blue-800'
-                    }`}>
-                    {artifact.status.replace('_', ' ')}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 rounded-lg text-xs font-medium ${artifact.condition === 'excellent' ? 'bg-green-100 text-green-800' :
-                    artifact.condition === 'good' ? 'bg-blue-100 text-blue-800' :
-                      artifact.condition === 'fair' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                    }`}>
-                    {artifact.condition}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="text-sm text-gray-600">{artifact.origin?.region || artifact.location || 'Unknown'}</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <button
-                    onClick={() => handleToggleFeatured(artifact)}
-                    className={`p-2 rounded-xl transition-colors ${artifact.featured
-                      ? 'text-yellow-500 hover:bg-yellow-50'
-                      : 'text-gray-600 hover:text-yellow-500 hover:bg-yellow-50'
-                      }`}
-                    title="Toggle Featured"
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Category</TableHead>
+            <TableHead>Period</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Condition</TableHead>
+            <TableHead>Location</TableHead>
+            <TableHead>Featured</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredArtifacts.map((artifact) => (
+            <TableRow key={artifact._id || artifact.id}>
+              <TableCell className="font-medium">
+                <div className="flex items-center gap-2">
+                  {artifact.name}
+                  {artifact.featured && (
+                    <Star size={14} className="text-yellow-500" fill="currentColor" />
+                  )}
+                </div>
+              </TableCell>
+              <TableCell className="capitalize">{artifact.category}</TableCell>
+              <TableCell>{artifact.period?.era || artifact.period || 'Unknown'}</TableCell>
+              <TableCell>
+                {getStatusBadge(artifact.status)}
+              </TableCell>
+              <TableCell>
+                {getConditionBadge(artifact.condition)}
+              </TableCell>
+              <TableCell>{artifact.origin?.region || artifact.location || 'Unknown'}</TableCell>
+              <TableCell>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleToggleFeatured(artifact)}
+                  className={artifact.featured ? "text-yellow-500" : "text-muted-foreground"}
+                >
+                  <Star size={16} fill={artifact.featured ? 'currentColor' : 'none'} />
+                </Button>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setSelectedArtifact(artifact)}
+                    title="View"
                   >
-                    <Star size={16} fill={artifact.featured ? 'currentColor' : 'none'} />
-                  </button>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setSelectedArtifact(artifact)}
-                      className="p-2 text-gray-600 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-colors"
-                      title="View Details"
-                    >
-                      <Eye size={16} />
-                    </button>
-                    <button
-                      onClick={() => startEditArtifact(artifact)}
-                      className="p-2 text-gray-600 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-colors"
-                      title="Edit"
-                    >
-                      <Edit size={16} />
-                    </button>
-                    <button
-                      onClick={() => {
-                        console.log('Upload button clicked for artifact:', artifact.name);
-                        setSelectedArtifactForUpload(artifact);
-                        setUploadDialogOpen(true);
-                        console.log('Upload dialog should be open now');
-                      }}
-                      className="p-2 text-gray-600 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-colors"
-                      title="Upload Images"
-                    >
-                      <Upload size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteArtifact(artifact)}
-                      className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-                      title="Delete"
-                    >
-                      <Delete size={16} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                    <Eye size={16} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => startEditArtifact(artifact)}
+                    title="Edit"
+                  >
+                    <Edit size={16} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDeleteArtifact(artifact)}
+                    className="text-destructive hover:text-destructive"
+                    title="Delete"
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-background">
+        <MuseumAdminSidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <RefreshCw className="h-10 w-10 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: 'white' }}>
+    <div className="flex min-h-screen bg-background">
       <MuseumAdminSidebar />
 
-      <div
-        className="flex-1 overflow-auto"
-        onWheel={(e) => {
-          // Only allow scrolling when mouse is over the main content
-          e.stopPropagation();
-        }}
-      >
-        <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+      <div className="flex-1 overflow-auto p-8">
+        <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <Box sx={{ mb: 4 }}>
-            <Typography variant="h4" component="h1" sx={{ mb: 1, display: 'flex', alignItems: 'center', color: 'black' }}>
-              <Package className="mr-3" size={32} style={{ color: '#8B5A3C' }} />
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold flex items-center mb-2">
+              <Package className="mr-3 h-8 w-8 text-primary" />
               Artifact Management
-            </Typography>
-            <Typography variant="subtitle1" color="text.secondary">
+            </h1>
+            <p className="text-muted-foreground text-lg">
               Preserve and showcase your museum's precious artifacts with our comprehensive management system
-            </Typography>
-          </Box>
+            </p>
+          </div>
 
           {/* Stats Cards */}
-          <Grid container spacing={3} sx={{ mb: 4 }}>
-            <Grid item xs={12} md={3}>
-              <Paper sx={{ p: 3, display: 'flex', alignItems: 'center', backgroundColor: '#8B5A3C', color: 'white' }}>
-                <Package sx={{ fontSize: 40, mr: 2 }} />
-                <Box>
-                  <Typography color="inherit" variant="body2">Total Artifacts</Typography>
-                  <Typography variant="h4" color="inherit">{artifacts.length}</Typography>
-                  <Typography variant="caption" sx={{ opacity: 0.8 }}>In Collection</Typography>
-                </Box>
-              </Paper>
-            </Grid>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <Card className="bg-primary text-primary-foreground border-none">
+              <CardContent className="p-6 flex items-center">
+                <Package className="h-10 w-10 mr-4 opacity-80" />
+                <div>
+                  <p className="text-sm font-medium opacity-80">Total Artifacts</p>
+                  <h3 className="text-3xl font-bold">{artifacts.length}</h3>
+                  <p className="text-xs opacity-60">In Collection</p>
+                </div>
+              </CardContent>
+            </Card>
 
-            <Grid item xs={12} md={3}>
-              <Paper sx={{ p: 3, display: 'flex', alignItems: 'center', backgroundColor: '#8B5A3C', color: 'white' }}>
-                <Eye sx={{ fontSize: 40, mr: 2 }} />
-                <Box>
-                  <Typography color="inherit" variant="body2">On Display</Typography>
-                  <Typography variant="h4" color="inherit">
+            <Card className="bg-primary text-primary-foreground border-none">
+              <CardContent className="p-6 flex items-center">
+                <Eye className="h-10 w-10 mr-4 opacity-80" />
+                <div>
+                  <p className="text-sm font-medium opacity-80">On Display</p>
+                  <h3 className="text-3xl font-bold">
                     {artifacts.filter(a => a.status === 'on_display').length}
-                  </Typography>
-                  <Typography variant="caption" sx={{ opacity: 0.8 }}>Currently Exhibited</Typography>
-                </Box>
-              </Paper>
-            </Grid>
+                  </h3>
+                  <p className="text-xs opacity-60">Currently Exhibited</p>
+                </div>
+              </CardContent>
+            </Card>
 
-            <Grid item xs={12} md={3}>
-              <Paper sx={{ p: 3, display: 'flex', alignItems: 'center', backgroundColor: '#8B5A3C', color: 'white' }}>
-                <Shield sx={{ fontSize: 40, mr: 2 }} />
-                <Box>
-                  <Typography color="inherit" variant="body2">Under Conservation</Typography>
-                  <Typography variant="h4" color="inherit">
+            <Card className="bg-primary text-primary-foreground border-none">
+              <CardContent className="p-6 flex items-center">
+                <Shield className="h-10 w-10 mr-4 opacity-80" />
+                <div>
+                  <p className="text-sm font-medium opacity-80">Under Conservation</p>
+                  <h3 className="text-3xl font-bold">
                     {artifacts.filter(a => a.status === 'under_conservation').length}
-                  </Typography>
-                  <Typography variant="caption" sx={{ opacity: 0.8 }}>Being Restored</Typography>
-                </Box>
-              </Paper>
-            </Grid>
+                  </h3>
+                  <p className="text-xs opacity-60">Being Restored</p>
+                </div>
+              </CardContent>
+            </Card>
 
-            <Grid item xs={12} md={3}>
-              <Paper sx={{ p: 3, display: 'flex', alignItems: 'center', backgroundColor: '#8B5A3C', color: 'white' }}>
-                <Star sx={{ fontSize: 40, mr: 2 }} />
-                <Box>
-                  <Typography color="inherit" variant="body2">Featured</Typography>
-                  <Typography variant="h4" color="inherit">
+            <Card className="bg-primary text-primary-foreground border-none">
+              <CardContent className="p-6 flex items-center">
+                <Star className="h-10 w-10 mr-4 opacity-80" />
+                <div>
+                  <p className="text-sm font-medium opacity-80">Featured</p>
+                  <h3 className="text-3xl font-bold">
                     {artifacts.filter(a => a.featured).length}
-                  </Typography>
-                  <Typography variant="caption" sx={{ opacity: 0.8 }}>Highlighted Items</Typography>
-                </Box>
-              </Paper>
-            </Grid>
-          </Grid>
+                  </h3>
+                  <p className="text-xs opacity-60">Highlighted Items</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Controls */}
-          <Paper sx={{ p: 3, mb: 3 }}>
-            <Grid container spacing={3} alignItems="center">
-              {/* Search */}
-              <Grid item xs={12} md={4}>
-                <TextField
-                  fullWidth
-                  placeholder="Search artifacts..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  InputProps={{
-                    startAdornment: <Search className="mr-2" size={20} style={{ color: '#8B5A3C' }} />
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#8B5A3C',
-                      },
-                    },
-                  }}
-                />
-              </Grid>
-
-              {/* Filter */}
-              <Grid item xs={12} md={3}>
-                <FormControl fullWidth>
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    value={filterStatus}
-                    label="Status"
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    sx={{
-                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                        borderColor: '#8B5A3C',
-                      },
-                    }}
-                  >
-                    <MenuItem value="all">All Statuses</MenuItem>
-                    <MenuItem value="on_display">On Display</MenuItem>
-                    <MenuItem value="in_storage">In Storage</MenuItem>
-                    <MenuItem value="under_conservation">Under Conservation</MenuItem>
-                    <MenuItem value="on_loan">On Loan</MenuItem>
+          <Card className="mb-6">
+            <CardContent className="p-4">
+              <div className="flex flex-col md:flex-row gap-4 items-center">
+                <div className="relative flex-1 w-full">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search artifacts..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+                <div className="w-full md:w-48">
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="on_display">On Display</SelectItem>
+                      <SelectItem value="in_storage">In Storage</SelectItem>
+                      <SelectItem value="under_conservation">Under Conservation</SelectItem>
+                      <SelectItem value="on_loan">On Loan</SelectItem>
+                    </SelectContent>
                   </Select>
-                </FormControl>
-              </Grid>
-
-              {/* View Mode Toggle */}
-              <Grid item xs={12} md={3}>
-                <Paper sx={{ p: 1, display: 'flex', backgroundColor: '#f5f5f5' }}>
+                </div>
+                <div className="flex items-center gap-2 bg-muted p-1 rounded-md">
                   <Button
+                    variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                    size="sm"
                     onClick={() => setViewMode('grid')}
-                    variant={viewMode === 'grid' ? 'contained' : 'text'}
-                    size="small"
-                    startIcon={<Grid3X3 size={16} />}
-                    sx={{
-                      flex: 1,
-                      backgroundColor: viewMode === 'grid' ? '#8B5A3C' : 'transparent',
-                      color: viewMode === 'grid' ? 'white' : '#8B5A3C',
-                      '&:hover': {
-                        backgroundColor: viewMode === 'grid' ? '#8B5A3C' : 'rgba(139, 90, 60, 0.1)',
-                      },
-                    }}
                   >
-                    Grid
+                    <Grid3X3 className="h-4 w-4 mr-2" /> Grid
                   </Button>
                   <Button
+                    variant={viewMode === 'table' ? 'default' : 'ghost'}
+                    size="sm"
                     onClick={() => setViewMode('table')}
-                    variant={viewMode === 'table' ? 'contained' : 'text'}
-                    size="small"
-                    startIcon={<List size={16} />}
-                    sx={{
-                      flex: 1,
-                      backgroundColor: viewMode === 'table' ? '#8B5A3C' : 'transparent',
-                      color: viewMode === 'table' ? 'white' : '#8B5A3C',
-                      '&:hover': {
-                        backgroundColor: viewMode === 'table' ? '#8B5A3C' : 'rgba(139, 90, 60, 0.1)',
-                      },
-                    }}
                   >
-                    Table
+                    <List className="h-4 w-4 mr-2" /> Table
                   </Button>
-                </Paper>
-              </Grid>
-
-              {/* Actions */}
-              <Grid item xs={12} md={2}>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button
-                    variant="outlined"
-                    startIcon={<RefreshCw size={16} />}
-                    onClick={() => fetchArtifacts()}
-                    disabled={loading}
-                    sx={{ borderColor: '#8B5A3C', color: '#8B5A3C', '&:hover': { borderColor: '#8B5A3C', backgroundColor: 'white' } }}
-                  >
-                    Refresh
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" onClick={() => fetchArtifacts()} disabled={loading}>
+                    <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                   </Button>
-                  <Button
-                    variant="contained"
-                    startIcon={<Plus size={16} />}
-                    onClick={() => setOpenDialog(true)}
-                    sx={{
-                      backgroundColor: '#8B5A3C',
-                      color: 'white',
-                      '&:hover': { backgroundColor: '#8B5A3C' }
-                    }}
-                  >
-                    Add
+                  <Button onClick={() => setOpenDialog(true)}>
+                    <Plus className="h-4 w-4 mr-2" /> Add Artifact
                   </Button>
-                </Box>
-              </Grid>
-            </Grid>
-          </Paper>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Artifacts Display */}
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
-              <Typography>Loading artifacts...</Typography>
-            </Box>
-          ) : filteredArtifacts.length === 0 ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 200, textAlign: 'center' }}>
-              <Package size={64} color="#ccc" />
-              <Typography variant="h6" color="text.secondary" sx={{ mt: 2 }}>
-                {artifacts.length === 0 ? 'No artifacts found' : 'No artifacts match your filters'}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          {filteredArtifacts.length === 0 ? (
+            <div className="text-center py-12">
+              <Package className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
+              <h3 className="mt-4 text-lg font-semibold text-foreground">No artifacts found</h3>
+              <p className="text-muted-foreground">
                 {artifacts.length === 0 ? 'Start by adding your first artifact' : 'Try adjusting your search or filter criteria'}
-              </Typography>
-            </Box>
+              </p>
+            </div>
           ) : (
             viewMode === 'grid' ? renderGridView() : renderTableView()
           )}
-
-          {/* Add Artifact Dialog */}
-          <Dialog open={openDialog} onClose={() => { setOpenDialog(false); resetForm(); }} maxWidth="md" fullWidth>
-            <DialogTitle>{isEditing ? 'Edit Artifact' : 'Add New Artifact'}</DialogTitle>
-            <DialogContent>
-              <Grid container spacing={3} sx={{ mt: 1 }}>
-                {/* Museum is inferred from current user's museum profile; no manual selection */}
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Artifact Name"
-                    value={newArtifact.name}
-                    onChange={(e) => setNewArtifact({ ...newArtifact, name: e.target.value })}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Category</InputLabel>
-                    <Select
-                      value={newArtifact.category}
-                      label="Category"
-                      onChange={(e) => setNewArtifact({ ...newArtifact, category: e.target.value })}
-                    >
-                      <MenuItem value="sculptures">Sculptures</MenuItem>
-                      <MenuItem value="pottery">Pottery</MenuItem>
-                      <MenuItem value="jewelry">Jewelry</MenuItem>
-                      <MenuItem value="tools">Tools</MenuItem>
-                      <MenuItem value="weapons">Weapons</MenuItem>
-                      <MenuItem value="textiles">Textiles</MenuItem>
-                      <MenuItem value="religious-items">Religious Items</MenuItem>
-                      <MenuItem value="manuscripts">Manuscripts</MenuItem>
-                      <MenuItem value="coins">Coins</MenuItem>
-                      <MenuItem value="paintings">Paintings</MenuItem>
-                      <MenuItem value="household-items">Household Items</MenuItem>
-                      <MenuItem value="musical-instruments">Musical Instruments</MenuItem>
-                      <MenuItem value="other">Other</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Historical Period</InputLabel>
-                    <Select
-                      value={newArtifact.period}
-                      label="Historical Period"
-                      onChange={(e) => setNewArtifact({ ...newArtifact, period: e.target.value })}
-                    >
-                      <MenuItem value="prehistoric">Prehistoric</MenuItem>
-                      <MenuItem value="ancient">Ancient</MenuItem>
-                      <MenuItem value="medieval">Medieval</MenuItem>
-                      <MenuItem value="modern">Modern</MenuItem>
-                      <MenuItem value="contemporary">Contemporary</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Material"
-                    value={newArtifact.material}
-                    onChange={(e) => setNewArtifact({ ...newArtifact, material: e.target.value })}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Origin"
-                    value={newArtifact.origin}
-                    onChange={(e) => setNewArtifact({ ...newArtifact, origin: e.target.value })}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Location"
-                    value={newArtifact.location}
-                    onChange={(e) => setNewArtifact({ ...newArtifact, location: e.target.value })}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Status</InputLabel>
-                    <Select
-                      value={newArtifact.status}
-                      label="Status"
-                      onChange={(e) => setNewArtifact({ ...newArtifact, status: e.target.value })}
-                    >
-                      <MenuItem value="in_storage">In Storage</MenuItem>
-                      <MenuItem value="on_display">On Display</MenuItem>
-                      <MenuItem value="under_conservation">Under Conservation</MenuItem>
-                      <MenuItem value="on_loan">On Loan</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Condition</InputLabel>
-                    <Select
-                      value={newArtifact.condition}
-                      label="Condition"
-                      onChange={(e) => setNewArtifact({ ...newArtifact, condition: e.target.value })}
-                    >
-                      <MenuItem value="excellent">Excellent</MenuItem>
-                      <MenuItem value="good">Good</MenuItem>
-                      <MenuItem value="fair">Fair</MenuItem>
-                      <MenuItem value="fragile">Fragile</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Description (required, min 10 characters)"
-                    multiline
-                    rows={4}
-                    value={newArtifact.description}
-                    onChange={(e) => setNewArtifact({ ...newArtifact, description: e.target.value })}
-                    error={newArtifact.description.length > 0 && newArtifact.description.length < 10}
-                    helperText={newArtifact.description.length > 0 && newArtifact.description.length < 10 ? 'Description must be at least 10 characters' : `${newArtifact.description.length}/2000 characters`}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleFormImageSelect}
-                    style={{ display: 'none' }}
-                    id="form-image-upload-input"
-                  />
-                  <label htmlFor="form-image-upload-input">
-                    <Button
-                      variant="outlined"
-                      component="span"
-                      startIcon={<Upload size={16} />}
-                      fullWidth
-                      sx={{ height: 100, borderStyle: 'dashed' }}
-                    >
-                      {formImages.length > 0 ? `Selected ${formImages.length} image(s)` : 'Upload Images'}
-                    </Button>
-                  </label>
-                  {formImages.length > 0 && (
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Selected images:
-                      </Typography>
-                      {formImages.map((file, index) => (
-                        <Typography key={index} variant="body2" sx={{ mt: 0.5 }}>
-                          • {file.name}
-                        </Typography>
-                      ))}
-                    </Box>
-                  )}
-                </Grid>
-              </Grid>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => { setOpenDialog(false); resetForm(); }}>Cancel</Button>
-              <Button onClick={handleSaveArtifact} variant="contained" disabled={saving || uploadingFormImages}>
-                {saving ? (uploadingFormImages ? 'Uploading Images...' : 'Saving...') : (isEditing ? 'Save Changes' : 'Add Artifact')}
-              </Button>
-            </DialogActions>
-          </Dialog>
-
-          {/* Artifact Detail Dialog */}
-          <Dialog open={!!selectedArtifact} onClose={() => setSelectedArtifact(null)} maxWidth="md" fullWidth>
-            {selectedArtifact && (
-              <>
-                <DialogTitle>{selectedArtifact.name}</DialogTitle>
-                <DialogContent>
-                  <Grid container spacing={3}>
-                    <Grid item xs={12} md={6}>
-                      {selectedArtifact.media?.images && selectedArtifact.media.images.length > 0 ? (
-                        <Box sx={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 1, overflow: 'hidden' }}>
-                          <img
-                            src={selectedArtifact.media.images[0].url.startsWith('http')
-                              ? selectedArtifact.media.images[0].url
-                              : `${api.baseURL.replace('/api', '')}${selectedArtifact.media.images[0].url}`}
-                            alt={selectedArtifact.name}
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              objectFit: 'cover',
-                              borderRadius: '4px'
-                            }}
-                            onLoad={() => console.log('Detail image loaded successfully:', selectedArtifact.media.images[0].url)}
-                            onError={(e) => console.error('Detail image failed to load:', selectedArtifact.media.images[0].url, e)}
-                          />
-                        </Box>
-                      ) : (
-                        <Box sx={{ bgcolor: 'grey.200', height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 1 }}>
-                          <Camera size={60} color="#666" />
-                        </Box>
-                      )}
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Typography variant="h6" gutterBottom>Details</Typography>
-                      <Typography><strong>Category:</strong> {selectedArtifact.category}</Typography>
-                      <Typography><strong>Period:</strong> {selectedArtifact.period?.era || selectedArtifact.period || 'Unknown'}</Typography>
-                      <Typography><strong>Origin:</strong> {selectedArtifact.origin?.region || selectedArtifact.origin || 'Unknown'}</Typography>
-                      <Typography><strong>Date Added:</strong> {new Date(selectedArtifact.createdAt).toLocaleDateString()}</Typography>
-                      <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                        <Chip label={selectedArtifact.status.replace('_', ' ')} color={statusColors[selectedArtifact.status]} />
-                        <Chip label={selectedArtifact.condition} color={conditionColors[selectedArtifact.condition]} variant="outlined" />
-                        {selectedArtifact.featured && <Chip label="Featured" color="warning" />}
-                      </Box>
-                    </Grid>
-                    <Grid item xs={12}>
-                      <Typography variant="h6" gutterBottom>Description</Typography>
-                      <Typography>{selectedArtifact.description}</Typography>
-                    </Grid>
-                  </Grid>
-                </DialogContent>
-                <DialogActions>
-                  <Button onClick={() => setSelectedArtifact(null)}>Close</Button>
-                  <Button variant="contained">Edit</Button>
-                </DialogActions>
-              </>
-            )}
-          </Dialog>
-
-          {/* Image Upload Dialog */}
-          <Dialog open={uploadDialogOpen} onClose={() => {
-            console.log('Upload dialog closing');
-            setUploadDialogOpen(false);
-            setSelectedImages([]);
-            setSelectedArtifactForUpload(null);
-          }} maxWidth="sm" fullWidth>
-            <DialogTitle>Upload Images for {selectedArtifactForUpload?.name}</DialogTitle>
-            {console.log('Upload dialog is open:', uploadDialogOpen, 'Selected artifact:', selectedArtifactForUpload?.name)}
-            <DialogContent>
-              <Box sx={{ mt: 2 }}>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageSelect}
-                  style={{ display: 'none' }}
-                  id="image-upload-input"
-                />
-                <label htmlFor="image-upload-input">
-                  <Button
-                    variant="outlined"
-                    component="span"
-                    startIcon={<Upload size={16} />}
-                    fullWidth
-                    sx={{ height: 100, borderStyle: 'dashed' }}
-                  >
-                    Select Images
-                  </Button>
-                </label>
-                {selectedImages.length > 0 && (
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Selected {selectedImages.length} image(s):
-                    </Typography>
-                    {selectedImages.map((file, index) => (
-                      <Typography key={index} variant="body2" sx={{ mt: 1 }}>
-                        • {file.name}
-                      </Typography>
-                    ))}
-                  </Box>
-                )}
-              </Box>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => { setUploadDialogOpen(false); setSelectedImages([]); setSelectedArtifactForUpload(null); }}>
-                Cancel
-              </Button>
-              <Button
-                onClick={() => handleImageUpload(selectedArtifactForUpload)}
-                variant="contained"
-                disabled={selectedImages.length === 0 || uploadingImages}
-              >
-                {uploadingImages ? 'Uploading...' : 'Upload Images'}
-              </Button>
-            </DialogActions>
-          </Dialog>
-
-          {/* Delete Confirmation Dialog */}
-          <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-            <DialogTitle>Confirm Delete</DialogTitle>
-            <DialogContent>
-              <Typography>
-                Are you sure you want to delete the artifact "{artifactToDelete?.name}"?
-                This action cannot be undone.
-              </Typography>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-              <Button onClick={confirmDeleteArtifact} color="error" variant="contained">
-                Delete
-              </Button>
-            </DialogActions>
-          </Dialog>
-
-          {snackbar.open && (
-            <Box sx={{ position: 'fixed', bottom: 16, left: 16, bgcolor: snackbar.severity === 'error' ? 'error.main' : 'success.main', color: 'white', px: 2, py: 1, borderRadius: 1 }}
-              onAnimationEnd={() => setSnackbar(prev => ({ ...prev, open: false }))}>
-              {snackbar.message}
-            </Box>
-          )}
-        </Container>
+        </div>
       </div>
+
+      {/* Add Artifact Dialog */}
+      <Dialog open={openDialog} onOpenChange={(open) => { if (!open) resetForm(); setOpenDialog(open); }}>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{isEditing ? 'Edit Artifact' : 'Add New Artifact'}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Artifact Name</Label>
+              <Input
+                id="name"
+                value={newArtifact.name}
+                onChange={(e) => setNewArtifact({ ...newArtifact, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <Select value={newArtifact.category} onValueChange={(value) => setNewArtifact({ ...newArtifact, category: value })}>
+                <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sculptures">Sculptures</SelectItem>
+                  <SelectItem value="pottery">Pottery</SelectItem>
+                  <SelectItem value="jewelry">Jewelry</SelectItem>
+                  <SelectItem value="tools">Tools</SelectItem>
+                  <SelectItem value="weapons">Weapons</SelectItem>
+                  <SelectItem value="textiles">Textiles</SelectItem>
+                  <SelectItem value="religious-items">Religious Items</SelectItem>
+                  <SelectItem value="manuscripts">Manuscripts</SelectItem>
+                  <SelectItem value="coins">Coins</SelectItem>
+                  <SelectItem value="paintings">Paintings</SelectItem>
+                  <SelectItem value="household-items">Household Items</SelectItem>
+                  <SelectItem value="musical-instruments">Musical Instruments</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Historical Period</Label>
+              <Select value={newArtifact.period} onValueChange={(value) => setNewArtifact({ ...newArtifact, period: value })}>
+                <SelectTrigger><SelectValue placeholder="Period" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="prehistoric">Prehistoric</SelectItem>
+                  <SelectItem value="ancient">Ancient</SelectItem>
+                  <SelectItem value="medieval">Medieval</SelectItem>
+                  <SelectItem value="modern">Modern</SelectItem>
+                  <SelectItem value="contemporary">Contemporary</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Material</Label>
+              <Input
+                value={newArtifact.material}
+                onChange={(e) => setNewArtifact({ ...newArtifact, material: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Origin</Label>
+              <Input
+                value={newArtifact.origin}
+                onChange={(e) => setNewArtifact({ ...newArtifact, origin: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Location</Label>
+              <Input
+                value={newArtifact.location}
+                onChange={(e) => setNewArtifact({ ...newArtifact, location: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={newArtifact.status} onValueChange={(value) => setNewArtifact({ ...newArtifact, status: value })}>
+                <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="in_storage">In Storage</SelectItem>
+                  <SelectItem value="on_display">On Display</SelectItem>
+                  <SelectItem value="under_conservation">Under Conservation</SelectItem>
+                  <SelectItem value="on_loan">On Loan</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Condition</Label>
+              <Select value={newArtifact.condition} onValueChange={(value) => setNewArtifact({ ...newArtifact, condition: value })}>
+                <SelectTrigger><SelectValue placeholder="Condition" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="excellent">Excellent</SelectItem>
+                  <SelectItem value="good">Good</SelectItem>
+                  <SelectItem value="fair">Fair</SelectItem>
+                  <SelectItem value="fragile">Fragile</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-1 md:col-span-2 space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                value={newArtifact.description}
+                onChange={(e) => setNewArtifact({ ...newArtifact, description: e.target.value })}
+                rows={4}
+                placeholder="Min 10 characters required"
+              />
+              <p className="text-xs text-muted-foreground text-right pl-2">
+                {newArtifact.description.length}/2000
+              </p>
+            </div>
+            <div className="col-span-1 md:col-span-2 space-y-2">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFormImageSelect}
+                style={{ display: 'none' }}
+                id="form-image-upload-input"
+              />
+              <Label htmlFor="form-image-upload-input" className="cursor-pointer block">
+                <div className="border-2 border-dashed border-input rounded-md p-8 flex flex-col items-center justify-center text-center hover:bg-muted/50 transition">
+                  <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                  <span className="text-sm font-medium">
+                    {formImages.length > 0 ? `Selected ${formImages.length} image(s)` : 'Click to select images'}
+                  </span>
+                </div>
+              </Label>
+              {formImages.length > 0 && (
+                <div className="text-xs text-muted-foreground">
+                  {formImages.map((f, i) => <div key={i}>• {f.name}</div>)}
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenDialog(false)}>Cancel</Button>
+            <Button onClick={handleSaveArtifact} disabled={saving || uploadingFormImages}>
+              {saving ? (uploadingFormImages ? 'Uploading...' : 'Saving...') : (isEditing ? 'Save Changes' : 'Add Artifact')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Artifact Detail Dialog */}
+      <Dialog open={!!selectedArtifact} onOpenChange={(open) => !open && setSelectedArtifact(null)}>
+        <DialogContent className="sm:max-w-[700px]">
+          <DialogHeader>
+            <DialogTitle>{selectedArtifact?.name}</DialogTitle>
+          </DialogHeader>
+          {selectedArtifact && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                {selectedArtifact.media?.images && selectedArtifact.media.images.length > 0 ? (
+                  <div className="rounded-md overflow-hidden h-64 border bg-muted">
+                    <img
+                      src={selectedArtifact.media.images[0].url.startsWith('http')
+                        ? selectedArtifact.media.images[0].url
+                        : `${api.baseURL.replace('/api', '')}${selectedArtifact.media.images[0].url}`}
+                      alt={selectedArtifact.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="rounded-md overflow-hidden h-64 border bg-muted flex items-center justify-center">
+                    <Camera className="h-16 w-16 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-semibold mb-1">Details</h4>
+                  <div className="text-sm space-y-1">
+                    <p><span className="font-medium">Category:</span> {selectedArtifact.category}</p>
+                    <p><span className="font-medium">Period:</span> {selectedArtifact.period?.era || selectedArtifact.period || 'Unknown'}</p>
+                    <p><span className="font-medium">Origin:</span> {selectedArtifact.origin?.region || selectedArtifact.origin || 'Unknown'}</p>
+                    <p><span className="font-medium">Added:</span> {new Date(selectedArtifact.createdAt).toLocaleDateString()}</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {getStatusBadge(selectedArtifact.status)}
+                  {getConditionBadge(selectedArtifact.condition)}
+                  {selectedArtifact.featured && <Badge className="bg-yellow-500 hover:bg-yellow-600 border-0">Featured</Badge>}
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-1">Description</h4>
+                  <p className="text-sm text-muted-foreground max-h-32 overflow-y-auto">{selectedArtifact.description}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectedArtifact(null)}>Close</Button>
+            <Button onClick={() => { startEditArtifact(selectedArtifact); }}>Edit</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Upload Dialog */}
+      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Upload Images</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleImageSelect}
+              style={{ display: 'none' }}
+              id="image-upload-input"
+            />
+            <Label htmlFor="image-upload-input" className="cursor-pointer block">
+              <div className="border-2 border-dashed border-input rounded-md p-8 flex flex-col items-center justify-center text-center hover:bg-muted/50 transition">
+                <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                <span className="text-sm font-medium">
+                  {selectedImages.length > 0 ? `Selected ${selectedImages.length} image(s)` : 'Click to select images'}
+                </span>
+              </div>
+            </Label>
+            {selectedImages.length > 0 && (
+              <div className="mt-2 text-xs text-muted-foreground">
+                {selectedImages.map((f, i) => <div key={i}>• {f.name}</div>)}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>Cancel</Button>
+            <Button onClick={() => handleImageUpload(selectedArtifactForUpload)} disabled={selectedImages.length === 0 || uploadingImages}>
+              {uploadingImages ? 'Uploading...' : 'Upload'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Confirm Delete</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            Are you sure you want to delete the artifact <span className="font-semibold">"{artifactToDelete?.name}"</span>?
+            This action cannot be undone.
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={confirmDeleteArtifact}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 };

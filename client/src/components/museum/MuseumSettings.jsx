@@ -1,23 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import MuseumAdminSidebar from '../dashboard/MuseumAdminSidebar';
 import {
-  Box, Typography, Container, Grid, Paper, Button, TextField,
-  FormControl, InputLabel, Select, MenuItem, Switch, FormControlLabel,
-  Card, CardContent, CardActions, Divider, Alert, Snackbar,
-  CircularProgress, Tabs, Tab, Chip, Avatar, List, ListItem,
-  ListItemText, ListItemIcon, ListItemSecondaryAction, Dialog,
-  DialogTitle, DialogContent, DialogActions, IconButton, Tooltip
-} from '@mui/material';
-import {
   Settings,
   Bell,
   Shield,
   Database,
   Save,
   RefreshCw,
-  Eye,
-  EyeOff,
-  Key,
   Lock,
   Globe,
   Clock,
@@ -25,22 +14,39 @@ import {
   Mail,
   Smartphone,
   Monitor,
-  CheckCircle,
-  AlertCircle,
-  X,
-  User,
-  Trash2,
   Plus,
-  Edit
+  Trash2,
+  Key
 } from 'lucide-react';
 import settingsService from '../../services/settingsService';
+import { Button } from '../ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Switch } from '../ui/switch';
+import { Separator } from '../ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "../ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import { toast } from 'sonner';
 
 const MuseumSettings = () => {
   // State management
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState(0);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [activeTab, setActiveTab] = useState("notifications");
 
   // Settings data
   const [settings, setSettings] = useState({
@@ -79,7 +85,6 @@ const MuseumSettings = () => {
   const [passwordDialog, setPasswordDialog] = useState(false);
   const [ipDialog, setIpDialog] = useState(false);
   const [newPassword, setNewPassword] = useState({ current: '', new: '', confirm: '' });
-  const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
   const [newIp, setNewIp] = useState('');
 
   // Load settings on component mount
@@ -96,11 +101,7 @@ const MuseumSettings = () => {
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
-      setSnackbar({
-        open: true,
-        message: 'Failed to load settings',
-        severity: 'error'
-      });
+      toast.error('Failed to load settings');
     } finally {
       setLoading(false);
     }
@@ -114,18 +115,10 @@ const MuseumSettings = () => {
       await settingsService.updateSettings('security', settings.security);
       await settingsService.updateSettings('museum', settings.museum);
 
-      setSnackbar({
-        open: true,
-        message: 'Settings saved successfully!',
-        severity: 'success'
-      });
+      toast.success('Settings saved successfully!');
     } catch (error) {
       console.error('Failed to save settings:', error);
-      setSnackbar({
-        open: true,
-        message: 'Failed to save settings',
-        severity: 'error'
-      });
+      toast.error('Failed to save settings');
     } finally {
       setSaving(false);
     }
@@ -144,11 +137,7 @@ const MuseumSettings = () => {
   const handlePasswordChange = async () => {
     try {
       if (newPassword.new !== newPassword.confirm) {
-        setSnackbar({
-          open: true,
-          message: 'New passwords do not match',
-          severity: 'error'
-        });
+        toast.error('New passwords do not match');
         return;
       }
 
@@ -159,17 +148,9 @@ const MuseumSettings = () => {
 
       setPasswordDialog(false);
       setNewPassword({ current: '', new: '', confirm: '' });
-      setSnackbar({
-        open: true,
-        message: 'Password changed successfully!',
-        severity: 'success'
-      });
+      toast.success('Password changed successfully!');
     } catch (error) {
-      setSnackbar({
-        open: true,
-        message: error.message || 'Failed to change password',
-        severity: 'error'
-      });
+      toast.error(error.message || 'Failed to change password');
     }
   };
 
@@ -184,19 +165,10 @@ const MuseumSettings = () => {
 
         setNewIp('');
         setIpDialog(false);
-
-        setSnackbar({
-          open: true,
-          message: 'IP address added successfully!',
-          severity: 'success'
-        });
+        toast.success('IP address added successfully!');
       }
     } catch (error) {
-      setSnackbar({
-        open: true,
-        message: error.message || 'Failed to add IP address',
-        severity: 'error'
-      });
+      toast.error(error.message || 'Failed to add IP address');
     }
   };
 
@@ -208,750 +180,539 @@ const MuseumSettings = () => {
       handleSettingChange('security', 'ipWhitelist',
         settings.security.ipWhitelist.filter(item => item.ip !== ip)
       );
-
-      setSnackbar({
-        open: true,
-        message: 'IP address removed successfully!',
-        severity: 'success'
-      });
+      toast.success('IP address removed successfully!');
     } catch (error) {
-      setSnackbar({
-        open: true,
-        message: error.message || 'Failed to remove IP address',
-        severity: 'error'
-      });
+      toast.error(error.message || 'Failed to remove IP address');
     }
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar(prev => ({ ...prev, open: false }));
   };
 
   if (loading) {
     return (
-      <div className="flex min-h-screen" style={{ backgroundColor: 'white' }}>
+      <div className="flex min-h-screen bg-background">
         <MuseumAdminSidebar />
-        <div
-          className="flex-1 flex items-center justify-center"
-          onWheel={(e) => { e.stopPropagation(); }}
-        >
-          <Box sx={{ textAlign: 'center' }}>
-            <CircularProgress size={60} sx={{ color: '#8B5A3C', mb: 2 }} />
-            <Typography variant="h6" sx={{ color: 'black' }}>
-              Loading settings...
-            </Typography>
-          </Box>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <RefreshCw className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-lg font-medium text-foreground">Loading settings...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: 'white' }}>
+    <div className="flex min-h-screen bg-background">
       <MuseumAdminSidebar />
 
-      <div
-        className="flex-1 overflow-auto"
-        onWheel={(e) => { e.stopPropagation(); }}
-      >
-        <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+      <div className="flex-1 overflow-auto p-8">
+        <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <Box sx={{ mb: 4 }}>
-            <Typography variant="h4" component="h1" sx={{ mb: 1, display: 'flex', alignItems: 'center', color: 'black' }}>
-              <Settings className="mr-3" size={32} style={{ color: '#8B5A3C' }} />
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold flex items-center mb-2">
+              <Settings className="mr-3 h-8 w-8 text-primary" />
               Museum Settings
-            </Typography>
-            <Typography variant="subtitle1" color="text.secondary">
+            </h1>
+            <p className="text-muted-foreground text-lg">
               Configure your museum dashboard preferences, security, and system settings
-            </Typography>
-          </Box>
+            </p>
+          </div>
 
           {/* Action Buttons */}
-          <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="mb-8 flex justify-between items-center">
             <Button
-              variant="outlined"
-              startIcon={<RefreshCw size={16} />}
+              variant="outline"
               onClick={loadSettings}
-              sx={{
-                borderColor: '#8B5A3C',
-                color: '#8B5A3C',
-                '&:hover': { borderColor: '#8B5A3C', backgroundColor: 'white' }
-              }}
+              className="text-primary hover:text-primary-foreground hover:bg-primary"
             >
+              <RefreshCw className="mr-2 h-4 w-4" />
               Refresh
             </Button>
             <Button
-              variant="contained"
-              startIcon={saving ? <CircularProgress size={16} /> : <Save size={16} />}
               onClick={saveSettings}
               disabled={saving}
-              sx={{
-                backgroundColor: '#8B5A3C',
-                color: 'white',
-                '&:hover': { backgroundColor: '#8B5A3C' }
-              }}
+              className="bg-primary hover:bg-primary/90"
             >
+              {saving ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               {saving ? 'Saving...' : 'Save All Settings'}
             </Button>
-          </Box>
+          </div>
 
-          {/* Settings Tabs */}
-          <Paper sx={{ mb: 3 }}>
-            <Tabs
-              value={activeTab}
-              onChange={(e, newValue) => setActiveTab(newValue)}
-              sx={{
-                '& .MuiTab-root': {
-                  color: 'black',
-                  '&.Mui-selected': {
-                    color: '#8B5A3C'
-                  }
-                },
-                '& .MuiTabs-indicator': {
-                  backgroundColor: '#8B5A3C'
-                }
-              }}
-            >
-              <Tab label="Notifications" icon={<Bell size={20} />} />
-              <Tab label="Security" icon={<Shield size={20} />} />
-              <Tab label="General" icon={<Globe size={20} />} />
-              <Tab label="Museum" icon={<Database size={20} />} />
-            </Tabs>
-          </Paper>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
+            <TabsList className="grid w-full grid-cols-4 lg:w-[600px] mb-8">
+              <TabsTrigger value="notifications" className="flex items-center gap-2">
+                <Bell className="h-4 w-4" /> Notifications
+              </TabsTrigger>
+              <TabsTrigger value="security" className="flex items-center gap-2">
+                <Shield className="h-4 w-4" /> Security
+              </TabsTrigger>
+              <TabsTrigger value="general" className="flex items-center gap-2">
+                <Globe className="h-4 w-4" /> General
+              </TabsTrigger>
+              <TabsTrigger value="museum" className="flex items-center gap-2">
+                <Database className="h-4 w-4" /> Museum
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Tab Content */}
-          {activeTab === 0 && (
-            <Paper sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                <Bell size={20} style={{ color: '#8B5A3C', marginRight: '8px' }} />
-                <Typography variant="h6" sx={{ color: 'black' }}>
-                  Notification Preferences
-                </Typography>
-              </Box>
+            {/* Notifications Tab */}
+            <TabsContent value="notifications" className="space-y-6">
+              <div className="flex items-center mb-6">
+                <Bell className="h-5 w-5 text-primary mr-2" />
+                <h2 className="text-xl font-semibold">Notification Preferences</h2>
+              </div>
 
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  <Card sx={{ p: 2 }}>
-                    <CardContent>
-                      <Typography variant="subtitle1" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                        <Mail size={16} style={{ color: '#8B5A3C', marginRight: '8px' }} />
-                        Email Notifications
-                      </Typography>
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={settings.notifications.email}
-                            onChange={(e) => handleSettingChange('notifications', 'email', e.target.checked)}
-                            sx={{
-                              '& .MuiSwitch-switchBase.Mui-checked': {
-                                color: '#8B5A3C',
-                              },
-                              '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                                backgroundColor: '#8B5A3C',
-                              },
-                            }}
-                          />
-                        }
-                        label="Enable email notifications"
-                      />
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={settings.notifications.eventReminders}
-                            onChange={(e) => handleSettingChange('notifications', 'eventReminders', e.target.checked)}
-                            sx={{
-                              '& .MuiSwitch-switchBase.Mui-checked': {
-                                color: '#8B5A3C',
-                              },
-                              '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                                backgroundColor: '#8B5A3C',
-                              },
-                            }}
-                          />
-                        }
-                        label="Event reminders"
-                        sx={{ display: 'block', mt: 1 }}
-                      />
-                    </CardContent>
-                  </Card>
-                </Grid>
+              <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                  <CardContent className="pt-6">
+                    <h3 className="font-semibold mb-4 flex items-center">
+                      <Mail className="h-4 w-4 text-primary mr-2" />
+                      Email Notifications
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="email-notif">Enable email notifications</Label>
+                        <Switch
+                          id="email-notif"
+                          checked={settings.notifications.email}
+                          onCheckedChange={(checked) => handleSettingChange('notifications', 'email', checked)}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="event-notif">Event reminders</Label>
+                        <Switch
+                          id="event-notif"
+                          checked={settings.notifications.eventReminders}
+                          onCheckedChange={(checked) => handleSettingChange('notifications', 'eventReminders', checked)}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                <Grid item xs={12} md={6}>
-                  <Card sx={{ p: 2 }}>
-                    <CardContent>
-                      <Typography variant="subtitle1" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                        <Smartphone size={16} style={{ color: '#8B5A3C', marginRight: '8px' }} />
-                        Mobile Notifications
-                      </Typography>
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={settings.notifications.sms}
-                            onChange={(e) => handleSettingChange('notifications', 'sms', e.target.checked)}
-                            sx={{
-                              '& .MuiSwitch-switchBase.Mui-checked': {
-                                color: '#8B5A3C',
-                              },
-                              '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                                backgroundColor: '#8B5A3C',
-                              },
-                            }}
-                          />
-                        }
-                        label="SMS alerts"
-                      />
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={settings.notifications.push}
-                            onChange={(e) => handleSettingChange('notifications', 'push', e.target.checked)}
-                            sx={{
-                              '& .MuiSwitch-switchBase.Mui-checked': {
-                                color: '#8B5A3C',
-                              },
-                              '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                                backgroundColor: '#8B5A3C',
-                              },
-                            }}
-                          />
-                        }
-                        label="Push notifications"
-                        sx={{ display: 'block', mt: 1 }}
-                      />
-                    </CardContent>
-                  </Card>
-                </Grid>
+                <Card>
+                  <CardContent className="pt-6">
+                    <h3 className="font-semibold mb-4 flex items-center">
+                      <Smartphone className="h-4 w-4 text-primary mr-2" />
+                      Mobile Notifications
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="sms-notif">SMS alerts</Label>
+                        <Switch
+                          id="sms-notif"
+                          checked={settings.notifications.sms}
+                          onCheckedChange={(checked) => handleSettingChange('notifications', 'sms', checked)}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="push-notif">Push notifications</Label>
+                        <Switch
+                          id="push-notif"
+                          checked={settings.notifications.push}
+                          onCheckedChange={(checked) => handleSettingChange('notifications', 'push', checked)}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                <Grid item xs={12}>
-                  <Card sx={{ p: 2 }}>
-                    <CardContent>
-                      <Typography variant="subtitle1" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                        <Monitor size={16} style={{ color: '#8B5A3C', marginRight: '8px' }} />
-                        System Notifications
-                      </Typography>
-                      <Grid container spacing={2}>
-                        <Grid item xs={12} md={6}>
-                          <FormControlLabel
-                            control={
-                              <Switch
-                                checked={settings.notifications.staffUpdates}
-                                onChange={(e) => handleSettingChange('notifications', 'staffUpdates', e.target.checked)}
-                                sx={{
-                                  '& .MuiSwitch-switchBase.Mui-checked': {
-                                    color: '#8B5A3C',
-                                  },
-                                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                                    backgroundColor: '#8B5A3C',
-                                  },
-                                }}
-                              />
-                            }
-                            label="Staff updates"
-                          />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                          <FormControlLabel
-                            control={
-                              <Switch
-                                checked={settings.notifications.systemAlerts}
-                                onChange={(e) => handleSettingChange('notifications', 'systemAlerts', e.target.checked)}
-                                sx={{
-                                  '& .MuiSwitch-switchBase.Mui-checked': {
-                                    color: '#8B5A3C',
-                                  },
-                                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                                    backgroundColor: '#8B5A3C',
-                                  },
-                                }}
-                              />
-                            }
-                            label="System alerts"
-                          />
-                        </Grid>
-                      </Grid>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
-            </Paper>
-          )}
+                <Card className="md:col-span-2">
+                  <CardContent className="pt-6">
+                    <h3 className="font-semibold mb-4 flex items-center">
+                      <Monitor className="h-4 w-4 text-primary mr-2" />
+                      System Notifications
+                    </h3>
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="staff-notif">Staff updates</Label>
+                        <Switch
+                          id="staff-notif"
+                          checked={settings.notifications.staffUpdates}
+                          onCheckedChange={(checked) => handleSettingChange('notifications', 'staffUpdates', checked)}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="system-notif">System alerts</Label>
+                        <Switch
+                          id="system-notif"
+                          checked={settings.notifications.systemAlerts}
+                          onCheckedChange={(checked) => handleSettingChange('notifications', 'systemAlerts', checked)}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
 
-          {activeTab === 1 && (
-            <Paper sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                <Shield size={20} style={{ color: '#8B5A3C', marginRight: '8px' }} />
-                <Typography variant="h6" sx={{ color: 'black' }}>
-                  Security Settings
-                </Typography>
-              </Box>
+            {/* Security Tab */}
+            <TabsContent value="security" className="space-y-6">
+              <div className="flex items-center mb-6">
+                <Shield className="h-5 w-5 text-primary mr-2" />
+                <h2 className="text-xl font-semibold">Security Settings</h2>
+              </div>
 
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  <Card sx={{ p: 2 }}>
-                    <CardContent>
-                      <Typography variant="subtitle1" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                        <Lock size={16} style={{ color: '#8B5A3C', marginRight: '8px' }} />
-                        Authentication
-                      </Typography>
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={settings.security.twoFactor}
-                            onChange={(e) => handleSettingChange('security', 'twoFactor', e.target.checked)}
-                            sx={{
-                              '& .MuiSwitch-switchBase.Mui-checked': {
-                                color: '#8B5A3C',
-                              },
-                              '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                                backgroundColor: '#8B5A3C',
-                              },
-                            }}
-                          />
-                        }
-                        label="Two-factor authentication"
-                        sx={{ mb: 2 }}
-                      />
-                      <Button
-                        variant="outlined"
-                        startIcon={<Key size={16} />}
-                        onClick={() => setPasswordDialog(true)}
-                        fullWidth
-                        sx={{
-                          borderColor: '#8B5A3C',
-                          color: '#8B5A3C',
-                          '&:hover': { borderColor: '#8B5A3C', backgroundColor: 'white' }
-                        }}
-                      >
-                        Change Password
+              <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                  <CardContent className="pt-6">
+                    <h3 className="font-semibold mb-4 flex items-center">
+                      <Lock className="h-4 w-4 text-primary mr-2" />
+                      Authentication
+                    </h3>
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="2fa">Two-factor authentication</Label>
+                        <Switch
+                          id="2fa"
+                          checked={settings.security.twoFactor}
+                          onCheckedChange={(checked) => handleSettingChange('security', 'twoFactor', checked)}
+                        />
+                      </div>
+                      <Button variant="outline" className="w-full" onClick={() => setPasswordDialog(true)}>
+                        <Key className="mr-2 h-4 w-4" /> Change Password
                       </Button>
-                    </CardContent>
-                  </Card>
-                </Grid>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                <Grid item xs={12} md={6}>
-                  <Card sx={{ p: 2 }}>
-                    <CardContent>
-                      <Typography variant="subtitle1" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                        <Clock size={16} style={{ color: '#8B5A3C', marginRight: '8px' }} />
-                        Session Settings
-                      </Typography>
-                      <TextField
-                        fullWidth
-                        label="Session Timeout (minutes)"
-                        type="number"
-                        value={settings.security.sessionTimeout}
-                        onChange={(e) => handleSettingChange('security', 'sessionTimeout', parseInt(e.target.value))}
-                        sx={{ mb: 2 }}
-                        inputProps={{
-                          sx: {
-                            '&.Mui-focused': {
-                              borderColor: '#8B5A3C',
-                            },
-                          }
-                        }}
-                      />
-                      <TextField
-                        fullWidth
-                        label="Password Expiry (days)"
-                        type="number"
-                        value={settings.security.passwordExpiry}
-                        onChange={(e) => handleSettingChange('security', 'passwordExpiry', parseInt(e.target.value))}
-                        sx={{ mb: 2 }}
-                      />
-                      <TextField
-                        fullWidth
-                        label="Max Login Attempts"
-                        type="number"
-                        value={settings.security.loginAttempts}
-                        onChange={(e) => handleSettingChange('security', 'loginAttempts', parseInt(e.target.value))}
-                      />
-                    </CardContent>
-                  </Card>
-                </Grid>
+                <Card>
+                  <CardContent className="pt-6">
+                    <h3 className="font-semibold mb-4 flex items-center">
+                      <Clock className="h-4 w-4 text-primary mr-2" />
+                      Session Settings
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
+                        <Input
+                          id="sessionTimeout"
+                          type="number"
+                          value={settings.security.sessionTimeout}
+                          onChange={(e) => handleSettingChange('security', 'sessionTimeout', parseInt(e.target.value))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="passwordExpiry">Password Expiry (days)</Label>
+                        <Input
+                          id="passwordExpiry"
+                          type="number"
+                          value={settings.security.passwordExpiry}
+                          onChange={(e) => handleSettingChange('security', 'passwordExpiry', parseInt(e.target.value))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="loginAttempts">Max Login Attempts</Label>
+                        <Input
+                          id="loginAttempts"
+                          type="number"
+                          value={settings.security.loginAttempts}
+                          onChange={(e) => handleSettingChange('security', 'loginAttempts', parseInt(e.target.value))}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                <Grid item xs={12}>
-                  <Card sx={{ p: 2 }}>
-                    <CardContent>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Typography variant="subtitle1" sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Monitor size={16} style={{ color: '#8B5A3C', marginRight: '8px' }} />
-                          IP Whitelist
-                        </Typography>
-                        <Button
-                          variant="outlined"
-                          startIcon={<Plus size={16} />}
-                          onClick={() => setIpDialog(true)}
-                          size="small"
-                          sx={{
-                            borderColor: '#8B5A3C',
-                            color: '#8B5A3C',
-                            '&:hover': { borderColor: '#8B5A3C', backgroundColor: 'white' }
-                          }}
-                        >
-                          Add IP
-                        </Button>
-                      </Box>
+                <Card className="md:col-span-2">
+                  <CardContent className="pt-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="font-semibold flex items-center">
+                        <Monitor className="h-4 w-4 text-primary mr-2" />
+                        IP Whitelist
+                      </h3>
+                      <Button variant="outline" size="sm" onClick={() => setIpDialog(true)}>
+                        <Plus className="mr-2 h-4 w-4" /> Add IP
+                      </Button>
+                    </div>
 
-                      {settings.security.ipWhitelist.length > 0 ? (
-                        <List>
-                          {settings.security.ipWhitelist.map((ip, index) => (
-                            <ListItem key={index}>
-                              <ListItemIcon>
-                                <Monitor size={16} style={{ color: '#8B5A3C' }} />
-                              </ListItemIcon>
-                              <ListItemText primary={ip} />
-                              <ListItemSecondaryAction>
-                                <IconButton
-                                  edge="end"
-                                  onClick={() => removeIpAddress(ip)}
-                                  size="small"
-                                >
-                                  <Trash2 size={16} />
-                                </IconButton>
-                              </ListItemSecondaryAction>
-                            </ListItem>
-                          ))}
-                        </List>
-                      ) : (
-                        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-                          No IP addresses whitelisted
-                        </Typography>
-                      )}
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
-            </Paper>
-          )}
+                    {settings.security.ipWhitelist.length > 0 ? (
+                      <div className="space-y-2">
+                        {settings.security.ipWhitelist.map((ipItem, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-md">
+                            <div className="flex items-center">
+                              <Monitor className="h-4 w-4 text-primary mr-3" />
+                              <span className="text-sm font-medium">{ipItem.ip || ipItem}</span>
+                            </div>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeIpAddress(ipItem.ip || ipItem)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-muted-foreground text-sm">
+                        No IP addresses whitelisted
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
 
-          {activeTab === 2 && (
-            <Paper sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                <Globe size={20} style={{ color: '#8B5A3C', marginRight: '8px' }} />
-                <Typography variant="h6" sx={{ color: 'black' }}>
-                  General Settings
-                </Typography>
-              </Box>
+            {/* General Tab */}
+            <TabsContent value="general" className="space-y-6">
+              <div className="flex items-center mb-6">
+                <Globe className="h-5 w-5 text-primary mr-2" />
+                <h2 className="text-xl font-semibold">General Settings</h2>
+              </div>
 
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  <Card sx={{ p: 2 }}>
-                    <CardContent>
-                      <Typography variant="subtitle1" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                        <Globe size={16} style={{ color: '#8B5A3C', marginRight: '8px' }} />
-                        Localization
-                      </Typography>
-                      <FormControl fullWidth sx={{ mb: 2 }}>
-                        <InputLabel>Language</InputLabel>
+              <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                  <CardContent className="pt-6">
+                    <h3 className="font-semibold mb-4 flex items-center">
+                      <Globe className="h-4 w-4 text-primary mr-2" />
+                      Localization
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Language</Label>
                         <Select
                           value={settings.general.language}
-                          label="Language"
-                          onChange={(e) => handleSettingChange('general', 'language', e.target.value)}
+                          onValueChange={(value) => handleSettingChange('general', 'language', value)}
                         >
-                          <MenuItem value="en">English</MenuItem>
-                          <MenuItem value="am">Amharic</MenuItem>
-                          <MenuItem value="or">Oromo</MenuItem>
-                          <MenuItem value="ti">Tigrinya</MenuItem>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Language" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="en">English</SelectItem>
+                            <SelectItem value="am">Amharic</SelectItem>
+                            <SelectItem value="or">Oromo</SelectItem>
+                            <SelectItem value="ti">Tigrinya</SelectItem>
+                          </SelectContent>
                         </Select>
-                      </FormControl>
-                      <FormControl fullWidth sx={{ mb: 2 }}>
-                        <InputLabel>Timezone</InputLabel>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Timezone</Label>
                         <Select
                           value={settings.general.timezone}
-                          label="Timezone"
-                          onChange={(e) => handleSettingChange('general', 'timezone', e.target.value)}
+                          onValueChange={(value) => handleSettingChange('general', 'timezone', value)}
                         >
-                          <MenuItem value="Africa/Addis_Ababa">Africa/Addis Ababa</MenuItem>
-                          <MenuItem value="UTC">UTC</MenuItem>
-                          <MenuItem value="Europe/London">Europe/London</MenuItem>
-                          <MenuItem value="America/New_York">America/New York</MenuItem>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Timezone" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Africa/Addis_Ababa">Africa/Addis Ababa</SelectItem>
+                            <SelectItem value="UTC">UTC</SelectItem>
+                            <SelectItem value="Europe/London">Europe/London</SelectItem>
+                            <SelectItem value="America/New_York">America/New York</SelectItem>
+                          </SelectContent>
                         </Select>
-                      </FormControl>
-                      <FormControl fullWidth>
-                        <InputLabel>Currency</InputLabel>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Currency</Label>
                         <Select
                           value={settings.general.currency}
-                          label="Currency"
-                          onChange={(e) => handleSettingChange('general', 'currency', e.target.value)}
+                          onValueChange={(value) => handleSettingChange('general', 'currency', value)}
                         >
-                          <MenuItem value="USD">USD</MenuItem>
-                          <MenuItem value="ETB">ETB</MenuItem>
-                          <MenuItem value="EUR">EUR</MenuItem>
-                          <MenuItem value="GBP">GBP</MenuItem>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Currency" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="USD">USD</SelectItem>
+                            <SelectItem value="ETB">ETB</SelectItem>
+                            <SelectItem value="EUR">EUR</SelectItem>
+                            <SelectItem value="GBP">GBP</SelectItem>
+                          </SelectContent>
                         </Select>
-                      </FormControl>
-                    </CardContent>
-                  </Card>
-                </Grid>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                <Grid item xs={12} md={6}>
-                  <Card sx={{ p: 2 }}>
-                    <CardContent>
-                      <Typography variant="subtitle1" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                        <Palette size={16} style={{ color: '#8B5A3C', marginRight: '8px' }} />
-                        Appearance
-                      </Typography>
-                      <FormControl fullWidth sx={{ mb: 2 }}>
-                        <InputLabel>Theme</InputLabel>
+                <Card>
+                  <CardContent className="pt-6">
+                    <h3 className="font-semibold mb-4 flex items-center">
+                      <Palette className="h-4 w-4 text-primary mr-2" />
+                      Appearance
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Theme</Label>
                         <Select
                           value={settings.general.theme}
-                          label="Theme"
-                          onChange={(e) => handleSettingChange('general', 'theme', e.target.value)}
+                          onValueChange={(value) => handleSettingChange('general', 'theme', value)}
                         >
-                          <MenuItem value="light">Light</MenuItem>
-                          <MenuItem value="dark">Dark</MenuItem>
-                          <MenuItem value="auto">Auto</MenuItem>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Theme" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="light">Light</SelectItem>
+                            <SelectItem value="dark">Dark</SelectItem>
+                            <SelectItem value="auto">Auto</SelectItem>
+                          </SelectContent>
                         </Select>
-                      </FormControl>
-                      <FormControl fullWidth>
-                        <InputLabel>Date Format</InputLabel>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Date Format</Label>
                         <Select
                           value={settings.general.dateFormat}
-                          label="Date Format"
-                          onChange={(e) => handleSettingChange('general', 'dateFormat', e.target.value)}
+                          onValueChange={(value) => handleSettingChange('general', 'dateFormat', value)}
                         >
-                          <MenuItem value="MM/DD/YYYY">MM/DD/YYYY</MenuItem>
-                          <MenuItem value="DD/MM/YYYY">DD/MM/YYYY</MenuItem>
-                          <MenuItem value="YYYY-MM-DD">YYYY-MM-DD</MenuItem>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Date Format" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
+                            <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
+                            <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
+                          </SelectContent>
                         </Select>
-                      </FormControl>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
-            </Paper>
-          )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
 
-          {activeTab === 3 && (
-            <Paper sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                <Database size={20} style={{ color: '#8B5A3C', marginRight: '8px' }} />
-                <Typography variant="h6" sx={{ color: 'black' }}>
-                  Museum System Settings
-                </Typography>
-              </Box>
+            {/* Museum Tab */}
+            <TabsContent value="museum" className="space-y-6">
+              <div className="flex items-center mb-6">
+                <Database className="h-5 w-5 text-primary mr-2" />
+                <h2 className="text-xl font-semibold">Museum System Settings</h2>
+              </div>
 
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  <Card sx={{ p: 2 }}>
-                    <CardContent>
-                      <Typography variant="subtitle1" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                        <Database size={16} style={{ color: '#8B5A3C', marginRight: '8px' }} />
-                        Data Management
-                      </Typography>
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={settings.museum.autoBackup}
-                            onChange={(e) => handleSettingChange('museum', 'autoBackup', e.target.checked)}
-                            sx={{
-                              '& .MuiSwitch-switchBase.Mui-checked': {
-                                color: '#8B5A3C',
-                              },
-                              '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                                backgroundColor: '#8B5A3C',
-                              },
-                            }}
-                          />
-                        }
-                        label="Automatic backup"
-                        sx={{ mb: 2, display: 'block' }}
-                      />
-                      <FormControl fullWidth sx={{ mb: 2 }}>
-                        <InputLabel>Backup Frequency</InputLabel>
+              <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                  <CardContent className="pt-6">
+                    <h3 className="font-semibold mb-4 flex items-center">
+                      <Database className="h-4 w-4 text-primary mr-2" />
+                      Data Management
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="autoBackup">Automatic backup</Label>
+                        <Switch
+                          id="autoBackup"
+                          checked={settings.museum.autoBackup}
+                          onCheckedChange={(checked) => handleSettingChange('museum', 'autoBackup', checked)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Backup Frequency</Label>
                         <Select
                           value={settings.museum.backupFrequency}
-                          label="Backup Frequency"
-                          onChange={(e) => handleSettingChange('museum', 'backupFrequency', e.target.value)}
+                          onValueChange={(value) => handleSettingChange('museum', 'backupFrequency', value)}
                         >
-                          <MenuItem value="daily">Daily</MenuItem>
-                          <MenuItem value="weekly">Weekly</MenuItem>
-                          <MenuItem value="monthly">Monthly</MenuItem>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Frequency" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="daily">Daily</SelectItem>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                          </SelectContent>
                         </Select>
-                      </FormControl>
-                      <TextField
-                        fullWidth
-                        label="Data Retention (days)"
-                        type="number"
-                        value={settings.museum.dataRetention}
-                        onChange={(e) => handleSettingChange('museum', 'dataRetention', parseInt(e.target.value))}
-                      />
-                    </CardContent>
-                  </Card>
-                </Grid>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dataRetention">Data Retention (days)</Label>
+                        <Input
+                          id="dataRetention"
+                          type="number"
+                          value={settings.museum.dataRetention}
+                          onChange={(e) => handleSettingChange('museum', 'dataRetention', parseInt(e.target.value))}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                <Grid item xs={12} md={6}>
-                  <Card sx={{ p: 2 }}>
-                    <CardContent>
-                      <Typography variant="subtitle1" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                        <Monitor size={16} style={{ color: '#8B5A3C', marginRight: '8px' }} />
-                        Public Settings
-                      </Typography>
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={settings.museum.analyticsEnabled}
-                            onChange={(e) => handleSettingChange('museum', 'analyticsEnabled', e.target.checked)}
-                            sx={{
-                              '& .MuiSwitch-switchBase.Mui-checked': {
-                                color: '#8B5A3C',
-                              },
-                              '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                                backgroundColor: '#8B5A3C',
-                              },
-                            }}
-                          />
-                        }
-                        label="Enable analytics"
-                        sx={{ mb: 2, display: 'block' }}
-                      />
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={settings.museum.publicProfile}
-                            onChange={(e) => handleSettingChange('museum', 'publicProfile', e.target.checked)}
-                            sx={{
-                              '& .MuiSwitch-switchBase.Mui-checked': {
-                                color: '#8B5A3C',
-                              },
-                              '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                                backgroundColor: '#8B5A3C',
-                              },
-                            }}
-                          />
-                        }
-                        label="Public profile visible"
-                        sx={{ display: 'block' }}
-                      />
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
-            </Paper>
-          )}
+                <Card>
+                  <CardContent className="pt-6">
+                    <h3 className="font-semibold mb-4 flex items-center">
+                      <Monitor className="h-4 w-4 text-primary mr-2" />
+                      Public Settings
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="analyticsEnabled">Enable Analytics</Label>
+                        <Switch
+                          id="analyticsEnabled"
+                          checked={settings.museum.analyticsEnabled}
+                          onCheckedChange={(checked) => handleSettingChange('museum', 'analyticsEnabled', checked)}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="publicProfile">Public Profile</Label>
+                        <Switch
+                          id="publicProfile"
+                          checked={settings.museum.publicProfile}
+                          onCheckedChange={(checked) => handleSettingChange('museum', 'publicProfile', checked)}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
 
-          {/* Password Change Dialog */}
-          <Dialog open={passwordDialog} onClose={() => setPasswordDialog(false)} maxWidth="sm" fullWidth>
-            <DialogTitle sx={{ color: 'black' }}>Change Password</DialogTitle>
-            <DialogContent>
-              <TextField
-                fullWidth
-                label="Current Password"
-                type={showPasswords.current ? "text" : "password"}
+      {/* Password Dialog */}
+      <Dialog open={passwordDialog} onOpenChange={setPasswordDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="current-password">Current Password</Label>
+              <Input
+                id="current-password"
+                type="password"
                 value={newPassword.current}
-                onChange={(e) => setNewPassword(prev => ({ ...prev, current: e.target.value }))}
-                sx={{ mb: 2, mt: 1 }}
-                InputProps={{
-                  endAdornment: (
-                    <IconButton onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}>
-                      {showPasswords.current ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </IconButton>
-                  )
-                }}
+                onChange={(e) => setNewPassword({ ...newPassword, current: e.target.value })}
               />
-              <TextField
-                fullWidth
-                label="New Password"
-                type={showPasswords.new ? "text" : "password"}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="new-password">New Password</Label>
+              <Input
+                id="new-password"
+                type="password"
                 value={newPassword.new}
-                onChange={(e) => setNewPassword(prev => ({ ...prev, new: e.target.value }))}
-                sx={{ mb: 2 }}
-                InputProps={{
-                  endAdornment: (
-                    <IconButton onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}>
-                      {showPasswords.new ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </IconButton>
-                  )
-                }}
+                onChange={(e) => setNewPassword({ ...newPassword, new: e.target.value })}
               />
-              <TextField
-                fullWidth
-                label="Confirm New Password"
-                type={showPasswords.confirm ? "text" : "password"}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="confirm-password">Confirm Password</Label>
+              <Input
+                id="confirm-password"
+                type="password"
                 value={newPassword.confirm}
-                onChange={(e) => setNewPassword(prev => ({ ...prev, confirm: e.target.value }))}
-                InputProps={{
-                  endAdornment: (
-                    <IconButton onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}>
-                      {showPasswords.confirm ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </IconButton>
-                  )
-                }}
+                onChange={(e) => setNewPassword({ ...newPassword, confirm: e.target.value })}
               />
-            </DialogContent>
-            <DialogActions>
-              <Button
-                onClick={() => setPasswordDialog(false)}
-                sx={{ color: '#8B5A3C' }}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handlePasswordChange}
-                variant="contained"
-                sx={{
-                  backgroundColor: '#8B5A3C',
-                  color: 'white',
-                  '&:hover': { backgroundColor: '#8B5A3C' }
-                }}
-              >
-                Change Password
-              </Button>
-            </DialogActions>
-          </Dialog>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPasswordDialog(false)}>Cancel</Button>
+            <Button onClick={handlePasswordChange}>Change Password</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-          {/* IP Address Dialog */}
-          <Dialog open={ipDialog} onClose={() => setIpDialog(false)} maxWidth="sm" fullWidth>
-            <DialogTitle sx={{ color: 'black' }}>Add IP Address</DialogTitle>
-            <DialogContent>
-              <TextField
-                fullWidth
-                label="IP Address"
+      {/* IP Dialog */}
+      <Dialog open={ipDialog} onOpenChange={setIpDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add IP to Whitelist</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="new-ip">IP Address</Label>
+              <Input
+                id="new-ip"
+                placeholder="e.g. 192.168.1.1"
                 value={newIp}
                 onChange={(e) => setNewIp(e.target.value)}
-                placeholder="192.168.1.1"
-                sx={{ mt: 1 }}
-                helperText="Enter the IP address to whitelist"
               />
-            </DialogContent>
-            <DialogActions>
-              <Button
-                onClick={() => setIpDialog(false)}
-                sx={{ color: '#8B5A3C' }}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={addIpAddress}
-                variant="contained"
-                sx={{
-                  backgroundColor: '#8B5A3C',
-                  color: 'white',
-                  '&:hover': { backgroundColor: '#8B5A3C' }
-                }}
-              >
-                Add IP
-              </Button>
-            </DialogActions>
-          </Dialog>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIpDialog(false)}>Cancel</Button>
+            <Button onClick={addIpAddress}>Add IP</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-          {/* Snackbar for notifications */}
-          <Snackbar
-            open={snackbar.open}
-            autoHideDuration={6000}
-            onClose={handleCloseSnackbar}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-          >
-            <Alert
-              onClose={handleCloseSnackbar}
-              severity={snackbar.severity}
-              sx={{ width: '100%' }}
-            >
-              {snackbar.message}
-            </Alert>
-          </Snackbar>
-        </Container>
-      </div>
     </div>
   );
 };
