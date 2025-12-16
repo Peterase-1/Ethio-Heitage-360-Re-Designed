@@ -47,7 +47,7 @@ export function BookingModal({ tour, isOpen, onClose, onSuccess }) {
       const guests = parseInt(formData.numberOfGuests);
       const basePrice = tour.pricing?.adult || tour.price || 0;
       const total = basePrice * guests;
-      
+
       setFormData(prev => ({
         ...prev,
         totalAmount: total
@@ -60,7 +60,7 @@ export function BookingModal({ tour, isOpen, onClose, onSuccess }) {
     if (tour) {
       const dates = [];
       const today = new Date();
-      
+
       // Use schedule if available
       if (tour.schedule && tour.schedule.length > 0) {
         tour.schedule.forEach(schedule => {
@@ -72,7 +72,7 @@ export function BookingModal({ tour, isOpen, onClose, onSuccess }) {
           }
         });
       }
-      
+
       // If no dates from schedule, generate next 30 days
       if (dates.length === 0) {
         for (let i = 1; i <= 30; i++) {
@@ -81,9 +81,9 @@ export function BookingModal({ tour, isOpen, onClose, onSuccess }) {
           dates.push(date.toISOString().split('T')[0]);
         }
       }
-      
+
       setAvailableDates(dates);
-      
+
       // Set default selected date to first available date
       if (dates.length > 0 && !formData.selectedDate) {
         setFormData(prev => ({
@@ -99,7 +99,7 @@ export function BookingModal({ tour, isOpen, onClose, onSuccess }) {
       ...prev,
       [field]: value
     }));
-    
+
     // Clear validation error when field is edited
     if (validationErrors[field]) {
       setValidationErrors(prev => ({
@@ -111,7 +111,7 @@ export function BookingModal({ tour, isOpen, onClose, onSuccess }) {
 
   const validateStep = (currentStep) => {
     const errors = {};
-    
+
     if (currentStep === 1) {
       if (!formData.selectedDate) {
         errors.selectedDate = 'Please select a date';
@@ -122,7 +122,7 @@ export function BookingModal({ tour, isOpen, onClose, onSuccess }) {
         errors.numberOfGuests = `Maximum ${tour.groupSize.max} guests allowed`;
       }
     }
-    
+
     if (currentStep === 2) {
       if (!formData.name) {
         errors.name = 'Please enter your name';
@@ -136,7 +136,7 @@ export function BookingModal({ tour, isOpen, onClose, onSuccess }) {
         errors.phone = 'Please enter your phone number';
       }
     }
-    
+
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -153,19 +153,19 @@ export function BookingModal({ tour, isOpen, onClose, onSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateStep(step)) {
       return;
     }
-    
+
     if (!isAuthenticated) {
       toast.error("Please sign in to book a tour");
       onClose();
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       const bookingData = {
         ...formData,
@@ -173,14 +173,14 @@ export function BookingModal({ tour, isOpen, onClose, onSuccess }) {
         numberOfGuests: parseInt(formData.numberOfGuests),
         totalAmount: formData.totalAmount
       };
-      
+
       const booking = await bookingService.createBooking(tour.id || tour._id, bookingData);
-      
+
       setBookingConfirmation(booking);
       setStep(4); // Move to confirmation step
-      
+
       toast.success('Tour booked successfully!');
-      
+
       if (onSuccess) {
         onSuccess(booking);
       }
@@ -194,7 +194,7 @@ export function BookingModal({ tour, isOpen, onClose, onSuccess }) {
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
-    
+
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
       weekday: 'long',
@@ -217,7 +217,7 @@ export function BookingModal({ tour, isOpen, onClose, onSuccess }) {
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-gray-800 flex items-center justify-between">
+          <DialogTitle className="text-xl font-semibold text-foreground flex items-center justify-between">
             <span>
               {step === 4 ? 'Booking Confirmed' : `Book Tour: ${tour?.title || ''}`}
             </span>
@@ -239,19 +239,17 @@ export function BookingModal({ tour, isOpen, onClose, onSuccess }) {
               {[1, 2, 3].map((stepNumber) => (
                 <div key={stepNumber} className="flex items-center">
                   <div
-                    className={`flex items-center justify-center h-8 w-8 rounded-full border-2 ${
-                      step >= stepNumber
-                        ? 'border-amber-500 bg-amber-100 text-amber-700'
-                        : 'border-gray-300 text-gray-500'
-                    }`}
+                    className={`flex items-center justify-center h-8 w-8 rounded-full border-2 ${step >= stepNumber
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-muted text-muted-foreground'
+                      }`}
                   >
                     {stepNumber}
                   </div>
                   {stepNumber < 3 && (
                     <div
-                      className={`w-10 h-0.5 mx-1 ${
-                        step > stepNumber ? 'bg-amber-500' : 'bg-gray-300'
-                      }`}
+                      className={`w-10 h-0.5 mx-1 ${step > stepNumber ? 'bg-primary' : 'bg-muted'
+                        }`}
                     />
                   )}
                 </div>
@@ -310,8 +308,8 @@ export function BookingModal({ tour, isOpen, onClose, onSuccess }) {
                 </p>
               </div>
 
-              <div className="p-4 bg-amber-50 rounded-lg border border-amber-200 mt-4">
-                <h3 className="font-semibold text-amber-800 flex items-center gap-2">
+              <div className="p-4 bg-primary/5 rounded-lg border border-primary/20 mt-4">
+                <h3 className="font-semibold text-primary flex items-center gap-2">
                   <DollarSign className="w-4 h-4" />
                   Pricing Information
                 </h3>
@@ -324,7 +322,7 @@ export function BookingModal({ tour, isOpen, onClose, onSuccess }) {
                     <span>Number of guests:</span>
                     <span>{formData.numberOfGuests}</span>
                   </div>
-                  <div className="flex justify-between font-semibold pt-2 border-t border-amber-200 mt-2">
+                  <div className="flex justify-between font-semibold pt-2 border-t border-primary/20 mt-2">
                     <span>Total Amount:</span>
                     <span>${formData.totalAmount}</span>
                   </div>
@@ -392,26 +390,26 @@ export function BookingModal({ tour, isOpen, onClose, onSuccess }) {
           {/* Step 3: Payment Information */}
           {step === 3 && (
             <div className="space-y-6">
-              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <h3 className="font-semibold text-blue-800 flex items-center gap-2 mb-3">
+              <div className="p-4 bg-secondary/10 rounded-lg border border-secondary/20">
+                <h3 className="font-semibold text-secondary-foreground flex items-center gap-2 mb-3">
                   <Info className="w-4 h-4" />
                   Booking Summary
                 </h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Tour:</span>
+                    <span className="text-muted-foreground">Tour:</span>
                     <span className="font-medium">{tour?.title}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Date:</span>
+                    <span className="text-muted-foreground">Date:</span>
                     <span>{formatDate(formData.selectedDate)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Guests:</span>
+                    <span className="text-muted-foreground">Guests:</span>
                     <span>{formData.numberOfGuests}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Total Amount:</span>
+                    <span className="text-muted-foreground">Total Amount:</span>
                     <span className="font-semibold">${formData.totalAmount}</span>
                   </div>
                 </div>
@@ -436,7 +434,7 @@ export function BookingModal({ tour, isOpen, onClose, onSuccess }) {
               </div>
 
               {formData.paymentMethod === 'credit-card' && (
-                <div className="space-y-4 border border-gray-200 rounded-lg p-4">
+                <div className="space-y-4 border border-border rounded-lg p-4">
                   <div className="space-y-2">
                     <Label htmlFor="cardNumber">Card Number</Label>
                     <Input
@@ -455,18 +453,18 @@ export function BookingModal({ tour, isOpen, onClose, onSuccess }) {
                       <Input id="cvv" placeholder="***" disabled={isSubmitting} />
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                  <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
                     <Info className="w-3 h-3" />
                     This is a demo. No actual payment will be processed.
                   </p>
                 </div>
               )}
 
-              <div className="flex items-center p-4 bg-amber-50 rounded-lg">
-                <CreditCard className="w-5 h-5 text-amber-600 mr-3" />
+              <div className="flex items-center p-4 bg-primary/5 rounded-lg">
+                <CreditCard className="w-5 h-5 text-primary mr-3" />
                 <div>
-                  <p className="text-sm font-medium text-amber-800">Secure Payment</p>
-                  <p className="text-xs text-amber-700">
+                  <p className="text-sm font-medium text-primary">Secure Payment</p>
+                  <p className="text-xs text-primary/80">
                     Your payment information is securely processed.
                   </p>
                 </div>
@@ -477,51 +475,51 @@ export function BookingModal({ tour, isOpen, onClose, onSuccess }) {
           {/* Step 4: Confirmation */}
           {step === 4 && (
             <div className="space-y-6">
-              <div className="flex flex-col items-center justify-center p-6 bg-green-50 rounded-lg border border-green-200">
-                <CheckCircle className="w-16 h-16 text-green-500 mb-4" />
-                <h3 className="text-xl font-semibold text-green-800 mb-2">Booking Confirmed!</h3>
-                <p className="text-green-700 text-center">
+              <div className="flex flex-col items-center justify-center p-6 bg-green-500/10 rounded-lg border border-green-500/20">
+                <CheckCircle className="w-16 h-16 text-green-600 mb-4" />
+                <h3 className="text-xl font-semibold text-green-700 mb-2">Booking Confirmed!</h3>
+                <p className="text-green-600 text-center">
                   Your tour has been successfully booked.
                 </p>
               </div>
 
-              <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <h4 className="font-semibold text-gray-800">Booking Details</h4>
+              <div className="space-y-4 p-4 bg-muted/50 rounded-lg border border-border">
+                <h4 className="font-semibold text-foreground">Booking Details</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Booking ID:</span>
+                    <span className="text-muted-foreground">Booking ID:</span>
                     <span className="font-mono">{bookingConfirmation?.id || 'TOUR-' + Date.now().toString().slice(-8)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Tour:</span>
+                    <span className="text-muted-foreground">Tour:</span>
                     <span>{tour?.title}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Date:</span>
+                    <span className="text-muted-foreground">Date:</span>
                     <span>{formatDate(formData.selectedDate)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Guests:</span>
+                    <span className="text-muted-foreground">Guests:</span>
                     <span>{formData.numberOfGuests}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Status:</span>
-                    <span className="px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-xs">
+                    <span className="text-muted-foreground">Status:</span>
+                    <span className="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs">
                       {bookingConfirmation?.status || 'Confirmed'}
                     </span>
                   </div>
-                  <div className="flex justify-between pt-2 border-t border-gray-200 mt-2">
-                    <span className="text-gray-600">Total Amount:</span>
+                  <div className="flex justify-between pt-2 border-t border-border mt-2">
+                    <span className="text-muted-foreground">Total Amount:</span>
                     <span className="font-semibold">${formData.totalAmount}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="text-center text-sm text-gray-600">
+              <div className="text-center text-sm text-muted-foreground">
                 <p>A confirmation email has been sent to {formData.email}</p>
                 <p className="mt-1">
                   You can view your booking details in your{' '}
-                  <a href="/dashboard" className="text-amber-600 hover:underline font-medium">
+                  <a href="/dashboard" className="text-primary hover:underline font-medium">
                     Dashboard
                   </a>
                 </p>
@@ -541,33 +539,33 @@ export function BookingModal({ tour, isOpen, onClose, onSuccess }) {
                 Back
               </Button>
             )}
-            
+
             {step < 3 && (
               <Button
                 type="button"
                 onClick={handleNextStep}
                 disabled={isSubmitting}
-                className="bg-amber-600 hover:bg-amber-700"
+                className="bg-primary hover:bg-primary/90"
               >
                 Next
               </Button>
             )}
-            
+
             {step === 3 && (
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-amber-600 hover:bg-amber-700"
+                className="bg-primary hover:bg-primary/90"
               >
                 {isSubmitting ? 'Processing...' : 'Complete Booking'}
               </Button>
             )}
-            
+
             {step === 4 && (
               <Button
                 type="button"
                 onClick={handleClose}
-                className="bg-amber-600 hover:bg-amber-700"
+                className="bg-primary hover:bg-primary/90"
               >
                 Close
               </Button>

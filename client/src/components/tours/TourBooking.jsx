@@ -44,13 +44,13 @@ const TourBooking = ({ tour, onBookingConfirm, onBookingCancel }) => {
 
   if (isConfirmed) {
     return (
-      <div className="bg-white p-6 rounded-lg shadow-md text-center">
-        <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">Booking Confirmed!</h3>
-        <p className="text-gray-700 mb-4">Your tour to <strong>{tour.title}</strong> on <strong>{bookingDetails.date}</strong> for <strong>{bookingDetails.numberOfPeople} people</strong> has been successfully booked.</p>
+      <div className="bg-card p-6 rounded-lg shadow-md text-center border border-border">
+        <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
+        <h3 className="text-2xl font-bold text-card-foreground mb-2">Booking Confirmed!</h3>
+        <p className="text-muted-foreground mb-4">Your tour to <strong>{tour.title}</strong> on <strong>{bookingDetails.date}</strong> for <strong>{bookingDetails.numberOfPeople} people</strong> has been successfully booked.</p>
         <button
           onClick={() => setIsConfirmed(false)} // Or navigate away
-          className="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
+          className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
         >
           Done
         </button>
@@ -59,23 +59,23 @@ const TourBooking = ({ tour, onBookingConfirm, onBookingCancel }) => {
   }
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold text-gray-900 mb-4">Book Tour: {tour.title}</h2>
+    <div className="bg-card p-6 rounded-lg shadow-md border border-border">
+      <h2 className="text-2xl font-bold text-card-foreground mb-4">Book Tour: {tour.title}</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">Preferred Date</label>
+          <label htmlFor="date" className="block text-sm font-medium text-muted-foreground mb-1">Preferred Date</label>
           <input
             type="date"
             id="date"
             name="date"
             value={bookingDetails.date}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500"
+            className="w-full px-3 py-2 border border-input rounded-lg bg-background focus:ring-primary focus:border-primary"
             required
           />
         </div>
         <div>
-          <label htmlFor="numberOfPeople" className="block text-sm font-medium text-gray-700 mb-1">Number of People</label>
+          <label htmlFor="numberOfPeople" className="block text-sm font-medium text-muted-foreground mb-1">Number of People</label>
           <input
             type="number"
             id="numberOfPeople"
@@ -83,24 +83,24 @@ const TourBooking = ({ tour, onBookingConfirm, onBookingCancel }) => {
             value={bookingDetails.numberOfPeople}
             onChange={handleChange}
             min="1"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500"
+            className="w-full px-3 py-2 border border-input rounded-lg bg-background focus:ring-primary focus:border-primary"
             required
           />
         </div>
         <div>
-          <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">Additional Notes (Optional)</label>
+          <label htmlFor="notes" className="block text-sm font-medium text-muted-foreground mb-1">Additional Notes (Optional)</label>
           <textarea
             id="notes"
             name="notes"
             value={bookingDetails.notes}
             onChange={handleChange}
             rows="3"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500"
+            className="w-full px-3 py-2 border border-input rounded-lg bg-background focus:ring-primary focus:border-primary"
           ></textarea>
         </div>
 
         {error && (
-          <div className="flex items-center text-red-600 text-sm">
+          <div className="flex items-center text-destructive text-sm">
             <XCircle className="h-4 w-4 mr-2" />
             {error}
           </div>
@@ -110,13 +110,13 @@ const TourBooking = ({ tour, onBookingConfirm, onBookingCancel }) => {
           <button
             type="button"
             onClick={onBookingCancel}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 border border-input rounded-lg text-muted-foreground hover:bg-accent transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
           >
             Confirm Booking
           </button>
