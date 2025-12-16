@@ -48,14 +48,14 @@ function DialogContent({ className, children, ...props }) {
       >
         <div
           className={cn(
-            "relative w-full max-w-2xl rounded-lg border border-gray-200 bg-white p-6 shadow-lg",
+            "relative w-full max-w-2xl rounded-lg border border-border bg-background p-6 shadow-lg",
             "mt-10 mb-auto", // pushes down from top
             className
           )}
         >
           {children}
           <DialogPrimitive.Close
-            className="absolute top-4 right-4 inline-flex items-center justify-center rounded-sm p-1 opacity-70 transition hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white"
+            className="absolute top-4 right-4 inline-flex items-center justify-center rounded-sm p-1 opacity-70 transition hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
           >
             <XIcon className="h-4 w-4" />
             <span className="sr-only">Close</span>
@@ -106,7 +106,7 @@ function DialogDescription({ className, ...props }) {
     <DialogPrimitive.Description
       data-slot="dialog-description"
       // text-muted-foreground -> text-gray-500
-      className={cn("text-sm text-gray-500", className)}
+      className={cn("text-sm text-muted-foreground", className)}
       {...props}
     />
   );
