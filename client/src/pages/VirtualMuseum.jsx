@@ -255,8 +255,8 @@ const VirtualMuseum = () => {
   useEffect(() => {
     let filtered = artifacts.filter(artifact => {
       const matchesSearch = artifact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           artifact.description.toLowerCase().includes(searchTerm.toLowerCase());
-      
+        artifact.description.toLowerCase().includes(searchTerm.toLowerCase());
+
       const matchesCategory = !filters.category || artifact.category === filters.category;
       const matchesPeriod = !filters.period || artifact.period === filters.period;
       const matchesOrigin = !filters.origin || artifact.origin === filters.origin;
@@ -279,7 +279,7 @@ const VirtualMuseum = () => {
   };
 
   const handleFavorite = (artifactId, isFavorited) => {
-    setArtifacts(prev => prev.map(artifact => 
+    setArtifacts(prev => prev.map(artifact =>
       artifact.id === artifactId ? { ...artifact, isFavorited } : artifact
     ));
   };
@@ -337,7 +337,7 @@ const VirtualMuseum = () => {
       id: 2,
       title: "Royal Treasures of Ethiopia",
       description: "Explore the imperial collections and royal regalia",
-      duration: "30 minutes", 
+      duration: "30 minutes",
       price: 20,
       maxParticipants: 15,
       rating: 4.8,
@@ -377,20 +377,20 @@ const VirtualMuseum = () => {
     if (!isOpen) return null;
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="bg-card border border-border rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
           <div className="p-6">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Book Virtual Tour</h2>
-              <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+              <h2 className="text-2xl font-bold text-foreground">Book Virtual Tour</h2>
+              <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
                 ✕
               </button>
             </div>
 
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-800">{tour.title}</h3>
-              <p className="text-gray-600">{tour.description}</p>
-              <div className="flex items-center mt-2 text-sm text-gray-500">
+              <h3 className="text-lg font-semibold text-foreground/90">{tour.title}</h3>
+              <p className="text-muted-foreground">{tour.description}</p>
+              <div className="flex items-center mt-2 text-sm text-muted-foreground">
                 <Clock className="w-4 h-4 mr-1" />
                 {tour.duration} • ${tour.price} per person
               </div>
@@ -399,22 +399,22 @@ const VirtualMuseum = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">Date</label>
                   <input
                     type="date"
                     required
                     value={bookingData.date}
-                    onChange={(e) => setBookingData({...bookingData, date: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    onChange={(e) => setBookingData({ ...bookingData, date: e.target.value })}
+                    className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-ring focus:border-transparent"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">Time</label>
                   <select
                     required
                     value={bookingData.time}
-                    onChange={(e) => setBookingData({...bookingData, time: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    onChange={(e) => setBookingData({ ...bookingData, time: e.target.value })}
+                    className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-ring focus:border-transparent"
                   >
                     <option value="">Select time</option>
                     <option value="10:00">10:00 AM</option>
@@ -426,31 +426,31 @@ const VirtualMuseum = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Participants</label>
+                <label className="block text-sm font-medium text-foreground mb-2">Participants</label>
                 <input
                   type="number"
                   min="1"
                   max={tour.maxParticipants}
                   required
                   value={bookingData.participants}
-                  onChange={(e) => setBookingData({...bookingData, participants: parseInt(e.target.value)})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  onChange={(e) => setBookingData({ ...bookingData, participants: parseInt(e.target.value) })}
+                  className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-ring focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                <label className="block text-sm font-medium text-foreground mb-2">Phone Number</label>
                 <input
                   type="tel"
                   required
                   value={bookingData.phone}
-                  onChange={(e) => setBookingData({...bookingData, phone: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  onChange={(e) => setBookingData({ ...bookingData, phone: e.target.value })}
+                  className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-ring focus:border-transparent"
                 />
               </div>
 
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <div className="flex justify-between items-center text-lg font-semibold">
+              <div className="bg-muted/50 p-4 rounded-lg">
+                <div className="flex justify-between items-center text-lg font-semibold text-foreground">
                   <span>Total:</span>
                   <span>${(tour.price * bookingData.participants).toFixed(2)}</span>
                 </div>
@@ -458,7 +458,7 @@ const VirtualMuseum = () => {
 
               <button
                 type="submit"
-                className="w-full bg-amber-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-amber-700 transition-colors"
+                className="w-full bg-primary text-primary-foreground py-3 px-4 rounded-lg font-semibold hover:bg-primary/90 transition-colors"
               >
                 Confirm Booking
               </button>
@@ -479,7 +479,7 @@ const VirtualMuseum = () => {
           <div className="absolute bottom-20 right-20 w-24 h-24 border border-current rounded-full"></div>
           <div className="absolute top-1/2 left-1/4 w-16 h-16 border border-current rounded-full"></div>
         </div>
-        
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center mb-16">
             {/* Badge */}
@@ -487,16 +487,16 @@ const VirtualMuseum = () => {
               <Eye className="w-4 h-4 mr-2" />
               <span className="text-sm font-semibold">Immersive Heritage Experience</span>
             </div>
-            
+
             <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold mb-6 leading-tight">
               <span className="block mb-2">Virtual Museum</span>
               <span className="block bg-gradient-to-r from-primary-foreground to-primary-foreground/80 bg-clip-text text-transparent">Experience</span>
             </h1>
             <p className="text-xl md:text-2xl text-primary-foreground/90 mb-10 max-w-4xl mx-auto leading-relaxed">
-              Explore Ethiopia's heritage in stunning 3D detail with virtual and augmented reality support. 
+              Explore Ethiopia's heritage in stunning 3D detail with virtual and augmented reality support.
               Walk through ancient temples and examine artifacts up close.
             </p>
-            
+
             <div className="flex flex-wrap justify-center gap-6 text-sm mb-8">
               <div className="flex items-center bg-primary-foreground/20 backdrop-blur-sm px-6 py-3 rounded-full border border-primary-foreground/30">
                 <Box className="w-5 h-5 mr-2" />
@@ -539,11 +539,11 @@ const VirtualMuseum = () => {
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="p-6">
                   <h3 className="text-xl font-bold text-white mb-2">{artifact.name}</h3>
                   <p className="text-white/80 mb-4 line-clamp-2">{artifact.description}</p>
-                  
+
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-white/70">{artifact.origin}</span>
                     <div className="flex items-center">
@@ -578,38 +578,35 @@ const VirtualMuseum = () => {
               Search
             </button>
           </div>
-          
+
           <div className="flex flex-wrap justify-center gap-4">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-full font-medium transition-all ${
-                showFilters 
-                  ? 'bg-primary text-primary-foreground shadow-lg' 
-                  : 'bg-card border border-border hover:bg-muted text-muted-foreground'
-              }`}
+              className={`flex items-center space-x-2 px-6 py-3 rounded-full font-medium transition-all ${showFilters
+                ? 'bg-primary text-primary-foreground shadow-lg'
+                : 'bg-card border border-border hover:bg-muted text-muted-foreground'
+                }`}
             >
               <Filter className="h-5 w-5" />
               <span>Filters</span>
             </button>
-            
+
             <div className="flex border border-border rounded-full overflow-hidden">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-3 transition-all ${
-                  viewMode === 'grid' 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'text-muted-foreground hover:bg-muted'
-                }`}
+                className={`p-3 transition-all ${viewMode === 'grid'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-muted'
+                  }`}
               >
                 <Grid className="h-5 w-5" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-3 transition-all ${
-                  viewMode === 'list' 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'text-muted-foreground hover:bg-muted'
-                }`}
+                className={`p-3 transition-all ${viewMode === 'list'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-muted'
+                  }`}
               >
                 <List className="h-5 w-5" />
               </button>
@@ -636,14 +633,14 @@ const VirtualMuseum = () => {
           <div className="flex-1">
             {/* Results Header */}
             <div className="flex items-center justify-between mb-6">
-              <p className="text-gray-600">
+              <p className="text-muted-foreground">
                 Showing {filteredArtifacts.length} of {artifacts.length} artifacts
               </p>
-              
+
               {(searchTerm || Object.values(filters).some(f => f)) && (
                 <button
                   onClick={clearFilters}
-                  className="text-amber-600 hover:text-amber-700 font-medium"
+                  className="text-primary hover:text-primary/80 font-medium"
                 >
                   Clear all filters
                 </button>
@@ -653,15 +650,15 @@ const VirtualMuseum = () => {
             {/* Artifacts Grid/List */}
             {filteredArtifacts.length === 0 ? (
               <div className="text-center py-12">
-                <div className="text-gray-400 mb-4">
+                <div className="text-muted-foreground mb-4">
                   <Search className="h-16 w-16 mx-auto" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No artifacts found</h3>
-                <p className="text-gray-600">Try adjusting your search or filters</p>
+                <h3 className="text-lg font-medium text-foreground mb-2">No artifacts found</h3>
+                <p className="text-muted-foreground">Try adjusting your search or filters</p>
               </div>
             ) : (
               <div className={
-                viewMode === 'grid' 
+                viewMode === 'grid'
                   ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
                   : 'space-y-6'
               }>
