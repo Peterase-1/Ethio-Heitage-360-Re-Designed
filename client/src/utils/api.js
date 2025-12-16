@@ -827,9 +827,7 @@ class ApiClient {
     return this.request('/system-settings/reports?reportType=system');
   }
 
-  async getSystemHealth() {
-    return this.request('/system-settings/health');
-  }
+
 
   // Content moderation (multi-type)
   async listContent({ page = 1, limit = 20, status, type, museum, q } = {}) {
@@ -2617,21 +2615,9 @@ class ApiClient {
     return this.request(`/communications/${id}/conversation`)
   }
 
-  async uploadArtifactImage(artifactId, imageFile) {
-    const formData = new FormData()
-    formData.append('image', imageFile)
-    return this.request(`/artifacts/${artifactId}/images`, {
-      method: 'POST',
-      body: formData,
-      headers: {}, // Let browser set Content-Type for FormData
-    })
-  }
 
-  async deleteArtifactImage(artifactId, imageId) {
-    return this.request(`/artifacts/${artifactId}/images/${imageId}`, {
-      method: 'DELETE',
-    })
-  }
+
+
 
   // Visitor Registration endpoints
   async registerVisitor(visitorData) {
