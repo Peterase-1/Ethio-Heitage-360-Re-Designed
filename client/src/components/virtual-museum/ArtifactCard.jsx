@@ -29,45 +29,44 @@ const ArtifactCard = ({ artifact, onView, onFavorite, onShare }) => {
             e.target.src = 'https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=300&h=200&fit=crop&crop=center';
           }}
         />
-        
+
         {/* Overlay with quick actions */}
         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300">
           <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <button
               onClick={handleFavoriteClick}
-              className={`w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-sm transition-colors ${
-                artifact.isFavorited 
-                  ? 'bg-red-500 text-white' 
-                  : 'bg-white/90 text-gray-700 hover:bg-red-50 hover:text-red-500'
-              }`}
+              className={`w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-sm transition-colors ${artifact.isFavorited
+                  ? 'bg-destructive text-destructive-foreground'
+                  : 'bg-background/90 text-muted-foreground hover:bg-destructive/10 hover:text-destructive'
+                }`}
             >
               <Heart className={`w-4 h-4 ${artifact.isFavorited ? 'fill-current' : ''}`} />
             </button>
-            
+
             <button
               onClick={handleShareClick}
-              className="w-8 h-8 rounded-full bg-white/90 text-gray-700 hover:bg-blue-50 hover:text-blue-500 flex items-center justify-center backdrop-blur-sm transition-colors"
+              className="w-8 h-8 rounded-full bg-background/90 text-muted-foreground hover:bg-primary/10 hover:text-primary flex items-center justify-center backdrop-blur-sm transition-colors"
             >
               <Share2 className="w-4 h-4" />
             </button>
           </div>
         </div>
-        
+
         {/* 3D Badge */}
         {artifact.has3DModel && (
           <div className="absolute top-3 left-3">
-            <span className="bg-amber-500 text-white px-2 py-1 rounded-full text-xs font-medium flex items-center">
+            <span className="bg-secondary text-secondary-foreground px-2 py-1 rounded-full text-xs font-medium flex items-center">
               <Eye className="w-3 h-3 mr-1" />
               3D View
             </span>
           </div>
         )}
-        
+
         {/* Rating */}
         <div className="absolute bottom-3 left-3">
-          <div className="flex items-center bg-white/90 backdrop-blur-sm rounded-full px-2 py-1">
+          <div className="flex items-center bg-background/90 backdrop-blur-sm rounded-full px-2 py-1">
             <Star className="w-3 h-3 text-yellow-500 fill-current mr-1" />
-            <span className="text-xs font-medium text-gray-700">{artifact.rating}</span>
+            <span className="text-xs font-medium text-foreground">{artifact.rating}</span>
           </div>
         </div>
       </div>
@@ -115,13 +114,12 @@ const ArtifactCard = ({ artifact, onView, onFavorite, onShare }) => {
             {artifact.condition && (
               <div className="mt-2">
                 <span className="text-muted-foreground">Condition:</span>
-                <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                  artifact.condition === 'Excellent' || artifact.condition === 'Pristine' 
-                    ? 'bg-green-100 text-green-800' 
+                <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-medium ${artifact.condition === 'Excellent' || artifact.condition === 'Pristine'
+                    ? 'bg-green-500/10 text-green-500'
                     : artifact.condition === 'Good' || artifact.condition === 'Very Good'
-                    ? 'bg-blue-100 text-blue-800'
-                    : 'bg-yellow-100 text-yellow-800'
-                }`}>{artifact.condition}</span>
+                      ? 'bg-blue-500/10 text-blue-500'
+                      : 'bg-yellow-500/10 text-yellow-500'
+                  }`}>{artifact.condition}</span>
               </div>
             )}
           </div>
