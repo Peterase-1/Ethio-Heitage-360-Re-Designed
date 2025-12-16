@@ -61,15 +61,15 @@ export function ArtifactDetailsModal({
   const getConditionColor = (condition) => {
     switch (condition.toLowerCase()) {
       case "excellent":
-        return "bg-emerald-100 text-emerald-800 border-emerald-200";
+        return "bg-green-500/10 text-green-500 border-green-500/20";
       case "good":
-        return "bg-blue-100 text-blue-800 border-blue-200";
+        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
       case "fair":
-        return "bg-amber-100 text-amber-800 border-amber-200";
+        return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
       case "weathered":
-        return "bg-stone-100 text-stone-800 border-stone-200";
+        return "bg-muted text-muted-foreground border-border";
       default:
-        return "bg-stone-100 text-stone-800 border-stone-200";
+        return "bg-muted text-muted-foreground border-border";
     }
   };
 
@@ -103,7 +103,7 @@ export function ArtifactDetailsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] w-full h-[95vh] max-h-[95vh] p-0 bg-white sm:max-w-6xl sm:h-[90vh] sm:max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-[95vw] w-full h-[95vh] max-h-[95vh] p-0 bg-card sm:max-w-6xl sm:h-[90vh] sm:max-h-[90vh] flex flex-col">
         <DialogTitle className="sr-only">{artifact.title}</DialogTitle>
         <DialogDescription className="sr-only">
           Detailed view of {artifact.title}, a {artifact.category} artifact from{" "}
@@ -111,15 +111,15 @@ export function ArtifactDetailsModal({
         </DialogDescription>
 
         {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-stone-200 bg-white shrink-0">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-border bg-card shrink-0">
           <div className="flex-1 min-w-0 pr-4">
-            <h1 className="text-lg sm:text-2xl font-medium text-stone-800 truncate">
+            <h1 className="text-lg sm:text-2xl font-medium text-foreground truncate">
               {artifact.title}
             </h1>
             <div className="flex items-center gap-2 mt-1 text-sm sm:text-base">
-              <span className="text-stone-600">{artifact.culture}</span>
-              <span className="text-stone-400">•</span>
-              <span className="text-stone-600">{artifact.period}</span>
+              <span className="text-muted-foreground">{artifact.culture}</span>
+              <span className="text-muted-foreground/60">•</span>
+              <span className="text-muted-foreground">{artifact.period}</span>
             </div>
           </div>
 
@@ -127,11 +127,10 @@ export function ArtifactDetailsModal({
             <Button
               variant="outline"
               size="sm"
-              className={`hidden sm:flex transition-all duration-200 ${
-                isFavorited
-                  ? "text-red-500 border-red-200 hover:bg-red-50"
-                  : "text-stone-600"
-              }`}
+              className={`hidden sm:flex transition-all duration-200 ${isFavorited
+                  ? "text-destructive border-destructive/20 hover:bg-destructive/10"
+                  : "text-muted-foreground"
+                }`}
               onClick={() => onToggleFavorite(artifact.id)}
             >
               <Heart
@@ -143,11 +142,10 @@ export function ArtifactDetailsModal({
             <Button
               variant="outline"
               size="sm"
-              className={`sm:hidden transition-all duration-200 ${
-                isFavorited
-                  ? "text-red-500 border-red-200 hover:bg-red-50"
-                  : "text-stone-600"
-              }`}
+              className={`sm:hidden transition-all duration-200 ${isFavorited
+                  ? "text-destructive border-destructive/20 hover:bg-destructive/10"
+                  : "text-muted-foreground"
+                }`}
               onClick={() => onToggleFavorite(artifact.id)}
             >
               <Heart
@@ -158,7 +156,7 @@ export function ArtifactDetailsModal({
             <Button
               variant="outline"
               size="sm"
-              className="hidden sm:flex text-stone-600"
+              className="hidden sm:flex text-muted-foreground"
               onClick={() => onShare(artifact)}
             >
               <Share2 className="w-4 h-4 mr-2" />
@@ -168,7 +166,7 @@ export function ArtifactDetailsModal({
             <Button
               variant="outline"
               size="sm"
-              className="sm:hidden text-stone-600"
+              className="sm:hidden text-muted-foreground"
               onClick={() => onShare(artifact)}
             >
               <Share2 className="w-4 h-4" />
@@ -178,7 +176,7 @@ export function ArtifactDetailsModal({
               variant="outline"
               size="sm"
               onClick={onClose}
-              className="text-stone-600"
+              className="text-muted-foreground"
             >
               <X className="w-4 h-4" />
             </Button>
@@ -189,7 +187,7 @@ export function ArtifactDetailsModal({
         <div className="flex-1 min-h-0 overflow-hidden">
           <div className="flex flex-col lg:flex-row h-full">
             {/* Image Section */}
-            <div className="relative bg-stone-100 flex items-center justify-center h-64 sm:h-80 lg:h-full lg:w-1/2 shrink-0">
+            <div className="relative bg-muted flex items-center justify-center h-64 sm:h-80 lg:h-full lg:w-1/2 shrink-0">
               {artifact.images && artifact.images.length > 0 && (
                 <>
                   <ImageWithFallback
@@ -204,7 +202,7 @@ export function ArtifactDetailsModal({
                         <Button
                           variant="outline"
                           size="sm"
-                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/90 hover:bg-white border-0 shadow-md"
+                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-background/90 hover:bg-background border-0 shadow-md"
                           onClick={prevImage}
                         >
                           <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -212,7 +210,7 @@ export function ArtifactDetailsModal({
                         <Button
                           variant="outline"
                           size="sm"
-                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/90 hover:bg-white border-0 shadow-md"
+                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-background/90 hover:bg-background border-0 shadow-md"
                           onClick={nextImage}
                         >
                           <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -223,11 +221,10 @@ export function ArtifactDetailsModal({
                         {artifact.images.map((_, index) => (
                           <button
                             key={index}
-                            className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                              index === currentImageIndex
-                                ? "bg-white w-6"
-                                : "bg-white/50"
-                            }`}
+                            className={`w-2 h-2 rounded-full transition-all duration-200 ${index === currentImageIndex
+                                ? "bg-background w-6"
+                                : "bg-background/50"
+                              }`}
                             onClick={() => setCurrentImageIndex(index)}
                           />
                         ))}
@@ -239,7 +236,7 @@ export function ArtifactDetailsModal({
 
               {artifact.featured && (
                 <div className="absolute top-4 left-4">
-                  <Badge className="bg-emerald-600 text-white border-0 shadow-md text-xs">
+                  <Badge className="bg-primary text-primary-foreground border-0 shadow-md text-xs">
                     Featured Artifact
                   </Badge>
                 </div>
@@ -247,7 +244,7 @@ export function ArtifactDetailsModal({
             </div>
 
             {/* Details Section */}
-            <div className="flex-1 lg:w-1/2 bg-white min-h-0">
+            <div className="flex-1 lg:w-1/2 bg-card min-h-0">
               <ScrollArea className="h-full">
                 <div className="p-4 sm:p-6 pb-8">
                   <Tabs defaultValue="overview" className="w-full">
@@ -275,11 +272,11 @@ export function ArtifactDetailsModal({
                     <TabsContent value="overview" className="space-y-6 mt-0">
                       {/* Description with Load More */}
                       <div>
-                        <h3 className="text-base sm:text-lg font-medium text-stone-800 mb-3">
+                        <h3 className="text-base sm:text-lg font-medium text-foreground mb-3">
                           Description
                         </h3>
                         <div className="space-y-3">
-                          <p className="text-stone-700 leading-relaxed text-sm sm:text-base">
+                          <p className="text-muted-foreground leading-relaxed text-sm sm:text-base">
                             {isDescriptionExpanded
                               ? description
                               : truncatedDescription.text}
@@ -314,13 +311,13 @@ export function ArtifactDetailsModal({
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Card>
                           <CardContent className="p-3 sm:p-4">
-                            <div className="flex items-center gap-2 text-stone-600 mb-2">
+                            <div className="flex items-center gap-2 text-muted-foreground mb-2">
                               <MapPin className="w-4 h-4" />
                               <span className="font-medium text-sm">
                                 Location
                               </span>
                             </div>
-                            <p className="text-stone-800 text-sm">
+                            <p className="text-foreground text-sm">
                               {artifact.region}
                             </p>
                           </CardContent>
@@ -328,13 +325,13 @@ export function ArtifactDetailsModal({
 
                         <Card>
                           <CardContent className="p-3 sm:p-4">
-                            <div className="flex items-center gap-2 text-stone-600 mb-2">
+                            <div className="flex items-center gap-2 text-muted-foreground mb-2">
                               <Clock className="w-4 h-4" />
                               <span className="font-medium text-sm">
                                 Period
                               </span>
                             </div>
-                            <p className="text-stone-800 text-sm">
+                            <p className="text-foreground text-sm">
                               {artifact.period}
                             </p>
                           </CardContent>
@@ -346,7 +343,7 @@ export function ArtifactDetailsModal({
                         <Card>
                           <CardContent className="p-3 sm:p-4">
                             <div className="flex items-center justify-between mb-2">
-                              <h4 className="font-medium text-stone-800 text-sm">
+                              <h4 className="font-medium text-foreground text-sm">
                                 Audio Guide
                               </h4>
                               <Badge variant="outline" className="text-xs">
@@ -377,7 +374,7 @@ export function ArtifactDetailsModal({
 
                       {/* Tags */}
                       <div>
-                        <h4 className="font-medium text-stone-800 mb-3 text-sm sm:text-base">
+                        <h4 className="font-medium text-foreground mb-3 text-sm sm:text-base">
                           Related Topics
                         </h4>
                         <div className="flex flex-wrap gap-2">
@@ -385,7 +382,7 @@ export function ArtifactDetailsModal({
                             <Badge
                               key={tag}
                               variant="outline"
-                              className="bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100 text-xs"
+                              className="bg-muted/30 text-muted-foreground border-border hover:bg-muted text-xs"
                             >
                               {tag}
                             </Badge>
@@ -397,31 +394,31 @@ export function ArtifactDetailsModal({
                     <TabsContent value="details" className="space-y-6 mt-0">
                       {/* Physical Details */}
                       <div className="space-y-4">
-                        <h3 className="text-base sm:text-lg font-medium text-stone-800">
+                        <h3 className="text-base sm:text-lg font-medium text-foreground">
                           Physical Details
                         </h3>
 
                         <div className="grid grid-cols-1 gap-4">
-                          <div className="flex items-center justify-between py-2 border-b border-stone-100">
-                            <span className="text-stone-600 text-sm">
+                          <div className="flex items-center justify-between py-2 border-b border-border">
+                            <span className="text-muted-foreground text-sm">
                               Materials
                             </span>
-                            <span className="font-medium text-stone-800 text-sm text-right">
+                            <span className="font-medium text-foreground text-sm text-right">
                               {artifact.materials.join(", ")}
                             </span>
                           </div>
 
-                          <div className="flex items-center justify-between py-2 border-b border-stone-100">
-                            <span className="text-stone-600 text-sm">
+                          <div className="flex items-center justify-between py-2 border-b border-border">
+                            <span className="text-muted-foreground text-sm">
                               Dimensions
                             </span>
-                            <span className="font-medium text-stone-800 text-sm text-right">
+                            <span className="font-medium text-foreground text-sm text-right">
                               {artifact.dimensions}
                             </span>
                           </div>
 
-                          <div className="flex items-center justify-between py-2 border-b border-stone-100">
-                            <span className="text-stone-600 text-sm">
+                          <div className="flex items-center justify-between py-2 border-b border-border">
+                            <span className="text-muted-foreground text-sm">
                               Condition
                             </span>
                             <Badge
@@ -433,11 +430,11 @@ export function ArtifactDetailsModal({
                             </Badge>
                           </div>
 
-                          <div className="flex items-center justify-between py-2 border-b border-stone-100">
-                            <span className="text-stone-600 text-sm">
+                          <div className="flex items-center justify-between py-2 border-b border-border">
+                            <span className="text-muted-foreground text-sm">
                               Category
                             </span>
-                            <span className="font-medium text-stone-800 text-sm text-right">
+                            <span className="font-medium text-foreground text-sm text-right">
                               {artifact.category}
                             </span>
                           </div>
@@ -447,23 +444,23 @@ export function ArtifactDetailsModal({
                       {/* Discovery Info */}
                       {artifact.dateDiscovered && (
                         <div className="space-y-4">
-                          <h4 className="font-medium text-stone-800 text-sm sm:text-base">
+                          <h4 className="font-medium text-foreground text-sm sm:text-base">
                             Discovery Information
                           </h4>
                           <div className="grid grid-cols-1 gap-4">
-                            <div className="flex items-center justify-between py-2 border-b border-stone-100">
-                              <span className="text-stone-600 text-sm">
+                            <div className="flex items-center justify-between py-2 border-b border-border">
+                              <span className="text-muted-foreground text-sm">
                                 Date Discovered
                               </span>
-                              <span className="font-medium text-stone-800 text-sm text-right">
+                              <span className="font-medium text-foreground text-sm text-right">
                                 {artifact.dateDiscovered}
                               </span>
                             </div>
-                            <div className="flex items-center justify-between py-2 border-b border-stone-100">
-                              <span className="text-stone-600 text-sm">
+                            <div className="flex items-center justify-between py-2 border-b border-border">
+                              <span className="text-muted-foreground text-sm">
                                 Current Location
                               </span>
-                              <span className="font-medium text-stone-800 text-sm text-right">
+                              <span className="font-medium text-foreground text-sm text-right">
                                 {artifact.currentLocation}
                               </span>
                             </div>
@@ -475,11 +472,11 @@ export function ArtifactDetailsModal({
                     <TabsContent value="context" className="space-y-6 mt-0">
                       {/* Historical Significance with Load More */}
                       <div>
-                        <h3 className="text-base sm:text-lg font-medium text-stone-800 mb-3">
+                        <h3 className="text-base sm:text-lg font-medium text-foreground mb-3">
                           Historical Significance
                         </h3>
                         <div className="space-y-3">
-                          <p className="text-stone-700 leading-relaxed text-sm sm:text-base">
+                          <p className="text-muted-foreground leading-relaxed text-sm sm:text-base">
                             {isSignificanceExpanded
                               ? significance
                               : truncatedSignificance.text}
@@ -489,7 +486,7 @@ export function ArtifactDetailsModal({
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-amber-700 hover:text-amber-800 hover:bg-amber-50 p-0 h-auto font-medium text-sm"
+                              className="text-primary hover:text-primary/80 hover:bg-primary/10 p-0 h-auto font-medium text-sm"
                               onClick={() =>
                                 setIsSignificanceExpanded(
                                   !isSignificanceExpanded
@@ -514,12 +511,12 @@ export function ArtifactDetailsModal({
 
                       {/* Cultural Context */}
                       <div>
-                        <h4 className="font-medium text-stone-800 mb-3 text-sm sm:text-base">
+                        <h4 className="font-medium text-foreground mb-3 text-sm sm:text-base">
                           Cultural Context
                         </h4>
                         <Card>
-                          <CardContent className="p-3 sm:p-4 bg-amber-50 border-amber-200">
-                            <p className="text-stone-700 text-sm leading-relaxed">
+                          <CardContent className="p-3 sm:p-4 bg-secondary/10 border-secondary/20">
+                            <p className="text-muted-foreground text-sm leading-relaxed">
                               This artifact represents the rich cultural
                               heritage of {artifact.culture} civilization during
                               the {artifact.period}. It showcases the
@@ -534,10 +531,10 @@ export function ArtifactDetailsModal({
                       {/* Related Artifacts */}
                       {artifact.relatedArtifacts.length > 0 && (
                         <div>
-                          <h4 className="font-medium text-stone-800 mb-3 text-sm sm:text-base">
+                          <h4 className="font-medium text-foreground mb-3 text-sm sm:text-base">
                             Related Artifacts
                           </h4>
-                          <div className="text-sm text-stone-600">
+                          <div className="text-sm text-muted-foreground">
                             <p className="text-sm">
                               Explore similar artifacts from this culture and
                               time period.
