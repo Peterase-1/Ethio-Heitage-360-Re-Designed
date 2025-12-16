@@ -21,31 +21,30 @@ export function ArtifactListItem({
   const getConditionColor = (condition) => {
     switch (condition.toLowerCase()) {
       case "excellent":
-        return "bg-emerald-100 text-emerald-800 border-emerald-200";
+        return "bg-green-500/10 text-green-500 border-green-500/20";
       case "good":
-        return "bg-blue-100 text-blue-800 border-blue-200";
+        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
       case "fair":
-        return "bg-amber-100 text-amber-800 border-amber-200";
+        return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
       case "weathered":
-        return "bg-stone-100 text-stone-800 border-stone-200";
+        return "bg-muted text-muted-foreground border-border";
       default:
-        return "bg-stone-100 text-stone-800 border-stone-200";
+        return "bg-muted text-muted-foreground border-border";
     }
   };
 
   return (
-    <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 bg-white border-stone-200">
+    <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 bg-card border-border">
       <CardContent className="p-6">
         <div className="flex gap-6">
           {/* Image Section */}
-          <div className="relative w-48 h-36 flex-shrink-0 overflow-hidden rounded-lg bg-stone-100">
+          <div className="relative w-48 h-36 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
             {artifact.images && artifact.images.length > 0 && (
               <ImageWithFallback
                 src={artifact.images[0]}
                 alt={artifact.title}
-                className={`w-full h-full object-cover transition-all duration-500 ${
-                  isImageLoaded ? "opacity-100 scale-100" : "opacity-0 scale-105"
-                } group-hover:scale-110`}
+                className={`w-full h-full object-cover transition-all duration-500 ${isImageLoaded ? "opacity-100 scale-100" : "opacity-0 scale-105"
+                  } group-hover:scale-110`}
                 onLoad={handleImageLoad}
               />
             )}
@@ -53,7 +52,7 @@ export function ArtifactListItem({
             {/* Featured Badge */}
             {artifact.featured && (
               <div className="absolute top-2 left-2">
-                <Badge className="bg-emerald-600 text-white border-0 shadow-md text-xs">
+                <Badge className="bg-primary text-primary-foreground border-0 shadow-md text-xs">
                   Featured
                 </Badge>
               </div>
@@ -71,11 +70,11 @@ export function ArtifactListItem({
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
-                <h3 className="text-xl font-semibold text-stone-800 mb-2 group-hover:text-emerald-700 transition-colors duration-200">
+                <h3 className="text-xl font-semibold text-foreground mb-2 group-hover:text-primary transition-colors duration-200">
                   {artifact.title}
                 </h3>
                 <p
-                  className="text-stone-600 text-sm leading-relaxed overflow-hidden mb-3"
+                  className="text-muted-foreground text-sm leading-relaxed overflow-hidden mb-3"
                   style={{
                     display: "-webkit-box",
                     WebkitLineClamp: 2,
@@ -91,11 +90,10 @@ export function ArtifactListItem({
                 <Button
                   variant="outline"
                   size="sm"
-                  className={`transition-all duration-200 ${
-                    isFavorited
-                      ? "text-red-500 border-red-200 hover:bg-red-50"
-                      : "text-stone-600 hover:bg-stone-50"
-                  }`}
+                  className={`transition-all duration-200 ${isFavorited
+                      ? "text-destructive border-destructive/20 hover:bg-destructive/10"
+                      : "text-muted-foreground hover:bg-muted"
+                    }`}
                   onClick={() => onToggleFavorite(artifact.id)}
                 >
                   <Heart
@@ -106,14 +104,14 @@ export function ArtifactListItem({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-stone-600 hover:bg-stone-50"
+                  className="text-muted-foreground hover:bg-muted"
                   onClick={() => onShare(artifact)}
                 >
                   <Share2 className="w-4 h-4" />
                 </Button>
 
                 <Button
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
                   size="sm"
                   onClick={() => onViewDetails(artifact)}
                 >
@@ -125,36 +123,36 @@ export function ArtifactListItem({
 
             {/* Metadata Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-              <div className="flex items-center gap-2 text-sm text-stone-600">
-                <div className="w-2 h-2 bg-amber-500 rounded-full flex-shrink-0"></div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="w-2 h-2 bg-yellow-500 rounded-full flex-shrink-0"></div>
                 <span className="font-medium">{artifact.culture}</span>
               </div>
 
-              <div className="flex items-center gap-2 text-sm text-stone-600">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock className="w-4 h-4 flex-shrink-0" />
                 <span>{artifact.period}</span>
               </div>
 
-              <div className="flex items-center gap-2 text-sm text-stone-600">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="w-4 h-4 flex-shrink-0" />
                 <span className="truncate">{artifact.region}</span>
               </div>
 
-              <div className="flex items-center gap-2 text-sm text-stone-600">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="w-4 h-4 flex-shrink-0" />
                 <span>{artifact.category}</span>
               </div>
             </div>
 
             {/* Bottom Section */}
-            <div className="flex items-center justify-between pt-3 border-t border-stone-100">
+            <div className="flex items-center justify-between pt-3 border-t border-border">
               {/* Tags */}
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 {artifact.tags.slice(0, 3).map((tag) => (
                   <Badge
                     key={tag}
                     variant="outline"
-                    className="text-xs px-2 py-1 bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-100 transition-colors duration-200"
+                    className="text-xs px-2 py-1 bg-muted/50 text-muted-foreground border-border hover:bg-muted transition-colors duration-200"
                   >
                     {tag}
                   </Badge>
@@ -162,7 +160,7 @@ export function ArtifactListItem({
                 {artifact.tags.length > 3 && (
                   <Badge
                     variant="outline"
-                    className="text-xs px-2 py-1 bg-stone-50 text-stone-600 border-stone-200"
+                    className="text-xs px-2 py-1 bg-muted/50 text-muted-foreground border-border"
                   >
                     +{artifact.tags.length - 3}
                   </Badge>
