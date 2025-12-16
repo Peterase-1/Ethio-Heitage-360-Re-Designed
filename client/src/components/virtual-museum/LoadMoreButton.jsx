@@ -12,7 +12,7 @@ export function LoadMoreButton({ onClick, isLoading, hasMore }) {
       disabled={isLoading}
       variant="outline"
       size="lg"
-      className="border-stone-200 text-stone-700 hover:bg-stone-50 transition-all duration-200"
+      className="border-border text-foreground hover:bg-muted transition-all duration-200"
     >
       {isLoading ? (
         <>
