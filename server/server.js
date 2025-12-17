@@ -68,6 +68,8 @@ const downloadsRoutes = require('./routes/downloads');
 const { errorHandler } = require('./utils/errorHandler');
 const logger = require('./middleware/logger');
 
+const trackPerformance = require('./middleware/trackPerformance');
+
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
@@ -83,6 +85,9 @@ connectDB();
 // Security middleware
 app.use(helmet());
 app.use(compression());
+
+// Performance tracking middleware (before rate limiting and routes)
+app.use(trackPerformance);
 
 // Rate limiting - More permissive for development
 const limiter = rateLimit({
