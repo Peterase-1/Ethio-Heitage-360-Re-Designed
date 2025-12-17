@@ -17,7 +17,7 @@ const educationalTourSchema = new mongoose.Schema({
     type: String,
     maxLength: [200, 'Short description cannot exceed 200 characters']
   },
-  
+
   // Organizer Information
   organizerId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -28,13 +28,13 @@ const educationalTourSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  
+
   // Educational Content
   category: {
     type: String,
     enum: [
-      'Islamic Heritage', 'Islamic Architecture', 'Ethiopian Scripts', 
-      'Traditional Arts', 'Religious Heritage', 'Cultural Festivals', 
+      'Islamic Heritage', 'Islamic Architecture', 'Ethiopian Scripts',
+      'Traditional Arts', 'Religious Heritage', 'Cultural Festivals',
       'Culinary Heritage', 'Musical Heritage', 'Cultural Heritage',
       'Traditional Knowledge', 'Natural Heritage', 'Modern Heritage'
     ],
@@ -45,7 +45,7 @@ const educationalTourSchema = new mongoose.Schema({
     enum: ['Beginner', 'Intermediate', 'Advanced'],
     default: 'Beginner'
   },
-  
+
   // Tour Schedule & Logistics
   startDate: {
     type: Date,
@@ -66,7 +66,7 @@ const educationalTourSchema = new mongoose.Schema({
     min: [1, 'Must allow at least 1 participant'],
     max: [100, 'Cannot exceed 100 participants']
   },
-  
+
   // Location Information
   location: {
     name: {
@@ -86,13 +86,13 @@ const educationalTourSchema = new mongoose.Schema({
       required: [true, 'Meeting point is required']
     }
   },
-  
+
   // Educational Content Structure
   learningObjectives: [{
     type: String,
     required: true
   }],
-  
+
   curriculum: [{
     order: {
       type: Number,
@@ -140,7 +140,7 @@ const educationalTourSchema = new mongoose.Schema({
       }
     }]
   }],
-  
+
   // Pricing and Enrollment
   pricing: {
     price: {
@@ -160,7 +160,7 @@ const educationalTourSchema = new mongoose.Schema({
       type: String // What's not included
     }]
   },
-  
+
   // Requirements and Prerequisites
   requirements: {
     ageLimit: {
@@ -185,7 +185,7 @@ const educationalTourSchema = new mongoose.Schema({
       type: String // What participants should bring
     }]
   },
-  
+
   // Media and Marketing
   images: [{
     url: {
@@ -203,7 +203,7 @@ const educationalTourSchema = new mongoose.Schema({
     lowercase: true,
     trim: true
   }],
-  
+
   // Enrollment and Participants
   enrollments: [{
     userId: {
@@ -249,7 +249,7 @@ const educationalTourSchema = new mongoose.Schema({
       submittedAt: Date
     }
   }],
-  
+
   // Tour Status and Management
   status: {
     type: String,
@@ -260,7 +260,7 @@ const educationalTourSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
-  
+
   // Statistics and Analytics
   stats: {
     views: {
@@ -286,7 +286,7 @@ const educationalTourSchema = new mongoose.Schema({
       default: 0
     }
   },
-  
+
   // Communication
   announcements: [{
     title: {
@@ -306,7 +306,7 @@ const educationalTourSchema = new mongoose.Schema({
       default: false
     }
   }],
-  
+
   // Metadata
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -332,55 +332,60 @@ educationalTourSchema.index({ status: 1, isActive: 1 });
 educationalTourSchema.index({ 'stats.averageRating': -1 });
 
 // Virtual for available spots
-educationalTourSchema.virtual('availableSpots').get(function() {
-  const confirmedEnrollments = this.enrollments.filter(e => e.status === 'confirmed').length;
-  return this.maxParticipants - confirmedEnrollments;
+educationalTourSchema.virtual('availableSpots').get(function () {
+  const confirmedEnrollments = Array.isArray(this.enrollments)
+    ? this.enrollments.filter(e => e.status === 'confirmed').length
+    : 0;
+  return (this.maxParticipants || 0) - confirmedEnrollments;
 });
 
 // Virtual for enrollment status
-educationalTourSchema.virtual('enrollmentStatus').get(function() {
-  const confirmedEnrollments = this.enrollments.filter(e => e.status === 'confirmed').length;
-  if (confirmedEnrollments >= this.maxParticipants) return 'full';
-  if (new Date() > this.endDate) return 'expired';
-  if (new Date() > this.startDate) return 'ongoing';
+educationalTourSchema.virtual('enrollmentStatus').get(function () {
+  const confirmedEnrollments = Array.isArray(this.enrollments)
+    ? this.enrollments.filter(e => e.status === 'confirmed').length
+    : 0;
+  if (confirmedEnrollments >= (this.maxParticipants || 0)) return 'full';
+  if (this.endDate && new Date() > this.endDate) return 'expired';
+  if (this.startDate && new Date() > this.startDate) return 'ongoing';
   return 'open';
 });
 
 // Virtual for total duration
-educationalTourSchema.virtual('totalCurriculumDuration').get(function() {
-  return this.curriculum.reduce((total, lesson) => total + lesson.duration, 0);
+educationalTourSchema.virtual('totalCurriculumDuration').get(function () {
+  if (!Array.isArray(this.curriculum)) return 0;
+  return this.curriculum.reduce((total, lesson) => total + (lesson.duration || 0), 0);
 });
 
 // Methods
-educationalTourSchema.methods.canUserEnroll = function(userId) {
+educationalTourSchema.methods.canUserEnroll = function (userId) {
   // Check if user is already enrolled
-  const existingEnrollment = this.enrollments.find(e => 
-    e.userId.toString() === userId.toString() && 
+  const existingEnrollment = this.enrollments.find(e =>
+    e.userId.toString() === userId.toString() &&
     ['pending', 'confirmed'].includes(e.status)
   );
-  
+
   if (existingEnrollment) return { canEnroll: false, reason: 'Already enrolled' };
-  
+
   // Check if tour is full
   if (this.availableSpots <= 0) return { canEnroll: false, reason: 'Tour is full' };
-  
+
   // Check if enrollment is still open
   if (new Date() >= this.startDate) return { canEnroll: false, reason: 'Enrollment closed' };
-  
+
   // Check if tour is active and published
   if (!this.isActive || this.status !== 'published') {
     return { canEnroll: false, reason: 'Tour not available' };
   }
-  
+
   return { canEnroll: true };
 };
 
-educationalTourSchema.methods.enrollUser = async function(userId, paymentStatus = 'pending') {
+educationalTourSchema.methods.enrollUser = async function (userId, paymentStatus = 'pending') {
   const enrollmentCheck = this.canUserEnroll(userId);
   if (!enrollmentCheck.canEnroll) {
     throw new Error(enrollmentCheck.reason);
   }
-  
+
   this.enrollments.push({
     userId,
     status: 'pending',
@@ -391,76 +396,76 @@ educationalTourSchema.methods.enrollUser = async function(userId, paymentStatus 
       certificateEarned: false
     }
   });
-  
+
   this.stats.enrollments += 1;
   return await this.save();
 };
 
-educationalTourSchema.methods.updateUserProgress = async function(userId, lessonIndex, score = 0) {
-  const enrollment = this.enrollments.find(e => 
+educationalTourSchema.methods.updateUserProgress = async function (userId, lessonIndex, score = 0) {
+  const enrollment = this.enrollments.find(e =>
     e.userId.toString() === userId.toString()
   );
-  
+
   if (!enrollment) {
     throw new Error('User not enrolled in this tour');
   }
-  
+
   enrollment.progress.lessonsCompleted = Math.max(enrollment.progress.lessonsCompleted, lessonIndex + 1);
   enrollment.progress.totalScore += score;
-  
+
   // Check if tour is completed
   if (enrollment.progress.lessonsCompleted >= this.curriculum.length) {
     enrollment.status = 'completed';
     enrollment.progress.certificateEarned = true;
     this.stats.completions += 1;
   }
-  
+
   return await this.save();
 };
 
-educationalTourSchema.methods.addAnnouncement = async function(title, message, isImportant = false) {
+educationalTourSchema.methods.addAnnouncement = async function (title, message, isImportant = false) {
   this.announcements.push({
     title,
     message,
     isImportant,
     createdAt: new Date()
   });
-  
+
   return await this.save();
 };
 
-educationalTourSchema.methods.updateRating = async function(newRating) {
+educationalTourSchema.methods.updateRating = async function (newRating) {
   const currentTotal = this.stats.averageRating * this.stats.totalRatings;
   this.stats.totalRatings += 1;
   this.stats.averageRating = (currentTotal + newRating) / this.stats.totalRatings;
-  
+
   return await this.save();
 };
 
 // Static methods
-educationalTourSchema.statics.findByOrganizer = function(organizerId, status = null) {
+educationalTourSchema.statics.findByOrganizer = function (organizerId, status = null) {
   const query = { organizerId, isActive: true };
   if (status) query.status = status;
   return this.find(query).sort({ createdAt: -1 });
 };
 
-educationalTourSchema.statics.findPublishedTours = function(filters = {}) {
-  const query = { 
-    status: 'published', 
+educationalTourSchema.statics.findPublishedTours = function (filters = {}) {
+  const query = {
+    status: 'published',
     isActive: true,
     startDate: { $gte: new Date() }
   };
-  
+
   if (filters.category) query.category = filters.category;
   if (filters.difficulty) query.difficulty = filters.difficulty;
   if (filters.location) {
     query['location.name'] = new RegExp(filters.location, 'i');
   }
-  
+
   return this.find(query).sort({ startDate: 1, 'stats.averageRating': -1 });
 };
 
-educationalTourSchema.statics.getOrganizerStats = async function(organizerId) {
+educationalTourSchema.statics.getOrganizerStats = async function (organizerId) {
   const stats = await this.aggregate([
     { $match: { organizerId: new mongoose.Types.ObjectId(organizerId) } },
     {
@@ -476,7 +481,7 @@ educationalTourSchema.statics.getOrganizerStats = async function(organizerId) {
       }
     }
   ]);
-  
+
   return stats[0] || {
     totalTours: 0,
     publishedTours: 0,
