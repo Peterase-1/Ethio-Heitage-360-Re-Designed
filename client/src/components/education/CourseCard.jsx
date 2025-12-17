@@ -132,7 +132,7 @@ const CourseCard = ({ course, viewMode = 'grid', showProgress = false, isBookmar
               </div>
               <div className="flex items-center gap-1">
                 <BookOpen className="h-4 w-4" />
-                {course.instructor || 'Heritage Expert'}
+                {course.instructor?.name || (typeof course.instructor === 'string' ? course.instructor : 'Heritage Expert')}
               </div>
             </div>
 
@@ -297,7 +297,7 @@ const CourseCard = ({ course, viewMode = 'grid', showProgress = false, isBookmar
         <div className="text-sm text-muted-foreground mb-4">
           <div className="flex items-center gap-1">
             <BookOpen className="h-4 w-4" />
-            {course.instructor || 'Heritage Expert'}
+            {course.instructor?.name || (typeof course.instructor === 'string' ? course.instructor : 'Heritage Expert')}
           </div>
         </div>
 
