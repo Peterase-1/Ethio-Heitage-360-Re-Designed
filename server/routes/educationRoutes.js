@@ -4,11 +4,8 @@ const { body, param, query } = require('express-validator');
 const educationController = require('../controllers/educationController');
 const { auth: authenticate, authorize } = require('../middleware/auth');
 
-// Middleware to ensure user is authenticated
-router.use(authenticate);
-
 // Course routes
-router.get('/courses', 
+router.get('/courses',
   [
     query('page').optional().isInt({ min: 1 }),
     query('limit').optional().isInt({ min: 1, max: 100 }),
@@ -24,18 +21,45 @@ router.get('/courses/:id',
   educationController.getCourse
 );
 
+
+
 router.post('/courses/:id/enroll',
+  authenticate,
   [param('id').isMongoId()],
   educationController.enrollInCourse
 );
 
 router.get('/my-enrollments',
+  authenticate,
   [
     query('status').optional().isIn(['enrolled', 'in-progress', 'completed', 'dropped', 'paused']),
     query('page').optional().isInt({ min: 1 }),
     query('limit').optional().isInt({ min: 1, max: 100 })
   ],
   educationController.getMyEnrollments
+);
+
+router.get('/progress',
+  authenticate,
+  educationController.getLearningProgress
+);
+
+router.put('/courses/:courseId/lessons/:lessonId/progress',
+  authenticate,
+  [
+    param('courseId').isMongoId(),
+    param('lessonId').isMongoId(),
+    body('status').optional().isIn(['not_started', 'in_progress', 'completed']),
+    body('timeSpent').optional().isNumeric(),
+    body('score').optional().isNumeric()
+  ],
+  educationController.updateLessonProgress
+);
+
+router.get('/courses/:courseId/analytics',
+  authenticate,
+  [param('courseId').isMongoId()],
+  educationController.getCourseAnalytics
 );
 
 // Quiz routes
@@ -54,12 +78,16 @@ router.get('/quizzes/:id',
   educationController.getQuiz
 );
 
+
+
 router.post('/quizzes/:id/attempt',
+  authenticate,
   [param('id').isMongoId()],
   educationController.startQuizAttempt
 );
 
 router.post('/quiz-attempts/:attemptId/submit',
+  authenticate,
   [
     param('attemptId').isMongoId(),
     body('answers').isArray().withMessage('Answers must be an array')
@@ -89,7 +117,10 @@ router.get('/live-sessions',
   educationController.getLiveSessions
 );
 
+
+
 router.post('/live-sessions/:id/register',
+  authenticate,
   [param('id').isMongoId()],
   educationController.registerForLiveSession
 );
@@ -106,6 +137,7 @@ router.get('/study-guides',
 
 // Certificate routes
 router.get('/certificates',
+  authenticate,
   educationController.getMyCertificates
 );
 
