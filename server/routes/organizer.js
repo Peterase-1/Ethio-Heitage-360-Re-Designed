@@ -21,22 +21,23 @@ const {
   deleteEducationalTour,
   submitTourForApproval,
   getTourEnrollments,
-  updateEnrollmentStatus
+  updateEnrollmentStatus,
+  getCustomers
 } = require('../controllers/organizer');
 
 // Get comprehensive dashboard data
 router.get('/dashboard/:organizerId', async (req, res) => {
   try {
     const { organizerId } = req.params;
-    
+
     // Skip auth verification for testing
-    
+
     // Get user info
     const user = await User.findById(organizerId).select('name email avatar role');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
+
     // Get dashboard statistics
     const [tourStats, bookingStats, messageStats, recentActivities, upcomingTours] = await Promise.all([
       // Tour package statistics
@@ -52,7 +53,7 @@ router.get('/dashboard/:organizerId', async (req, res) => {
           }
         }
       ]),
-      
+
       // Booking statistics
       Booking.aggregate([
         { $match: { organizerId: new mongoose.Types.ObjectId(organizerId) } },
@@ -68,7 +69,7 @@ router.get('/dashboard/:organizerId', async (req, res) => {
           }
         }
       ]),
-      
+
       // Message statistics
       Message.aggregate([
         { $match: { organizerId: new mongoose.Types.ObjectId(organizerId) } },
@@ -81,7 +82,7 @@ router.get('/dashboard/:organizerId', async (req, res) => {
           }
         }
       ]),
-      
+
       // Recent activities (bookings, messages)
       Promise.all([
         Booking.find({ organizerId })
@@ -94,7 +95,7 @@ router.get('/dashboard/:organizerId', async (req, res) => {
           .limit(3)
           .select('customerName subject status createdAt')
       ]),
-      
+
       // Upcoming tours
       Booking.find({
         organizerId: new mongoose.Types.ObjectId(organizerId),
@@ -106,14 +107,14 @@ router.get('/dashboard/:organizerId', async (req, res) => {
         .limit(4)
         .select('customerName guests tourDate tourPackageId')
     ]);
-    
+
     // Process the results
     const dashboardStats = {
       totalTours: tourStats[0]?.totalTours || 0,
       activeTours: tourStats[0]?.activeTours || 0,
       totalViews: tourStats[0]?.totalViews || 0,
       averageRating: tourStats[0]?.averageRating || 0,
-      
+
       totalBookings: bookingStats[0]?.totalBookings || 0,
       confirmedBookings: bookingStats[0]?.confirmedBookings || 0,
       pendingBookings: bookingStats[0]?.pendingBookings || 0,
@@ -121,16 +122,16 @@ router.get('/dashboard/:organizerId', async (req, res) => {
       totalRevenue: bookingStats[0]?.totalRevenue || 0,
       paidAmount: bookingStats[0]?.paidAmount || 0,
       pendingPayment: (bookingStats[0]?.totalRevenue || 0) - (bookingStats[0]?.paidAmount || 0),
-      
+
       totalMessages: messageStats[0]?.totalMessages || 0,
       unreadMessages: messageStats[0]?.unreadMessages || 0,
       repliedMessages: messageStats[0]?.repliedMessages || 0
     };
-    
+
     // Format recent activities
     const [recentBookings, recentMessages] = recentActivities;
     const activities = [];
-    
+
     // Add booking activities
     recentBookings.forEach(booking => {
       activities.push({
@@ -144,7 +145,7 @@ router.get('/dashboard/:organizerId', async (req, res) => {
         relatedId: booking._id
       });
     });
-    
+
     // Add message activities
     recentMessages.forEach(message => {
       activities.push({
@@ -158,10 +159,10 @@ router.get('/dashboard/:organizerId', async (req, res) => {
         relatedId: message._id
       });
     });
-    
+
     // Sort activities by date
     activities.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-    
+
     const dashboardData = {
       user: {
         id: user._id,
@@ -181,7 +182,7 @@ router.get('/dashboard/:organizerId', async (req, res) => {
         tourDate: tour.tourDate
       }))
     };
-    
+
     res.json(dashboardData);
   } catch (error) {
     console.error('Dashboard error:', error);
@@ -194,7 +195,7 @@ router.get('/activities/:organizerId', async (req, res) => {
   try {
     const { organizerId } = req.params;
     const { page = 1, limit = 20 } = req.query;
-    
+
     // Get recent bookings and messages
     const [bookings, messages] = await Promise.all([
       Booking.find({ organizerId })
@@ -207,9 +208,9 @@ router.get('/activities/:organizerId', async (req, res) => {
         .limit(limit)
         .skip((page - 1) * limit)
     ]);
-    
+
     const activities = [];
-    
+
     bookings.forEach(booking => {
       activities.push({
         id: booking._id,
@@ -223,7 +224,7 @@ router.get('/activities/:organizerId', async (req, res) => {
         createdAt: booking.createdAt
       });
     });
-    
+
     messages.forEach(message => {
       activities.push({
         id: message._id,
@@ -237,9 +238,9 @@ router.get('/activities/:organizerId', async (req, res) => {
         createdAt: message.createdAt
       });
     });
-    
+
     activities.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    
+
     res.json(activities);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -251,12 +252,12 @@ router.get('/notifications/:organizerId', async (req, res) => {
   try {
     const { organizerId } = req.params;
     const { unreadOnly = false, limit = 10 } = req.query;
-    
+
     const notifications = await Notification.getForUser(organizerId, {
       unreadOnly: unreadOnly === 'true',
       limit: parseInt(limit)
     });
-    
+
     res.json(notifications);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -268,14 +269,14 @@ router.patch('/notifications/:notificationId/read', async (req, res) => {
   try {
     const { notificationId } = req.params;
     const { organizerId } = req.body; // Get organizerId from body
-    
+
     const notification = await Notification.findById(notificationId);
     if (!notification) {
       return res.status(404).json({ message: 'Notification not found' });
     }
-    
+
     await notification.markAsRead(organizerId);
-    
+
     res.json({ message: 'Notification marked as read' });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -300,7 +301,7 @@ function formatRelativeTime(date) {
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
   const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
   const diffMinutes = Math.floor(diffTime / (1000 * 60));
-  
+
   if (diffDays > 0) {
     return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
   } else if (diffHours > 0) {
@@ -341,6 +342,9 @@ router.put('/educational-tours/:tourId/enrollments/:userId', auth, authorize(['o
 
 // Dashboard data using controller
 router.get('/dashboard', auth, authorize(['organizer']), getDashboardData);
+
+// Customers data
+router.get('/customers', auth, authorize(['organizer']), getCustomers);
 
 
 module.exports = router;

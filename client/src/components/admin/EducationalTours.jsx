@@ -64,10 +64,10 @@ const EducationalTours = () => {
   const loadTours = async () => {
     try {
       setLoading(true);
-      const response = await api.request('/educational-tours');
+      const response = await api.getEducationalTours();
 
-      if (response.success) {
-        setTours(response.data || response.tours || []);
+      if (response.success || Array.isArray(response)) {
+        setTours(response.data || response.tours || response || []);
       } else {
         throw new Error(response.message || 'Failed to load tours');
       }
@@ -76,44 +76,7 @@ const EducationalTours = () => {
       setError('Failed to load tours');
 
       // Set fallback data for development
-      setTours([
-        {
-          id: '1',
-          title: 'Lalibela Rock-Hewn Churches Tour',
-          description: 'Explore the magnificent rock-hewn churches of Lalibela',
-          location: 'Lalibela, Amhara',
-          duration: '3 days',
-          maxParticipants: 15,
-          price: 2500,
-          status: 'published',
-          participants: 12,
-          rating: 4.8
-        },
-        {
-          id: '2',
-          title: 'Aksum Archaeological Sites',
-          description: 'Discover the ancient kingdom of Aksum and its archaeological treasures',
-          location: 'Aksum, Tigray',
-          duration: '2 days',
-          maxParticipants: 20,
-          price: 1800,
-          status: 'published',
-          participants: 18,
-          rating: 4.6
-        },
-        {
-          id: '3',
-          title: 'Harar Cultural Heritage',
-          description: 'Experience the unique culture and architecture of Harar',
-          location: 'Harar, Harari',
-          duration: '1 day',
-          maxParticipants: 25,
-          price: 1200,
-          status: 'draft',
-          participants: 0,
-          rating: 0
-        }
-      ]);
+      setTours([]);
     } finally {
       setLoading(false);
     }
@@ -151,16 +114,10 @@ const EducationalTours = () => {
     try {
       if (editingTour) {
         // Update existing tour
-        await api.request(`/educational-tours/${editingTour.id}`, {
-          method: 'PUT',
-          body: formData
-        });
+        await api.updateEducationalTour(editingTour.id, formData);
       } else {
         // Create new tour
-        await api.request('/educational-tours', {
-          method: 'POST',
-          body: formData
-        });
+        await api.createEducationalTour(formData);
       }
 
       setDialogOpen(false);
@@ -174,9 +131,7 @@ const EducationalTours = () => {
   const handleDeleteTour = async (tourId) => {
     if (window.confirm('Are you sure you want to delete this tour?')) {
       try {
-        await api.request(`/educational-tours/${tourId}`, {
-          method: 'DELETE'
-        });
+        await api.deleteEducationalTour(tourId);
         loadTours();
       } catch (error) {
         console.error('Error deleting tour:', error);
