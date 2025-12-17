@@ -98,11 +98,10 @@ const MuseumRentalManager = () => {
         setRequests([]);
       }
 
-      // Build query parameters for museum admin - only show their museum's requests
+      // Build query parameters for museum admin
       const queryParams = {
         page: 1,
-        limit: 1000,
-        requestType: 'museum_to_super' // Museum admin only sees requests they send to super admin
+        limit: 1000
       };
 
       if (filterStatus && filterStatus !== 'all') {
@@ -181,7 +180,7 @@ const MuseumRentalManager = () => {
     e.preventDefault();
     try {
       console.log('🔄 Creating museum rental request...', formData);
-      
+
       // Set the museum ID from the current user's museum
       const requestData = {
         ...formData,
@@ -453,6 +452,24 @@ const MuseumRentalManager = () => {
                           >
                             <Eye className="h-4 w-4" />
                           </button>
+
+                          {/* Add Approve button for incoming requests */}
+                          {request.requestType === 'super_to_museum' && request.status === 'pending' && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await api.updateRentalRequestStatus(request._id, { status: 'approved', role: 'museum_admin' });
+                                  fetchRequests(true);
+                                } catch (error) {
+                                  console.error('Failed to approve request:', error);
+                                }
+                              }}
+                              className="text-green-600 hover:text-green-900 flex items-center"
+                              title="Approve"
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

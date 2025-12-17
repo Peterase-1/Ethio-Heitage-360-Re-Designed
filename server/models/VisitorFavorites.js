@@ -55,7 +55,7 @@ visitorFavoritesSchema.index({ userId: 1, createdAt: -1 });
 visitorFavoritesSchema.index({ entityType: 1, 'entityData.category': 1 });
 
 // Static method to add favorite
-visitorFavoritesSchema.statics.addFavorite = async function(userId, entityId, entityType, entityData = {}, options = {}) {
+visitorFavoritesSchema.statics.addFavorite = async function (userId, entityId, entityType, entityData = {}, options = {}) {
   try {
     const favorite = new this({
       userId,
@@ -67,9 +67,9 @@ visitorFavoritesSchema.statics.addFavorite = async function(userId, entityId, en
       isPublic: options.isPublic !== undefined ? options.isPublic : true,
       priority: options.priority || 1
     });
-    
+
     await favorite.save();
-    
+
     // Log activity
     const VisitorActivity = require('./VisitorActivity');
     await VisitorActivity.logActivity({
@@ -84,7 +84,7 @@ visitorFavoritesSchema.statics.addFavorite = async function(userId, entityId, en
       },
       pointsEarned: 5 // Award 5 points for adding favorites
     });
-    
+
     return favorite;
   } catch (error) {
     if (error.code === 11000) {
@@ -95,9 +95,9 @@ visitorFavoritesSchema.statics.addFavorite = async function(userId, entityId, en
 };
 
 // Static method to remove favorite
-visitorFavoritesSchema.statics.removeFavorite = async function(userId, entityId, entityType, sessionId = 'system') {
+visitorFavoritesSchema.statics.removeFavorite = async function (userId, entityId, entityType, sessionId = 'system') {
   const favorite = await this.findOneAndDelete({ userId, entityId, entityType });
-  
+
   if (favorite) {
     // Log activity
     const VisitorActivity = require('./VisitorActivity');
@@ -113,12 +113,12 @@ visitorFavoritesSchema.statics.removeFavorite = async function(userId, entityId,
       pointsEarned: 0
     });
   }
-  
+
   return favorite;
 };
 
 // Static method to get user favorites with pagination
-visitorFavoritesSchema.statics.getUserFavorites = async function(userId, options = {}) {
+visitorFavoritesSchema.statics.getUserFavorites = async function (userId, options = {}) {
   const {
     entityType,
     category,
@@ -128,24 +128,24 @@ visitorFavoritesSchema.statics.getUserFavorites = async function(userId, options
     sortBy = 'createdAt',
     sortOrder = -1
   } = options;
-  
+
   const query = { userId };
-  
+
   if (entityType) {
     query.entityType = entityType;
   }
-  
+
   if (category) {
     query['entityData.category'] = new RegExp(category, 'i');
   }
-  
+
   if (tags && tags.length > 0) {
     query.tags = { $in: tags };
   }
-  
+
   const skip = (page - 1) * limit;
   const sort = { [sortBy]: sortOrder };
-  
+
   const [favorites, total] = await Promise.all([
     this.find(query)
       .sort(sort)
@@ -155,7 +155,7 @@ visitorFavoritesSchema.statics.getUserFavorites = async function(userId, options
       .lean(),
     this.countDocuments(query)
   ]);
-  
+
   return {
     favorites,
     pagination: {
@@ -168,9 +168,9 @@ visitorFavoritesSchema.statics.getUserFavorites = async function(userId, options
 };
 
 // Static method to get favorite statistics
-visitorFavoritesSchema.statics.getUserFavoriteStats = async function(userId) {
+visitorFavoritesSchema.statics.getUserFavoriteStats = async function (userId) {
   const pipeline = [
-    { $match: { userId: mongoose.Types.ObjectId(userId) } },
+    { $match: { userId: new mongoose.Types.ObjectId(userId) } },
     {
       $group: {
         _id: '$entityType',
@@ -181,10 +181,10 @@ visitorFavoritesSchema.statics.getUserFavoriteStats = async function(userId) {
     },
     { $sort: { count: -1 } }
   ];
-  
+
   const stats = await this.aggregate(pipeline);
   const totalFavorites = stats.reduce((sum, stat) => sum + stat.count, 0);
-  
+
   return {
     totalFavorites,
     byType: stats,
@@ -193,13 +193,13 @@ visitorFavoritesSchema.statics.getUserFavoriteStats = async function(userId) {
 };
 
 // Method to check if item is favorited
-visitorFavoritesSchema.statics.isFavorited = async function(userId, entityId, entityType) {
+visitorFavoritesSchema.statics.isFavorited = async function (userId, entityId, entityType) {
   const favorite = await this.findOne({ userId, entityId, entityType });
   return !!favorite;
 };
 
 // Static method to get popular favorites (public ones)
-visitorFavoritesSchema.statics.getPopularFavorites = async function(entityType, limit = 10) {
+visitorFavoritesSchema.statics.getPopularFavorites = async function (entityType, limit = 10) {
   const pipeline = [
     {
       $match: {
@@ -218,7 +218,7 @@ visitorFavoritesSchema.statics.getPopularFavorites = async function(entityType, 
     { $sort: { count: -1 } },
     { $limit: limit }
   ];
-  
+
   return this.aggregate(pipeline);
 };
 
