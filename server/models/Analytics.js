@@ -10,7 +10,7 @@ const analyticsSchema = new mongoose.Schema({
     type: String,
     enum: [
       'daily_stats',
-      'monthly_stats', 
+      'monthly_stats',
       'user_activity',
       'artifact_views',
       'museum_visits',
@@ -31,7 +31,7 @@ const analyticsSchema = new mongoose.Schema({
     ref: 'User',
     index: true
   },
-  
+
   // General platform metrics
   platformStats: {
     totalUsers: { type: Number, default: 0 },
@@ -173,7 +173,7 @@ analyticsSchema.index({ type: 1, createdAt: -1 });
 analyticsSchema.index({ 'geographic.coordinates': '2dsphere' });
 
 // Static methods for analytics queries
-analyticsSchema.statics.getDailyStats = function(date, museum = null) {
+analyticsSchema.statics.getDailyStats = function (date, museum = null) {
   const query = {
     date: {
       $gte: new Date(date.setHours(0, 0, 0, 0)),
@@ -181,37 +181,37 @@ analyticsSchema.statics.getDailyStats = function(date, museum = null) {
     },
     type: 'daily_stats'
   };
-  
+
   if (museum) query.museum = museum;
-  
+
   return this.find(query);
 };
 
-analyticsSchema.statics.getMonthlyStats = function(year, month, museum = null) {
+analyticsSchema.statics.getMonthlyStats = function (year, month, museum = null) {
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0, 23, 59, 59, 999);
-  
+
   const query = {
     date: { $gte: startDate, $lte: endDate },
     type: 'monthly_stats'
   };
-  
+
   if (museum) query.museum = museum;
-  
+
   return this.find(query);
 };
 
-analyticsSchema.statics.getTopArtifacts = function(limit = 10, museum = null, dateRange = null) {
+analyticsSchema.statics.getTopArtifacts = function (limit = 10, museum = null, dateRange = null) {
   const matchStage = { type: 'artifact_views' };
-  
-  if (museum) matchStage.museum = mongoose.Types.ObjectId(museum);
+
+  if (museum) matchStage.museum = new mongoose.Types.ObjectId(museum);
   if (dateRange) {
     matchStage.date = {
       $gte: new Date(dateRange.start),
       $lte: new Date(dateRange.end)
     };
   }
-  
+
   return this.aggregate([
     { $match: matchStage },
     {
@@ -235,7 +235,7 @@ analyticsSchema.statics.getTopArtifacts = function(limit = 10, museum = null, da
   ]);
 };
 
-analyticsSchema.statics.getUserEngagement = function(dateRange, museum = null) {
+analyticsSchema.statics.getUserEngagement = function (dateRange, museum = null) {
   const matchStage = {
     type: 'user_activity',
     date: {
@@ -243,9 +243,9 @@ analyticsSchema.statics.getUserEngagement = function(dateRange, museum = null) {
       $lte: new Date(dateRange.end)
     }
   };
-  
-  if (museum) matchStage.museum = mongoose.Types.ObjectId(museum);
-  
+
+  if (museum) matchStage.museum = new mongoose.Types.ObjectId(museum);
+
   return this.aggregate([
     { $match: matchStage },
     {
@@ -272,7 +272,7 @@ analyticsSchema.statics.getUserEngagement = function(dateRange, museum = null) {
   ]);
 };
 
-analyticsSchema.statics.getRevenueStats = function(dateRange, museum = null) {
+analyticsSchema.statics.getRevenueStats = function (dateRange, museum = null) {
   const matchStage = {
     type: 'rental_activity',
     date: {
@@ -280,9 +280,9 @@ analyticsSchema.statics.getRevenueStats = function(dateRange, museum = null) {
       $lte: new Date(dateRange.end)
     }
   };
-  
-  if (museum) matchStage.museum = mongoose.Types.ObjectId(museum);
-  
+
+  if (museum) matchStage.museum = new mongoose.Types.ObjectId(museum);
+
   return this.aggregate([
     { $match: matchStage },
     {
@@ -297,7 +297,7 @@ analyticsSchema.statics.getRevenueStats = function(dateRange, museum = null) {
 };
 
 // Instance methods
-analyticsSchema.methods.addEvent = function(eventData) {
+analyticsSchema.methods.addEvent = function (eventData) {
   this.events.push(eventData);
   return this.save();
 };
