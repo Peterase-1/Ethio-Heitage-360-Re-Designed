@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  BookOpen, 
-  Users, 
-  Award, 
-  MapPin, 
-  Search, 
+import {
+  BookOpen,
+  Users,
+  Award,
+  MapPin,
+  Search,
   Filter,
   Grid,
   List,
@@ -12,7 +12,11 @@ import {
   GraduationCap,
   FileText,
   Video,
-  Brain
+  Brain,
+  Calendar,
+  Clock,
+  User,
+  Star
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import EducationNavigation from '../components/education/EducationNavigation';
@@ -40,7 +44,7 @@ const EducationHub = () => {
   const [courses, setCourses] = useState([]);
   const [studyGuides, setStudyGuides] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
-  const [liveSessions, setLiveSessions] = useState([]);
+  const [tours, setTours] = useState([]);
   const [certificates, setCertificates] = useState([]);
   const [myEnrollments, setMyEnrollments] = useState([]);
 
@@ -72,6 +76,9 @@ const EducationHub = () => {
         case 'certificates':
           await fetchCertificates();
           break;
+        case 'educational-tours':
+          await fetchTours();
+          break;
         default:
           await fetchCourses();
       }
@@ -93,6 +100,19 @@ const EducationHub = () => {
 
     const response = await educationApi.getCourses(params);
     setCourses(response.data);
+    setPagination(prev => ({ ...prev, ...response.pagination }));
+  };
+
+  const fetchTours = async () => {
+    const params = {
+      page: pagination.page,
+      limit: pagination.limit,
+      ...filters
+    };
+    if (searchQuery) params.search = searchQuery;
+
+    const response = await educationApi.getEducationalTours(params);
+    setTours(response.data);
     setPagination(prev => ({ ...prev, ...response.pagination }));
   };
 
@@ -148,6 +168,8 @@ const EducationHub = () => {
         return renderStudyGuides();
       case 'certificates':
         return renderCertificates();
+      case 'educational-tours':
+        return renderTours();
       default:
         return renderCourses();
     }
@@ -241,7 +263,7 @@ const EducationHub = () => {
 
       {/* Courses Grid/List */}
       <div className={
-        viewMode === 'grid' 
+        viewMode === 'grid'
           ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
           : 'space-y-4'
       }>
@@ -266,11 +288,10 @@ const EducationHub = () => {
               <button
                 key={page}
                 onClick={() => setPagination(prev => ({ ...prev, page }))}
-                className={`px-3 py-2 rounded-md ${
-                  page === pagination.page
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted hover:bg-muted/80'
-                }`}
+                className={`px-3 py-2 rounded-md ${page === pagination.page
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted hover:bg-muted/80'
+                  }`}
               >
                 {page}
               </button>
@@ -294,9 +315,9 @@ const EducationHub = () => {
         <div className="space-y-6">
           {myEnrollments.length > 0 ? (
             myEnrollments.map((enrollment) => (
-              <CourseCard 
-                key={enrollment.id} 
-                course={enrollment} 
+              <CourseCard
+                key={enrollment.id}
+                course={enrollment}
                 viewMode="list"
                 showProgress={true}
               />
@@ -389,13 +410,91 @@ const EducationHub = () => {
     </div>
   );
 
+  const renderTours = () => (
+    <div>
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-foreground mb-2">Educational Tours</h2>
+        <p className="text-muted-foreground">
+          Join our immersive live tours led by heritage experts
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {tours.map((tour) => (
+          <div key={tour.id || tour._id} className="bg-card rounded-lg shadow-sm border border-border overflow-hidden hover:shadow-md transition-shadow group">
+            {/* Image Placeholder */}
+            <div className="h-48 bg-muted relative">
+              <div className="absolute inset-0 flex items-center justify-center">
+                <MapPin className="h-12 w-12 text-muted-foreground/50" />
+              </div>
+              <div className="absolute top-4 right-4 bg-background/90 backdrop-blur px-2 py-1 rounded text-xs font-medium">
+                {tour.category}
+              </div>
+            </div>
+
+            <div className="p-5">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="font-bold text-lg line-clamp-1 group-hover:text-primary transition-colors">
+                  {tour.title}
+                </h3>
+                <div className="flex items-center gap-1 text-xs font-medium bg-primary/10 text-primary px-2 py-1 rounded">
+                  <Star className="h-3 w-3 fill-current" />
+                  {tour.stats?.averageRating || 'N/A'}
+                </div>
+              </div>
+
+              <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+                {tour.description}
+              </p>
+
+              <div className="space-y-2 mb-4">
+                <div className="flex items-center text-xs text-muted-foreground">
+                  <Calendar className="h-4 w-4 mr-2 text-primary" />
+                  {new Date(tour.startDate).toLocaleDateString()}
+                </div>
+                <div className="flex items-center text-xs text-muted-foreground">
+                  <Clock className="h-4 w-4 mr-2 text-primary" />
+                  {tour.duration} hours
+                </div>
+                <div className="flex items-center text-xs text-muted-foreground">
+                  <User className="h-4 w-4 mr-2 text-primary" />
+                  {tour.organizerName}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t">
+                <span className="font-bold text-lg text-primary">
+                  {tour.pricing?.price} {tour.pricing?.currency}
+                </span>
+                <button
+                  onClick={() => window.location.href = '/educational-tours'}
+                  className="text-sm font-medium text-primary hover:underline flex items-center"
+                >
+                  View Details <ChevronRight className="h-4 w-4 ml-1" />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {tours.length === 0 && !loading && (
+        <div className="text-center py-12">
+          <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-foreground mb-2">No tours found</h3>
+          <p className="text-muted-foreground">Check back soon for new educational tours</p>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar Navigation */}
           <div className="lg:w-80 flex-shrink-0">
-            <EducationNavigation 
+            <EducationNavigation
               activeSection={activeSection}
               onSectionChange={setActiveSection}
               user={user}
