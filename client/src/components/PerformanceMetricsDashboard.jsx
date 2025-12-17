@@ -58,57 +58,21 @@ const PerformanceMetricsDashboard = () => {
     setLoading(true);
     setError(null);
     try {
-      // Try to get real performance metrics first
-      const response = await api.getPerformanceMetrics({ timeRange: '1h' });
+      // Fetch performance overview and system health in parallel
+      const [overviewResponse, systemHealthResponse] = await Promise.all([
+        api.getPerformanceOverview({ timeRange: '1h' }),
+        api.getSystemHealth({ timeRange: '1h' })
+      ]);
 
-      if (response.success && response.data) {
-        console.log('📊 Real backend data received:', response.data);
+      if (overviewResponse.success && systemHealthResponse.success) {
         setMetrics({
-          system: {
-            systemMetrics: {
-              avgCpuUsage: response.data.serverHealth?.cpuUsage || 0,
-              avgMemoryUsage: response.data.serverHealth?.memoryUsage || 0,
-              avgNetworkLatency: response.data.serverHealth?.diskUsage || 0
-            },
-            apiMetrics: {
-              avgResponseTime: response.data.responseTime?.average || 0,
-              totalApiCalls: response.data.throughput?.totalRequests || 0,
-              avgErrorRate: 0,
-              avgThroughput: response.data.throughput?.requestsPerDay || 0
-            },
-            dbMetrics: {
-              totalQueries: response.data.throughput?.totalRequests || 0
-            }
-          },
-          performance: {
-            healthScore: {
-              score: response.data.serverHealth?.uptime || 0,
-              status: response.data.responseTime?.status || 'good'
-            },
-            responseTime: response.data.responseTime,
-            throughput: response.data.throughput,
-            serverHealth: response.data.serverHealth
-          },
-          alerts: response.data.alerts || []
+          system: systemHealthResponse.data,
+          performance: overviewResponse.data,
+          alerts: overviewResponse.data?.alerts || []
         });
-        setLastUpdated(new Date(response.data.lastUpdated));
+        setLastUpdated(new Date());
       } else {
-        // Fallback to performance overview and system health
-        const [overviewResponse, systemHealthResponse] = await Promise.all([
-          api.getPerformanceOverview({ timeRange: '1h' }),
-          api.getSystemHealth({ timeRange: '1h' })
-        ]);
-
-        if (overviewResponse.success && systemHealthResponse.success) {
-          setMetrics({
-            system: systemHealthResponse.data,
-            performance: overviewResponse.data,
-            alerts: overviewResponse.data?.alerts || []
-          });
-          setLastUpdated(new Date());
-        } else {
-          throw new Error('Failed to fetch performance metrics');
-        }
+        throw new Error('Failed to fetch performance metrics');
       }
     } catch (error) {
       console.error('Failed to fetch metrics:', error);
