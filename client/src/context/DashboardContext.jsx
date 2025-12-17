@@ -14,13 +14,14 @@ export const useDashboard = () => {
 
 export const DashboardProvider = ({ children }) => {
   const { user } = useAuth();
-  
+
   // State
   const [tourPackages, setTourPackages] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [activities, setActivities] = useState([]);
   const [messages, setMessages] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [customers, setCustomers] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [dashboardData, setDashboardData] = useState(null);
 
@@ -46,13 +47,43 @@ export const DashboardProvider = ({ children }) => {
       setError('User not authenticated');
       return;
     }
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      // Since we don't have a specific organizer dashboard endpoint yet,
-      // we'll use mock data and set the current user from auth context
+      const data = await apiService.getDashboardData(organizerId);
+
+      if (data) {
+        if (data.user) {
+          setCurrentUser(data.user);
+        } else if (!currentUser) {
+          setCurrentUser(user);
+        }
+
+        setDashboardData({
+          stats: data.stats || {
+            totalTours: 0,
+            activeTours: 0,
+            confirmedBookings: 0,
+            pendingBookings: 0,
+            completedBookings: 0,
+            totalRevenue: 0,
+            unreadMessages: 0
+          },
+          upcomingTours: data.upcomingTours || [],
+          recentActivities: data.recentActivities || []
+        });
+
+        if (data.recentActivities) {
+          setActivities(data.recentActivities);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load dashboard data:', error);
+      setError(error.message);
+
+      // Fallback for safety if everything fails, but try to use what we have
       setCurrentUser(user);
       setDashboardData({
         stats: {
@@ -67,9 +98,6 @@ export const DashboardProvider = ({ children }) => {
         upcomingTours: [],
         recentActivities: []
       });
-    } catch (error) {
-      console.error('Failed to load dashboard data:', error);
-      setError(error.message);
     } finally {
       setIsLoading(false);
     }
@@ -78,7 +106,7 @@ export const DashboardProvider = ({ children }) => {
   // Load tour packages
   const loadTourPackages = useCallback(async (params = {}) => {
     if (!organizerId) return;
-    
+
     try {
       const data = await apiService.getTourPackages(organizerId, params);
       setTourPackages(data.tours || []);
@@ -92,7 +120,7 @@ export const DashboardProvider = ({ children }) => {
   // Load bookings
   const loadBookings = useCallback(async (params = {}) => {
     if (!organizerId) return;
-    
+
     try {
       const data = await apiService.getBookings(organizerId, params);
       setBookings(data.bookings || []);
@@ -106,7 +134,7 @@ export const DashboardProvider = ({ children }) => {
   // Load messages
   const loadMessages = useCallback(async (params = {}) => {
     if (!organizerId) return;
-    
+
     try {
       const data = await apiService.getMessages(organizerId, params);
       setMessages(data.messages || []);
@@ -120,7 +148,7 @@ export const DashboardProvider = ({ children }) => {
   // Load activities
   const loadActivities = useCallback(async (page = 1, limit = 10) => {
     if (!organizerId) return;
-    
+
     try {
       const data = await apiService.getActivities(organizerId, page, limit);
       setActivities(data);
@@ -134,7 +162,7 @@ export const DashboardProvider = ({ children }) => {
   // Load notifications
   const loadNotifications = useCallback(async (unreadOnly = false, limit = 10) => {
     if (!organizerId) return;
-    
+
     try {
       const data = await apiService.getNotifications(organizerId, unreadOnly, limit);
       setNotifications(data);
@@ -142,6 +170,26 @@ export const DashboardProvider = ({ children }) => {
     } catch (error) {
       console.error('Failed to load notifications:', error);
       throw error;
+    }
+  }, [organizerId]);
+
+  // Load customers
+  const loadCustomers = useCallback(async () => {
+    if (!organizerId) return;
+
+    setIsLoading(true);
+    try {
+      const response = await apiService.getCustomers();
+      if (response && response.success) {
+        setCustomers(response.data || []);
+        return response.data;
+      }
+      return [];
+    } catch (error) {
+      console.error('Failed to load customers:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
   }, [organizerId]);
 
@@ -162,8 +210,8 @@ export const DashboardProvider = ({ children }) => {
   const updateBookingStatus = useCallback(async (bookingId, status, reason = '') => {
     try {
       const updatedBooking = await apiService.updateBookingStatus(bookingId, status, reason);
-      setBookings((prev) => 
-        prev.map((booking) => 
+      setBookings((prev) =>
+        prev.map((booking) =>
           booking.id === bookingId ? updatedBooking : booking
         )
       );
@@ -179,9 +227,9 @@ export const DashboardProvider = ({ children }) => {
   const markNotificationAsRead = useCallback(async (notificationId) => {
     try {
       await apiService.markNotificationAsRead(notificationId);
-      setNotifications((prev) => 
-        prev.map((notification) => 
-          notification.id === notificationId 
+      setNotifications((prev) =>
+        prev.map((notification) =>
+          notification.id === notificationId
             ? { ...notification, read: true }
             : notification
         )
@@ -196,9 +244,9 @@ export const DashboardProvider = ({ children }) => {
   const markMessageAsRead = useCallback(async (messageId) => {
     try {
       await apiService.markMessageAsRead(messageId);
-      setMessages((prev) => 
-        prev.map((message) => 
-          message.id === messageId 
+      setMessages((prev) =>
+        prev.map((message) =>
+          message.id === messageId
             ? { ...message, status: 'read' }
             : message
         )
@@ -225,8 +273,8 @@ export const DashboardProvider = ({ children }) => {
   const replyToMessage = useCallback(async (messageId, responseMessage) => {
     try {
       const updatedMessage = await apiService.replyToMessage(messageId, responseMessage);
-      setMessages((prev) => 
-        prev.map((message) => 
+      setMessages((prev) =>
+        prev.map((message) =>
           message.id === messageId ? updatedMessage : message
         )
       );
@@ -238,7 +286,7 @@ export const DashboardProvider = ({ children }) => {
   }, []);
 
   // PUBLIC API METHODS FOR CUSTOMERS/USERS
-  
+
   // Create booking from user (public)
   const createBookingFromUser = useCallback(async (bookingData) => {
     try {
@@ -247,12 +295,12 @@ export const DashboardProvider = ({ children }) => {
         method: 'POST',
         body: JSON.stringify(bookingData)
       });
-      
+
       // Add to local bookings state if it's for current user's tour organizer
       if (organizerId === bookingData.tourPackageId) {
         setBookings((prev) => [response, ...prev]);
       }
-      
+
       return response;
     } catch (error) {
       console.error('Failed to create booking from user:', error);
@@ -268,7 +316,7 @@ export const DashboardProvider = ({ children }) => {
         method: 'POST',
         body: JSON.stringify(messageData)
       });
-      
+
       return response;
     } catch (error) {
       console.error('Failed to add customer message:', error);
@@ -283,11 +331,11 @@ export const DashboardProvider = ({ children }) => {
       const response = await apiService.request('/tours', {
         method: 'GET'
       });
-      
+
       // Filter for active tours only
       const publicTours = (response.tours || response.data || response || [])
         .filter(tour => tour.status === 'active');
-        
+
       return publicTours;
     } catch (error) {
       console.error('Failed to load public tours:', error);
@@ -324,6 +372,7 @@ export const DashboardProvider = ({ children }) => {
     activities: recentActivities,
     messages,
     notifications,
+    customers,
     currentUser,
     dashboardData,
 
@@ -346,6 +395,7 @@ export const DashboardProvider = ({ children }) => {
     loadMessages,
     loadActivities,
     loadNotifications,
+    loadCustomers,
 
     // Actions
     createTourPackage,
