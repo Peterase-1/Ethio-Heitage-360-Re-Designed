@@ -4,6 +4,9 @@ const virtualMuseumController = require('../controllers/virtualMuseumController'
 const { auth } = require('../middleware/auth');
 const { requireRole } = require('../middleware/roleHierarchy');
 
+// GET /api/virtual-museum/active
+router.get('/active', virtualMuseumController.getActiveVirtualArtifacts);
+
 // GET /api/virtual-museum/submissions
 router.get('/submissions', auth, virtualMuseumController.getSubmissions);
 
