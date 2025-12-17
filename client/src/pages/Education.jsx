@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  BookOpen, 
-  Users, 
-  Star, 
-  Clock, 
-  MapPin, 
-  Award, 
-  PlayCircle, 
-  Calendar, 
+import {
+  BookOpen,
+  Users,
+  Star,
+  Clock,
+  MapPin,
+  Award,
+  PlayCircle,
+  Calendar,
   TrendingUp,
   ArrowRight,
   Sparkles,
@@ -22,6 +22,7 @@ import EnrolledTours from '../components/education/EnrolledTours';
 import architecture from '../assets/architecture.jpg';
 import culture from '../assets/culture.jpg';
 import obeliskHero from '../assets/obelisk-hero.jpg';
+import educationApi from '../services/educationApi';
 
 const Education = () => {
   const navigate = useNavigate();
@@ -30,49 +31,30 @@ const Education = () => {
   const [featuredCourses, setFeaturedCourses] = useState([]);
   const [coursesLoading, setCoursesLoading] = useState(true);
 
-  // Simulate fetching featured courses
+  // Fetch real featured courses from the backend
   useEffect(() => {
     const fetchCourses = async () => {
       setCoursesLoading(true);
-      // Simulate API call
-      setTimeout(() => {
-        setFeaturedCourses([
-          {
-            id: 1,
-            title: 'Ancient Ethiopian Civilizations',
-            description: 'Explore the rich history of Ethiopia\'s ancient kingdoms and their contributions to world civilization.',
-            category: 'History',
-            difficulty: 'Beginner',
-            duration: 6,
-            enrolled: 1200,
-            rating: 4.8,
-            image: obeliskHero
-          },
-          {
-            id: 2,
-            title: 'Ethiopian Orthodox Church Heritage',
-            description: 'Discover the unique traditions, art, and architecture of the Ethiopian Orthodox Church.',
-            category: 'Religious Heritage',
-            difficulty: 'Intermediate',
-            duration: 8,
-            enrolled: 850,
-            rating: 4.9,
-            image: architecture
-          },
-          {
-            id: 3,
-            title: 'Traditional Ethiopian Arts & Crafts',
-            description: 'Learn about traditional Ethiopian crafts, textiles, and artistic expressions.',
-            category: 'Cultural Arts',
-            difficulty: 'Beginner',
-            duration: 4,
-            enrolled: 650,
-            rating: 4.7,
-            image: culture
-          }
-        ]);
+      try {
+        const response = await educationApi.getCourses({ limit: 3, sort: 'enrollmentCount' });
+
+        // Transform backend data to match UI expectations if necessary
+        const courses = response.data || [];
+        const transformedCourses = courses.map(course => ({
+          ...course,
+          id: course._id || course.id,
+          // Use real image if available, fallback to placeholders if not
+          image: course.image || course.imageUrl || (course.category?.toLowerCase() === 'history' ? obeliskHero :
+            course.category?.toLowerCase()?.includes('religious') ? architecture : culture)
+        }));
+
+        setFeaturedCourses(transformedCourses);
+      } catch (error) {
+        console.error('Failed to fetch featured courses:', error);
+        // Fallback or show error state
+      } finally {
         setCoursesLoading(false);
-      }, 1000);
+      }
     };
 
     fetchCourses();
@@ -95,28 +77,28 @@ const Education = () => {
           <BookOpen className="w-4 h-4 mr-2" />
           <span className="text-sm font-semibold">Ethiopian Heritage Education</span>
         </div>
-        
+
         <h1 className="text-4xl md:text-6xl font-bold text-foreground">
           Discover Ethiopia's
           <span className="block bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
             Rich Heritage
           </span>
         </h1>
-        
+
         <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-          Immerse yourself in comprehensive educational programs covering Ethiopia's ancient civilizations, 
+          Immerse yourself in comprehensive educational programs covering Ethiopia's ancient civilizations,
           cultural traditions, architectural wonders, and living heritage.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <button 
+          <button
             onClick={() => setActiveTab('courses')}
             className="bg-primary text-primary-foreground px-8 py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center"
           >
             <PlayCircle className="w-5 h-5 mr-2" />
             Browse Courses
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('tours')}
             className="bg-secondary text-secondary-foreground px-8 py-3 rounded-xl font-semibold hover:bg-secondary/90 transition-colors flex items-center justify-center"
           >
@@ -154,18 +136,17 @@ const Education = () => {
             featuredCourses.map((course) => (
               <div key={course.id} className="bg-card rounded-2xl overflow-hidden border border-border shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 group">
                 <div className="relative h-48 overflow-hidden">
-                  <img 
+                  <img
                     src={course.image}
                     alt={course.title}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                   <div className="absolute top-4 left-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      course.difficulty === 'Beginner' ? 'bg-primary text-primary-foreground' :
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${course.difficulty === 'Beginner' ? 'bg-primary text-primary-foreground' :
                       course.difficulty === 'Intermediate' ? 'bg-secondary text-secondary-foreground' :
-                      'bg-accent text-accent-foreground'
-                    }`}>
+                        'bg-accent text-accent-foreground'
+                      }`}>
                       {course.difficulty}
                     </span>
                   </div>
@@ -176,7 +157,7 @@ const Education = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-primary font-medium">{course.category}</span>
@@ -185,12 +166,12 @@ const Education = () => {
                       <span className="text-sm text-muted-foreground">{course.rating}</span>
                     </div>
                   </div>
-                  
+
                   <h3 className="text-xl font-bold text-card-foreground mb-3">{course.title}</h3>
                   <p className="text-muted-foreground text-sm mb-4 leading-relaxed">
                     {course.description}
                   </p>
-                  
+
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center text-sm text-muted-foreground">
                       <Users className="w-4 h-4 mr-1" />
@@ -201,8 +182,8 @@ const Education = () => {
                       <span>Certificate</span>
                     </div>
                   </div>
-                  
-                  <button 
+
+                  <button
                     onClick={() => handleStartCourse(course)}
                     className="w-full bg-primary text-primary-foreground py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center group"
                   >
@@ -216,7 +197,7 @@ const Education = () => {
         </div>
 
         <div className="text-center mt-8">
-          <button 
+          <button
             onClick={() => setActiveTab('courses')}
             className="text-primary font-semibold hover:underline"
           >
@@ -307,11 +288,10 @@ const Education = () => {
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
-                className={`flex items-center px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === key
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted'
-                }`}
+                className={`flex items-center px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === key
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted'
+                  }`}
               >
                 <Icon className="w-4 h-4 mr-2" />
                 {label}
@@ -333,7 +313,7 @@ const Education = () => {
             <p className="text-muted-foreground mb-6">
               Sign in to view and enroll in educational heritage tours.
             </p>
-            <button 
+            <button
               onClick={() => navigate('/auth')}
               className="bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors"
             >
