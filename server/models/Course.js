@@ -16,7 +16,7 @@ const courseSchema = new mongoose.Schema({
   category: {
     type: String,
     required: [true, 'Course category is required'],
-    enum: ['history', 'culture', 'art', 'archaeology', 'heritage', 'tourism', 'language', 'other'],
+    enum: ['history', 'culture', 'art', 'archaeology', 'heritage', 'tourism', 'language', 'religion', 'other'],
     default: 'heritage'
   },
   level: {
@@ -146,7 +146,16 @@ const courseSchema = new mongoose.Schema({
     ref: 'User'
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
+
+// Virtual for lessons
+courseSchema.virtual('lessons', {
+  ref: 'Lesson',
+  localField: '_id',
+  foreignField: 'courseId'
 });
 
 // Indexes for better performance
@@ -156,18 +165,19 @@ courseSchema.index({ status: 1, createdBy: 1 });
 courseSchema.index({ 'enrollment.isOpen': 1 });
 
 // Virtual for enrollment percentage
-courseSchema.virtual('enrollmentPercentage').get(function() {
-  if (this.enrollment.maxStudents === 0) return 0;
-  return Math.round((this.enrollment.totalEnrolled / this.enrollment.maxStudents) * 100);
+courseSchema.virtual('enrollmentPercentage').get(function () {
+  if (!this.enrollment || !this.enrollment.maxStudents || this.enrollment.maxStudents === 0) return 0;
+  return Math.round(((this.enrollment.totalEnrolled || 0) / this.enrollment.maxStudents) * 100);
 });
 
 // Virtual for total content duration
-courseSchema.virtual('totalContentDuration').get(function() {
+courseSchema.virtual('totalContentDuration').get(function () {
+  if (!this.content || !Array.isArray(this.content.topics)) return 0;
   return this.content.topics.reduce((total, topic) => total + (topic.duration || 0), 0);
 });
 
 // Methods
-courseSchema.methods.incrementEnrollment = function() {
+courseSchema.methods.incrementEnrollment = function () {
   if (this.enrollment.totalEnrolled < this.enrollment.maxStudents) {
     this.enrollment.totalEnrolled += 1;
     return this.save();
@@ -175,14 +185,14 @@ courseSchema.methods.incrementEnrollment = function() {
   throw new Error('Course is full');
 };
 
-courseSchema.methods.decrementEnrollment = function() {
+courseSchema.methods.decrementEnrollment = function () {
   if (this.enrollment.totalEnrolled > 0) {
     this.enrollment.totalEnrolled -= 1;
     return this.save();
   }
 };
 
-courseSchema.methods.isAvailable = function() {
+courseSchema.methods.isAvailable = function () {
   return this.status === 'published' && this.enrollment.isOpen && this.enrollment.totalEnrolled < this.enrollment.maxStudents;
 };
 
