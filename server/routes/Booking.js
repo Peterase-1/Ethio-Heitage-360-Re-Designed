@@ -16,22 +16,22 @@ router.get('/organizer/:organizerId', auth, async (req, res) => {
   try {
     const { organizerId } = req.params;
     const { status, page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
-    
+
     let query = { organizerId };
     if (status) query.status = status;
-    
+
     const sort = {};
     sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
-    
+
     const bookings = await Booking.find(query)
       .populate('tourPackageId', 'title location duration price')
       .sort(sort)
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .exec();
-      
+
     const total = await Booking.countDocuments(query);
-    
+
     res.json({
       bookings,
       totalPages: Math.ceil(total / limit),
@@ -50,18 +50,18 @@ router.get('/:id', auth, async (req, res) => {
       .populate('tourPackageId')
       .populate('customerId', 'name email')
       .populate('organizerId', 'name email');
-    
+
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }
-    
+
     // Check if user can access this booking
-    if (booking.organizerId.toString() !== req.user.id && 
-        booking.customerId?.toString() !== req.user.id && 
-        req.user.role !== 'superAdmin') {
+    if (booking.organizerId.toString() !== req.user.id &&
+      booking.customerId?.toString() !== req.user.id &&
+      req.user.role !== 'superAdmin') {
       return res.status(403).json({ message: 'Unauthorized to access this booking' });
     }
-    
+
     res.json(booking);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -76,19 +76,19 @@ router.post('/', async (req, res) => {
     if (!tourPackage) {
       return res.status(404).json({ message: 'Tour package not found' });
     }
-    
+
     const bookingData = {
       ...req.body,
       organizerId: tourPackage.organizerId,
       totalAmount: tourPackage.price * req.body.guests
     };
-    
+
     const booking = new Booking(bookingData);
     const savedBooking = await booking.save();
-    
+
     // Update tour package booking count
     await tourPackage.incrementBookings();
-    
+
     // Create notification for organizer
     const notification = new Notification({
       title: 'New Booking Request',
@@ -104,7 +104,7 @@ router.post('/', async (req, res) => {
       }
     });
     await notification.save();
-    
+
     res.status(201).json(savedBooking);
   } catch (error) {
     if (error.name === 'ValidationError') {
@@ -121,16 +121,16 @@ router.patch('/:id/status', auth, async (req, res) => {
     const { status, reason } = req.body;
     const booking = await Booking.findById(req.params.id)
       .populate('tourPackageId', 'title');
-    
+
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }
-    
+
     // Check if user owns this booking
     if (booking.organizerId.toString() !== req.user.id && req.user.role !== 'superAdmin') {
       return res.status(403).json({ message: 'Unauthorized to update this booking' });
     }
-    
+
     if (status === 'confirmed') {
       await booking.confirm();
     } else if (status === 'cancelled') {
@@ -141,7 +141,7 @@ router.patch('/:id/status', auth, async (req, res) => {
       booking.status = status;
       await booking.save();
     }
-    
+
     // Create notification for customer if they have an account
     if (booking.customerId) {
       const notification = new Notification({
@@ -159,7 +159,7 @@ router.patch('/:id/status', auth, async (req, res) => {
       });
       await notification.save();
     }
-    
+
     res.json(booking);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -171,18 +171,18 @@ router.patch('/:id/payment', auth, async (req, res) => {
   try {
     const { amount, method, transactionId } = req.body;
     const booking = await Booking.findById(req.params.id);
-    
+
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }
-    
+
     // Check if user owns this booking
     if (booking.organizerId.toString() !== req.user.id && req.user.role !== 'superAdmin') {
       return res.status(403).json({ message: 'Unauthorized to update this booking' });
     }
-    
+
     await booking.processPayment(amount, method, transactionId);
-    
+
     res.json(booking);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -194,7 +194,7 @@ router.get('/pending/:organizerId', auth, async (req, res) => {
   try {
     const { organizerId } = req.params;
     const bookings = await Booking.findPending(organizerId);
-    
+
     res.json(bookings);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -206,9 +206,9 @@ router.get('/upcoming/:organizerId', auth, async (req, res) => {
   try {
     const { organizerId } = req.params;
     const { days = 30 } = req.query;
-    
+
     const bookings = await Booking.findUpcoming(organizerId, parseInt(days));
-    
+
     res.json(bookings);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -220,16 +220,16 @@ router.get('/stats/:organizerId', auth, async (req, res) => {
   try {
     const { organizerId } = req.params;
     const { startDate, endDate } = req.query;
-    
-    let matchQuery = { organizerId: mongoose.Types.ObjectId(organizerId) };
-    
+
+    let matchQuery = { organizerId: new mongoose.Types.ObjectId(organizerId) };
+
     if (startDate && endDate) {
       matchQuery.createdAt = {
         $gte: new Date(startDate),
         $lte: new Date(endDate)
       };
     }
-    
+
     const stats = await Booking.aggregate([
       { $match: matchQuery },
       {
@@ -255,14 +255,14 @@ router.get('/stats/:organizerId', auth, async (req, res) => {
         }
       }
     ]);
-    
+
     // Get upcoming tours count
     const upcomingCount = await Booking.countDocuments({
-      organizerId: mongoose.Types.ObjectId(organizerId),
+      organizerId: new mongoose.Types.ObjectId(organizerId),
       status: 'confirmed',
       tourDate: { $gte: new Date() }
     });
-    
+
     const result = stats[0] || {
       totalBookings: 0,
       confirmedBookings: 0,
@@ -274,10 +274,10 @@ router.get('/stats/:organizerId', auth, async (req, res) => {
       averageBookingValue: 0,
       totalGuests: 0
     };
-    
+
     result.upcomingBookings = upcomingCount;
     result.pendingPayment = result.totalRevenue - result.paidAmount;
-    
+
     res.json(result);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -290,27 +290,27 @@ router.patch('/:id/review', auth, async (req, res) => {
     const { rating, comment } = req.body;
     const booking = await Booking.findById(req.params.id)
       .populate('tourPackageId');
-    
+
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }
-    
+
     // Check if customer can review (only if booking is completed)
     if (booking.status !== 'completed') {
       return res.status(400).json({ message: 'Can only review completed bookings' });
     }
-    
+
     if (booking.customerId?.toString() !== req.user.id) {
       return res.status(403).json({ message: 'Unauthorized to review this booking' });
     }
-    
+
     await booking.addReview(rating, comment);
-    
+
     // Update tour package rating
     if (booking.tourPackageId) {
       await booking.tourPackageId.updateRating(rating);
     }
-    
+
     res.json(booking);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -321,18 +321,18 @@ router.patch('/:id/review', auth, async (req, res) => {
 router.delete('/:id', auth, async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
-    
+
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }
-    
+
     // Check if user owns this booking
     if (booking.organizerId.toString() !== req.user.id && req.user.role !== 'superAdmin') {
       return res.status(403).json({ message: 'Unauthorized to delete this booking' });
     }
-    
+
     await Booking.findByIdAndDelete(req.params.id);
-    
+
     res.json({ message: 'Booking deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -342,7 +342,7 @@ router.delete('/:id', auth, async (req, res) => {
 // New controller-based routes
 
 // POST /api/bookings - Create booking using new controller
-router.post('/v2', 
+router.post('/v2',
   [
     body('tourPackageId').isMongoId().withMessage('Valid tour package ID is required'),
     body('customerName').notEmpty().withMessage('Customer name is required'),
@@ -355,7 +355,7 @@ router.post('/v2',
 );
 
 // GET /api/bookings/v2 - Get all bookings using new controller
-router.get('/v2', 
+router.get('/v2',
   [
     query('page').optional().isInt({ min: 1 }).withMessage('Page must be positive'),
     query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be 1-100'),

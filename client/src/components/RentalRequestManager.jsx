@@ -49,7 +49,7 @@ const RentalRequestManager = () => {
 
   // Form data for creating new requests
   const [formData, setFormData] = useState({
-    requestType: user?.role === 'superAdmin' ? 'super_to_museum' : 'museum_to_super',
+    requestType: 'super_to_museum',
     artifactId: '',
     museumId: '',
     duration: '',
@@ -81,8 +81,8 @@ const RentalRequestManager = () => {
 
   const typeOptions = [
     { value: 'all', label: 'All Types' },
-    { value: 'museum_to_super', label: 'Museum → Super Admin' },
-    { value: 'super_to_museum', label: 'Super Admin → Museum' }
+    { value: 'outgoing', label: 'Sent (Super → Museum)' },
+    { value: 'incoming', label: 'Received (Museum → Super)' }
   ];
 
   useEffect(() => {
@@ -125,7 +125,11 @@ const RentalRequestManager = () => {
       }
 
       if (filterType && filterType !== 'all') {
-        queryParams.requestType = filterType;
+        if (filterType === 'outgoing') {
+          queryParams.requestType = 'super_to_museum';
+        } else if (filterType === 'incoming') {
+          queryParams.requestType = 'museum_to_super';
+        }
       }
 
       if (searchTerm && searchTerm.trim()) {
@@ -232,14 +236,12 @@ const RentalRequestManager = () => {
     e.preventDefault();
     try {
       console.log('🔄 Creating rental request...', formData);
-      console.log('🔍 Form data details:', {
-        requestType: formData.requestType,
-        museumId: formData.museumId,
-        artifactId: formData.artifactId,
-        hasMuseumId: !!formData.museumId,
-        hasArtifactId: !!formData.artifactId
-      });
-      const response = await api.createRentalRequest(formData);
+      const submissionData = {
+        ...formData,
+        requestType: 'super_to_museum' // Super admin always sends super_to_museum from here
+      };
+
+      const response = await api.createRentalRequest(submissionData);
       console.log('✅ Rental request created successfully:', response);
 
       setShowCreateModal(false);
@@ -283,7 +285,7 @@ const RentalRequestManager = () => {
 
   const resetForm = () => {
     setFormData({
-      requestType: user?.role === 'superAdmin' ? 'super_to_museum' : 'museum_to_super',
+      requestType: 'super_to_museum',
       artifactId: '',
       museumId: '',
       duration: '',
@@ -571,24 +573,33 @@ const RentalRequestManager = () => {
               <form onSubmit={handleCreateRequest} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Request Type</label>
-                    <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-600">
-                      Super Admin → Museum (Fixed)
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Direction</label>
+                    <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-600 font-medium">
+                      Outgoing (Super Admin → Museum)
                     </div>
-                    <input type="hidden" value="super_to_museum" />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Artifact *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Select Artifact *</label>
                     <select
                       value={formData.artifactId}
-                      onChange={(e) => setFormData({ ...formData, artifactId: e.target.value })}
+                      onChange={(e) => {
+                        const artifactId = e.target.value;
+                        const artifact = artifacts.find(a => a._id === artifactId);
+                        setFormData({
+                          ...formData,
+                          artifactId: artifactId,
+                          museumId: artifact?.museum?._id || artifact?.museum || ''
+                        });
+                      }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       required
                     >
-                      <option value="">Select Artifact</option>
+                      <option value="">Choose an artifact...</option>
                       {artifacts && Array.isArray(artifacts) && artifacts.map(artifact => (
-                        <option key={artifact._id} value={artifact._id}>{artifact.name}</option>
+                        <option key={artifact._id} value={artifact._id}>
+                          {artifact.name} ({artifact.museum?.name || 'Local Collection'})
+                        </option>
                       ))}
                     </select>
                   </div>
