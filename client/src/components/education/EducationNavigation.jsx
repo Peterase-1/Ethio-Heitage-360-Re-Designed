@@ -1,8 +1,8 @@
 import React from 'react';
-import { 
-  BookOpen, 
-  Users, 
-  Award, 
+import {
+  BookOpen,
+  Users,
+  Award,
   FileText,
   Brain,
   Video,
@@ -49,12 +49,11 @@ const EducationNavigation = ({ activeSection, onSectionChange, user }) => {
       comingSoon: true
     },
     {
-      id: 'live-sessions',
-      label: 'Live Sessions',
+      id: 'educational-tours',
+      label: 'Educational Tours',
       icon: Video,
-      description: 'Interactive learning',
-      public: true,
-      comingSoon: true
+      description: 'Interactive heritage tours',
+      public: true
     }
   ];
 
@@ -85,19 +84,18 @@ const EducationNavigation = ({ activeSection, onSectionChange, user }) => {
           const Icon = section.icon;
           const isActive = activeSection === section.id;
           const isDisabled = (!section.public && !user) || section.comingSoon;
-          
+
           return (
             <button
               key={section.id}
               onClick={() => handleSectionClick(section.id, !section.public, section.comingSoon)}
               disabled={isDisabled}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
-                isActive
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${isActive
                   ? 'bg-primary text-primary-foreground shadow-sm'
                   : isDisabled
-                  ? 'text-muted-foreground cursor-not-allowed opacity-60'
-                  : 'hover:bg-muted text-foreground'
-              }`}
+                    ? 'text-muted-foreground cursor-not-allowed opacity-60'
+                    : 'hover:bg-muted text-foreground'
+                }`}
             >
               <Icon className="h-5 w-5 flex-shrink-0" />
               <div className="flex-1">
