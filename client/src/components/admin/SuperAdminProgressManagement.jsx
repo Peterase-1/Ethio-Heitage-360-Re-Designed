@@ -74,73 +74,6 @@ const SuperAdminProgressManagement = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [userDetailModal, setUserDetailModal] = useState(false);
 
-  // Mock data
-  const mockUserProgress = [
-    {
-      _id: '1',
-      userId: 'user_001',
-      email: 'visitor1@example.com',
-      name: 'Abebi Tadesse',
-      role: 'visitor',
-      totalProgress: 75,
-      completedActivities: 12,
-      totalActivities: 16,
-      achievementsUnlocked: 8,
-      lastActivity: new Date('2024-01-15'),
-      streakDays: 5,
-      totalPoints: 1850
-    },
-    {
-      _id: '2',
-      userId: 'user_002',
-      email: 'visitor2@example.com',
-      name: 'Dawit Haile',
-      role: 'visitor',
-      totalProgress: 40,
-      completedActivities: 6,
-      totalActivities: 15,
-      achievementsUnlocked: 3,
-      lastActivity: new Date('2024-01-12'),
-      streakDays: 2,
-      totalPoints: 920
-    }
-  ];
-
-  const mockAchievements = [
-    {
-      _id: '1',
-      title: 'Heritage Explorer',
-      description: 'Visit 10 different heritage sites',
-      icon: 'explore',
-      points: 100,
-      category: 'exploration',
-      isActive: true,
-      unlockCount: 45
-    },
-    {
-      _id: '2',
-      title: 'Quiz Master',
-      description: 'Complete 20 cultural quizzes with 90% accuracy',
-      icon: 'quiz',
-      points: 250,
-      category: 'knowledge',
-      isActive: true,
-      unlockCount: 23
-    }
-  ];
-
-  const mockAnalytics = {
-    totalUsers: 1847,
-    activeUsersThisWeek: 234,
-    totalAchievementsUnlocked: 1205,
-    averageProgressPerUser: 68,
-    topPerformers: [
-      { name: 'Abebi Tadesse', progress: 95, points: 2400 },
-      { name: 'Dawit Haile', progress: 89, points: 2100 },
-      { name: 'Meron Desta', progress: 82, points: 1950 }
-    ]
-  };
-
   useEffect(() => {
     loadData();
   }, []);
@@ -149,44 +82,62 @@ const SuperAdminProgressManagement = () => {
     setLoading(true);
     try {
       // Load real data from API
-      const [progressRes, analyticsRes] = await Promise.all([
+      const [progressRes, analyticsRes, achievementsRes] = await Promise.all([
         progressAdminAPI.getAllUsersProgress({ page: 1, limit: 50, search: searchTerm }),
-        progressAdminAPI.getProgressAnalytics()
+        progressAdminAPI.getProgressAnalytics(),
+        progressAdminAPI.getAllAchievements()
       ]);
 
       if (progressRes.success) {
-        setUserProgress(progressRes.userProgress || progressRes.data || []);
+        const rawData = progressRes.userProgress || progressRes.data || [];
+        const formattedData = rawData.map(item => ({
+          _id: item._id,
+          userId: item.user?._id,
+          name: item.user ? `${item.user.firstName} ${item.user.lastName}` : 'Unknown User',
+          email: item.user?.email || '',
+          role: 'user',
+          totalProgress: Math.round(item.overallStats?.averageScore || 0),
+          completedActivities: item.overallStats?.totalLessonsCompleted || 0,
+          totalActivities: 0,
+          achievementsUnlocked: item.achievements?.length || 0,
+          lastActivity: new Date(item.user?.lastLogin || Date.now()),
+          streakDays: item.gamification?.currentStreak || 0,
+          totalPoints: item.userStats?.totalPoints || 0
+        }));
+        setUserProgress(formattedData);
       } else {
-        // Fallback to mock data if API fails
-        setUserProgress(mockUserProgress);
+        toast.error('Failed to load user progress');
+        setUserProgress([]);
       }
 
       if (analyticsRes.success) {
-        setAnalytics(analyticsRes.analytics || analyticsRes.data || mockAnalytics);
+        setAnalytics(analyticsRes.analytics || analyticsRes.data || {});
       } else {
-        // Fallback to mock data if API fails
-        setAnalytics(mockAnalytics);
+        setAnalytics({});
       }
 
-      // For now, use mock achievements until achievement system is implemented
-      setAchievements(mockAchievements);
+      if (achievementsRes.success) {
+        setAchievements(achievementsRes.achievements || achievementsRes.data || []);
+      } else {
+        setAchievements([]);
+      }
 
       setLoading(false);
     } catch (error) {
       console.error('Error loading data:', error);
-      // Fallback to mock data on error
-      setUserProgress(mockUserProgress);
-      setAchievements(mockAchievements);
-      setAnalytics(mockAnalytics);
+      setUserProgress([]);
+      setAchievements([]);
+      setAnalytics({});
       setLoading(false);
 
       setSnackbar({
         open: true,
-        message: error.message || 'Error loading data - using demo data',
-        severity: 'warning'
+        message: error.message || 'Error loading data',
+        severity: 'error'
       });
     }
   };
+
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -239,8 +190,10 @@ const SuperAdminProgressManagement = () => {
   };
 
   const filteredUsers = userProgress.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const name = user.name || '';
+    const email = user.email || '';
+    const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      email.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
 
@@ -267,10 +220,10 @@ const SuperAdminProgressManagement = () => {
       {/* User Progress Tab */}
       <TabPanel value={activeTab} index={0}>
         <Grid container spacing={3}>
-          <Grid item xs={12}>
+          <Grid size={12}>
             <Paper sx={{ p: 2, mb: 3 }}>
               <Grid container spacing={2} alignItems="center">
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
                     fullWidth
                     placeholder="Search users..."
@@ -281,7 +234,7 @@ const SuperAdminProgressManagement = () => {
                     }}
                   />
                 </Grid>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <Button
                     fullWidth
                     variant="outlined"
@@ -292,7 +245,7 @@ const SuperAdminProgressManagement = () => {
                     Refresh
                   </Button>
                 </Grid>
-                <Grid item xs={12} md={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <Button
                     fullWidth
                     variant="outlined"
@@ -306,13 +259,13 @@ const SuperAdminProgressManagement = () => {
           </Grid>
 
           {loading ? (
-            <Grid item xs={12}>
+            <Grid size={12}>
               <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
                 <CircularProgress />
               </Box>
             </Grid>
           ) : (
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TableContainer component={Paper}>
                 <Table>
                   <TableHead>
@@ -400,7 +353,7 @@ const SuperAdminProgressManagement = () => {
       {/* Achievements Tab */}
       <TabPanel value={activeTab} index={1}>
         <Grid container spacing={3}>
-          <Grid item xs={12}>
+          <Grid size={12}>
             <Box sx={{ mb: 3 }}>
               <Button variant="contained" startIcon={<Add />}>
                 Create New Achievement
@@ -409,7 +362,7 @@ const SuperAdminProgressManagement = () => {
           </Grid>
 
           {achievements.map((achievement) => (
-            <Grid item xs={12} md={6} key={achievement._id}>
+            <Grid size={{ xs: 12, md: 6 }} key={achievement._id}>
               <Card>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -470,7 +423,7 @@ const SuperAdminProgressManagement = () => {
       {/* Analytics Tab */}
       <TabPanel value={activeTab} index={2}>
         <Grid container spacing={3}>
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <Card>
               <CardContent>
                 <Typography variant="h6" color="primary">
@@ -483,7 +436,7 @@ const SuperAdminProgressManagement = () => {
             </Card>
           </Grid>
 
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <Card>
               <CardContent>
                 <Typography variant="h6" color="success.main">
@@ -568,13 +521,13 @@ const SuperAdminProgressManagement = () => {
         <DialogContent>
           {selectedUser && (
             <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="body2"><strong>Email:</strong> {selectedUser.email}</Typography>
                 <Typography variant="body2"><strong>Role:</strong> {selectedUser.role}</Typography>
                 <Typography variant="body2"><strong>Total Progress:</strong> {selectedUser.totalProgress}%</Typography>
                 <Typography variant="body2"><strong>Streak Days:</strong> {selectedUser.streakDays}</Typography>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="body2"><strong>Activities:</strong> {selectedUser.completedActivities}/{selectedUser.totalActivities}</Typography>
                 <Typography variant="body2"><strong>Achievements:</strong> {selectedUser.achievementsUnlocked}</Typography>
                 <Typography variant="body2"><strong>Total Points:</strong> {selectedUser.totalPoints}</Typography>

@@ -611,6 +611,34 @@ router.get('/performance-analytics/rental-performance', performanceAnalyticsCont
 router.get('/performance-analytics/api-performance', performanceAnalyticsController.getApiPerformanceMetrics);
 
 // ======================
+// VIRTUAL MUSEUM MANAGEMENT
+// ======================
+
+/**
+ * @route   GET /api/super-admin/virtual-museum
+ * @desc    Get all virtual artifacts
+ */
+router.get('/virtual-museum', superAdminController.getVirtualArtifacts);
+
+/**
+ * @route   POST /api/super-admin/virtual-museum
+ * @desc    Add artifact to virtual museum
+ */
+router.post('/virtual-museum', superAdminController.createVirtualArtifact);
+
+/**
+ * @route   PUT /api/super-admin/virtual-museum/:id
+ * @desc    Update virtual artifact
+ */
+router.put('/virtual-museum/:id', superAdminController.updateVirtualArtifact);
+
+/**
+ * @route   DELETE /api/super-admin/virtual-museum/:id
+ * @desc    Remove virtual artifact
+ */
+router.delete('/virtual-museum/:id', superAdminController.deleteVirtualArtifact);
+
+// ======================
 // ENHANCED USER MANAGEMENT ROUTES
 // ======================
 
