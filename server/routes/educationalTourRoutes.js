@@ -34,12 +34,12 @@ router.put('/:id/progress', updateUserProgress);
 router.post('/:id/feedback', submitFeedback);
 
 // Organizer specific routes
-router.get('/organizer/my-tours', authorize('organizer'), getOrganizerTours);
-router.get('/organizer/stats', authorize('organizer'), getOrganizerStats);
-router.post('/', authorize('organizer'), createTour);
-router.put('/:id', authorize('organizer'), updateTour);
-router.delete('/:id', authorize('organizer'), deleteTour);
-router.post('/:id/announcements', authorize('organizer'), addAnnouncement);
-router.put('/:tourId/enrollments/:userId', authorize('organizer'), updateEnrollmentStatus);
+router.get('/organizer/my-tours', authorize('organizer', 'superAdmin'), getOrganizerTours);
+router.get('/organizer/stats', authorize('organizer', 'superAdmin'), getOrganizerStats);
+router.post('/', authorize('organizer', 'superAdmin'), createTour);
+router.put('/:id', authorize('organizer', 'superAdmin'), updateTour);
+router.delete('/:id', authorize('organizer', 'superAdmin'), deleteTour);
+router.post('/:id/announcements', authorize('organizer', 'superAdmin'), addAnnouncement);
+router.put('/:tourId/enrollments/:userId', authorize('organizer', 'superAdmin'), updateEnrollmentStatus);
 
 module.exports = router;
