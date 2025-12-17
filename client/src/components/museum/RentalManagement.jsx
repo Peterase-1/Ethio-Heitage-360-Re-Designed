@@ -268,7 +268,9 @@ const RentalManagement = () => {
       request.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.requestId?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'all' || request.status === filterStatus;
-    const matchesType = filterType === 'all' || request.requestType === filterType;
+    const matchesType = filterType === 'all' ||
+      (filterType === 'outgoing' && request.requestType === 'museum_to_super') ||
+      (filterType === 'incoming' && request.requestType === 'super_to_museum');
     return matchesSearch && matchesStatus && matchesType;
   });
 
@@ -423,8 +425,8 @@ const RentalManagement = () => {
                   sx={{ borderRadius: 2 }}
                 >
                   <MenuItem value="all">All Types</MenuItem>
-                  <MenuItem value="museum_to_super">Museum → Super</MenuItem>
-                  <MenuItem value="super_to_museum">Super → Museum</MenuItem>
+                  <MenuItem value="outgoing">Sent (Museum → Super)</MenuItem>
+                  <MenuItem value="incoming">Received (Super → Museum)</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
