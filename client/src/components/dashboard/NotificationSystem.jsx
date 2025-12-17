@@ -5,6 +5,7 @@ import {
   Button, Card, CardContent, Chip, Collapse, Alert, Snackbar, Fade,
   useTheme, alpha, Tooltip
 } from '@mui/material';
+import api from '../../utils/api';
 import {
   Notifications, NotificationsActive, Close, ExpandMore, ExpandLess,
   CheckCircle, Warning, Error, Info, Security, Update, Person,
@@ -13,69 +14,12 @@ import {
 } from '@mui/icons-material';
 import { formatDistanceToNow } from 'date-fns';
 
-// Mock notification data
-const mockNotifications = [
-  {
-    id: 1,
-    type: 'success',
-    category: 'artifact',
-    title: 'New Artifact Approved',
-    message: 'Ancient Pottery artifact has been approved and is now live',
-    timestamp: new Date(Date.now() - 5 * 60 * 1000),
-    read: false,
-    priority: 'medium',
-    actionUrl: '/artifacts/123',
-    metadata: { artifactId: 123, museum: 'National Museum' }
-  },
-  {
-    id: 2,
-    type: 'warning',
-    category: 'system',
-    title: 'System Maintenance Scheduled',
-    message: 'Scheduled maintenance will occur on Sunday at 2:00 AM',
-    timestamp: new Date(Date.now() - 15 * 60 * 1000),
-    read: false,
-    priority: 'high',
-    actionUrl: '/system/maintenance'
-  },
-  {
-    id: 3,
-    type: 'info',
-    category: 'user',
-    title: 'New User Registration',
-    message: 'John Doe registered as a visitor',
-    timestamp: new Date(Date.now() - 30 * 60 * 1000),
-    read: true,
-    priority: 'low',
-    actionUrl: '/users/456'
-  },
-  {
-    id: 4,
-    type: 'error',
-    category: 'security',
-    title: 'Failed Login Attempts',
-    message: 'Multiple failed login attempts detected from IP 192.168.1.100',
-    timestamp: new Date(Date.now() - 45 * 60 * 1000),
-    read: false,
-    priority: 'critical',
-    actionUrl: '/security/logs'
-  },
-  {
-    id: 5,
-    type: 'success',
-    category: 'payment',
-    title: 'Payment Received',
-    message: 'Rental payment of ETB 500 received from University Museum',
-    timestamp: new Date(Date.now() - 60 * 60 * 1000),
-    read: true,
-    priority: 'medium',
-    actionUrl: '/payments/789'
-  }
-];
+// Mock notification data removed
+const mockNotifications = [];
 
 const getNotificationIcon = (category, type) => {
   const iconProps = { fontSize: 'small' };
-  
+
   switch (category) {
     case 'artifact': return <ArtTrack {...iconProps} />;
     case 'user': return <Person {...iconProps} />;
@@ -116,7 +60,7 @@ const getPriorityColor = (priority) => {
 
 const NotificationBell = ({ onNotificationClick }) => {
   const theme = useTheme();
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const [notifications, setNotifications] = useState([]);
   const [anchorEl, setAnchorEl] = useState(null);
   const [expandedCategories, setExpandedCategories] = useState({});
   const [filter, setFilter] = useState('all');
@@ -132,23 +76,7 @@ const NotificationBell = ({ onNotificationClick }) => {
     setAnchorEl(null);
   };
 
-  const handleMarkAsRead = (notificationId) => {
-    setNotifications(prev =>
-      prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
-    );
-  };
 
-  const handleMarkAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-  };
-
-  const handleDeleteNotification = (notificationId) => {
-    setNotifications(prev => prev.filter(n => n.id !== notificationId));
-  };
-
-  const handleClearAll = () => {
-    setNotifications([]);
-  };
 
   const toggleCategory = (category) => {
     setExpandedCategories(prev => ({
@@ -170,27 +98,71 @@ const NotificationBell = ({ onNotificationClick }) => {
     return acc;
   }, {});
 
-  // Simulate real-time notifications
+  // Real-time notifications
   useEffect(() => {
-    const interval = setInterval(() => {
-      // Simulate receiving a new notification
-      if (Math.random() > 0.9) { // 10% chance every interval
-        const newNotification = {
-          id: Date.now(),
-          type: ['success', 'info', 'warning'][Math.floor(Math.random() * 3)],
-          category: ['artifact', 'user', 'system'][Math.floor(Math.random() * 3)],
-          title: 'New Activity',
-          message: 'This is a simulated real-time notification',
-          timestamp: new Date(),
-          read: false,
-          priority: 'medium'
-        };
-        setNotifications(prev => [newNotification, ...prev]);
+    const fetchNotifications = async () => {
+      try {
+        const response = await api.getNotifications();
+        if (response.success && response.data) {
+          setNotifications(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error);
       }
-    }, 30000); // Every 30 seconds
+    };
 
+    fetchNotifications();
+
+    // Listen for new notifications via socket
+    // window.addEventListener('new_notification', (e) => {
+    //  setNotifications(prev => [e.detail, ...prev]);
+    // });
+
+    // Cleanup is handled by the socket hook if we used it here, 
+    // but for now we'll rely on the global socket listener or polling if needed. 
+    // Ideally pass socket prop or use useSocket hook.
+  }, []);
+
+  // Poll for notifications as backup (every 60s)
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const response = await api.getNotifications();
+      if (response.success && response.data) {
+        setNotifications(prev => {
+          // Merge logic to avoid duplicates if needed, or just replace
+          // If we want to keep local state (like read status) we need to be careful
+          // For now, replacing is safest to sync with server
+          return response.data;
+        });
+      }
+    }, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  const handleMarkAsRead = async (notificationId) => {
+    try {
+      await api.markNotificationRead(notificationId);
+      setNotifications(prev =>
+        prev.map(n => n._id === notificationId ? { ...n, read: true } : n)
+      );
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await api.markAllNotificationsRead();
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+    }
+  };
+
+  const handleDeleteNotification = (notificationId) => {
+    // API logic for delete if available
+    setNotifications(prev => prev.filter(n => n._id !== notificationId));
+  };
 
   return (
     <>
@@ -418,7 +390,7 @@ const NotificationCenter = () => {
       ...notification,
       id: toastId
     };
-    
+
     setToastNotifications(prev => [...prev, toastNotification]);
   }, []);
 
@@ -457,7 +429,7 @@ const NotificationCenter = () => {
   );
 };
 
-const ActivityFeed = ({ notifications = mockNotifications, maxItems = 10 }) => {
+const ActivityFeed = ({ notifications = [], maxItems = 10 }) => {
   const [expandedItems, setExpandedItems] = useState({});
 
   const toggleExpand = (id) => {
