@@ -21,33 +21,6 @@ const Auth = ({ darkMode, toggleDarkMode }) => {
   const [errors, setErrors] = useState({});
   const { login, register } = useAuth();
 
-  const userRoles = [
-    {
-      value: 'visitor',
-      label: 'Heritage Enthusiast / Visitor',
-      description: 'Explore virtual museums, join tours, and learn about Ethiopian heritage'
-    },
-    {
-      value: 'educator',
-      label: 'Educator / Researcher',
-      description: 'Access educational resources, research materials, and teaching tools'
-    },
-    {
-      value: 'tour_admin',
-      label: 'Tour Organizer / Guide',
-      description: 'Create and manage virtual tours, guide live sessions'
-    },
-    {
-      value: 'museum_admin',
-      label: 'Museum Administrator',
-      description: 'Manage museum collections, upload artifacts, and oversee exhibitions'
-    },
-    {
-      value: 'super_admin',
-      label: 'Super Administrator',
-      description: 'Full system access and management capabilities'
-    }
-  ];
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -148,7 +121,6 @@ const Auth = ({ darkMode, toggleDarkMode }) => {
     alert('Google Sign-In functionality will be integrated with your backend');
   };
 
-  const selectedRole = userRoles.find(role => role.value === formData.role);
 
   return (
     <div className="min-h-screen flex">
@@ -365,36 +337,6 @@ const Auth = ({ darkMode, toggleDarkMode }) => {
               </div>
             )}
 
-            {/* Account Type Selection */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Account Type
-              </label>
-              <div className="relative">
-                <select
-                  name="role"
-                  value={formData.role}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 rounded-xl border border-border bg-card text-card-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors appearance-none cursor-pointer"
-                >
-                  {userRoles.map((role) => (
-                    <option key={role.value} value={role.value}>
-                      {role.label}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
-              {selectedRole && (
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {selectedRole.description}
-                </p>
-              )}
-            </div>
 
             {/* Remember Me / Agree to Terms */}
             <div className="space-y-3">
