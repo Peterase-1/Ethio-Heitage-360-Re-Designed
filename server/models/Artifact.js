@@ -41,7 +41,7 @@ const artifactSchema = new mongoose.Schema({
     startYear: {
       type: Number,
       validate: {
-        validator: function(v) {
+        validator: function (v) {
           return v <= new Date().getFullYear();
         },
         message: 'Start year cannot be in the future'
@@ -50,8 +50,10 @@ const artifactSchema = new mongoose.Schema({
     endYear: {
       type: Number,
       validate: {
-        validator: function(v) {
-          return !v || v >= this.startYear;
+        validator: function (v) {
+          // Access startYear accurately regardless of context
+          const start = this.period ? this.period.startYear : this.startYear;
+          return !v || !start || v >= start;
         },
         message: 'End year must be after start year'
       }
@@ -111,7 +113,7 @@ const artifactSchema = new mongoose.Schema({
     enum: ['on_display', 'in_storage', 'under_conservation', 'on_loan', 'draft', 'pending-review', 'approved', 'published', 'archived'],
     default: 'in_storage'
   },
-  
+
   // Physical condition as per frontend requirements
   condition: {
     type: String,
@@ -119,19 +121,19 @@ const artifactSchema = new mongoose.Schema({
     default: 'good',
     required: true
   },
-  
+
   // Display status
   isOnDisplay: {
     type: Boolean,
     default: false
   },
-  
+
   // Featured artifact flag
   featured: {
     type: Boolean,
     default: false
   },
-  
+
   // Location within museum
   location: {
     type: String,
@@ -161,7 +163,7 @@ const artifactSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  
+
   // Physical Properties
   physicalProperties: {
     dimensions: {
@@ -188,7 +190,7 @@ const artifactSchema = new mongoose.Schema({
     colors: [String],
     techniques: [String]
   },
-  
+
   // Conservation and Care
   conservation: {
     history: [{
@@ -205,7 +207,7 @@ const artifactSchema = new mongoose.Schema({
     },
     nextMaintenanceDate: Date
   },
-  
+
   // Cultural and Historical Context
   culturalContext: {
     culturalGroup: String,
@@ -218,7 +220,7 @@ const artifactSchema = new mongoose.Schema({
       ref: 'Artifact'
     }]
   },
-  
+
   // Research and Documentation
   research: {
     publications: [{
@@ -244,7 +246,7 @@ const artifactSchema = new mongoose.Schema({
       technician: String
     }]
   },
-  
+
   // Rental and Availability
   availability: {
     isAvailableForRental: { type: Boolean, default: false },
@@ -259,7 +261,7 @@ const artifactSchema = new mongoose.Schema({
     securityDeposit: { type: Number, min: 0 },
     insuranceRequired: { type: Boolean, default: true }
   },
-  
+
   // Engagement and Analytics
   engagement: {
     averageViewTime: { type: Number, default: 0 }, // in seconds
@@ -276,7 +278,7 @@ const artifactSchema = new mongoose.Schema({
     }],
     lastUpdated: { type: Date, default: Date.now }
   },
-  
+
   // Quality Control
   qualityControl: {
     isVerified: { type: Boolean, default: false },
@@ -292,7 +294,7 @@ const artifactSchema = new mongoose.Schema({
       resolved: { type: Boolean, default: false }
     }]
   },
-  
+
   // SEO and Metadata
   seo: {
     slug: { type: String, unique: true },
@@ -301,11 +303,11 @@ const artifactSchema = new mongoose.Schema({
     keywords: [String],
     alternativeNames: [String]
   },
-  
+
   // Soft delete
   deletedAt: { type: Date, default: null },
   isActive: { type: Boolean, default: true }
-  
+
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
@@ -332,73 +334,73 @@ artifactSchema.index({ status: 1, visibility: 1, isActive: 1 }); // Public artif
 artifactSchema.index({ 'period.era': 1, 'origin.region': 1 }); // Historical origin search
 
 // Comprehensive virtual properties
-artifactSchema.virtual('likeCount').get(function() {
+artifactSchema.virtual('likeCount').get(function () {
   return this.likes ? this.likes.length : 0;
 });
 
-artifactSchema.virtual('bookmarkCount').get(function() {
+artifactSchema.virtual('bookmarkCount').get(function () {
   return this.engagement?.bookmarks ? this.engagement.bookmarks.length : 0;
 });
 
-artifactSchema.virtual('averageRating').get(function() {
+artifactSchema.virtual('averageRating').get(function () {
   if (!this.engagement?.ratings || this.engagement.ratings.length === 0) return 0;
   const sum = this.engagement.ratings.reduce((acc, rating) => acc + rating.rating, 0);
   return Math.round((sum / this.engagement.ratings.length) * 10) / 10;
 });
 
-artifactSchema.virtual('ratingCount').get(function() {
+artifactSchema.virtual('ratingCount').get(function () {
   return this.engagement?.ratings ? this.engagement.ratings.length : 0;
 });
 
-artifactSchema.virtual('primaryImage').get(function() {
+artifactSchema.virtual('primaryImage').get(function () {
   if (!this.media?.images || this.media.images.length === 0) return null;
   return this.media.images.find(img => img.isPrimary) || this.media.images[0];
 });
 
-artifactSchema.virtual('ageInYears').get(function() {
+artifactSchema.virtual('ageInYears').get(function () {
   if (!this.period?.startYear) return null;
   return new Date().getFullYear() - this.period.startYear;
 });
 
-artifactSchema.virtual('displayName').get(function() {
+artifactSchema.virtual('displayName').get(function () {
   return this.name || 'Unnamed Artifact';
 });
 
 // Instance methods
-artifactSchema.methods.incrementViews = async function() {
+artifactSchema.methods.incrementViews = async function () {
   this.views += 1;
   this.engagement.totalInteractions += 1;
   this.engagement.lastUpdated = new Date();
   return await this.save();
 };
 
-artifactSchema.methods.addLike = async function(userId) {
+artifactSchema.methods.addLike = async function (userId) {
   // Check if user already liked
   const existingLike = this.likes.find(like => like.user.toString() === userId.toString());
   if (existingLike) {
     throw new Error('User has already liked this artifact');
   }
-  
+
   this.likes.push({ user: userId });
   this.engagement.totalInteractions += 1;
   this.engagement.lastUpdated = new Date();
   return await this.save();
 };
 
-artifactSchema.methods.removeLike = async function(userId) {
+artifactSchema.methods.removeLike = async function (userId) {
   this.likes = this.likes.filter(like => like.user.toString() !== userId.toString());
   this.engagement.lastUpdated = new Date();
   return await this.save();
 };
 
-artifactSchema.methods.addBookmark = async function(userId) {
+artifactSchema.methods.addBookmark = async function (userId) {
   // Check if user already bookmarked
-  const existingBookmark = this.engagement.bookmarks?.find(bookmark => 
+  const existingBookmark = this.engagement.bookmarks?.find(bookmark =>
     bookmark.user.toString() === userId.toString());
   if (existingBookmark) {
     throw new Error('User has already bookmarked this artifact');
   }
-  
+
   if (!this.engagement.bookmarks) this.engagement.bookmarks = [];
   this.engagement.bookmarks.push({ user: userId });
   this.engagement.totalInteractions += 1;
@@ -406,16 +408,16 @@ artifactSchema.methods.addBookmark = async function(userId) {
   return await this.save();
 };
 
-artifactSchema.methods.removeBookmark = async function(userId) {
+artifactSchema.methods.removeBookmark = async function (userId) {
   if (this.engagement.bookmarks) {
-    this.engagement.bookmarks = this.engagement.bookmarks.filter(bookmark => 
+    this.engagement.bookmarks = this.engagement.bookmarks.filter(bookmark =>
       bookmark.user.toString() !== userId.toString());
   }
   this.engagement.lastUpdated = new Date();
   return await this.save();
 };
 
-artifactSchema.methods.addRating = async function(userId, rating, review = '') {
+artifactSchema.methods.addRating = async function (userId, rating, review = '') {
   // Check if user already rated
   const existingRating = this.engagement.ratings?.find(r => r.user.toString() === userId.toString());
   if (existingRating) {
@@ -428,115 +430,115 @@ artifactSchema.methods.addRating = async function(userId, rating, review = '') {
     if (!this.engagement.ratings) this.engagement.ratings = [];
     this.engagement.ratings.push({ user: userId, rating, review });
   }
-  
+
   this.engagement.totalInteractions += 1;
   this.engagement.lastUpdated = new Date();
   return await this.save();
 };
 
-artifactSchema.methods.updateQualityScore = function() {
+artifactSchema.methods.updateQualityScore = function () {
   let score = 0;
   let maxScore = 100;
-  
+
   // Basic information completeness (30 points)
   if (this.name) score += 5;
   if (this.description && this.description.length >= 50) score += 10;
   if (this.category) score += 5;
   if (this.accessionNumber) score += 5;
   if (this.period?.era) score += 5;
-  
+
   // Media quality (25 points)
   if (this.media?.images?.length > 0) score += 10;
   if (this.media?.images?.some(img => img.isPrimary)) score += 5;
   if (this.media?.images?.length >= 3) score += 5;
   if (this.media?.videos?.length > 0) score += 5;
-  
+
   // Historical context (20 points)
   if (this.period?.startYear) score += 5;
   if (this.origin?.region) score += 5;
   if (this.culturalContext?.significance) score += 5;
   if (this.culturalContext?.usage) score += 5;
-  
+
   // Physical properties (15 points)
   if (this.physicalProperties?.materials?.length > 0) score += 5;
   if (this.physicalProperties?.dimensions?.length) score += 5;
   if (this.physicalProperties?.condition?.overall) score += 5;
-  
+
   // Research and verification (10 points)
   if (this.qualityControl?.isVerified) score += 10;
-  
+
   this.qualityControl.qualityScore = Math.min(score, maxScore);
   this.qualityControl.completeness = (score / maxScore) * 100;
 };
 
-artifactSchema.methods.generateSlug = function() {
+artifactSchema.methods.generateSlug = function () {
   if (!this.name) return;
-  
+
   let baseSlug = this.name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
-  
+
   // Add accession number for uniqueness
   if (this.accessionNumber) {
     baseSlug += '-' + this.accessionNumber.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   }
-  
+
   this.seo.slug = baseSlug;
 };
 
-artifactSchema.methods.softDelete = async function() {
+artifactSchema.methods.softDelete = async function () {
   this.deletedAt = new Date();
   this.isActive = false;
   return await this.save();
 };
 
-artifactSchema.methods.restore = async function() {
+artifactSchema.methods.restore = async function () {
   this.deletedAt = null;
   this.isActive = true;
   return await this.save();
 };
 
 // Static methods
-artifactSchema.statics.findPublic = function() {
-  return this.find({ 
-    status: 'published', 
-    visibility: 'public', 
-    isActive: true, 
-    deletedAt: null 
+artifactSchema.statics.findPublic = function () {
+  return this.find({
+    status: 'published',
+    visibility: 'public',
+    isActive: true,
+    deletedAt: null
   });
 };
 
-artifactSchema.statics.findByMuseum = function(museumId) {
-  return this.find({ 
-    museum: museumId, 
-    isActive: true, 
-    deletedAt: null 
+artifactSchema.statics.findByMuseum = function (museumId) {
+  return this.find({
+    museum: museumId,
+    isActive: true,
+    deletedAt: null
   });
 };
 
-artifactSchema.statics.findByCategory = function(category) {
-  return this.find({ 
-    category, 
-    status: 'published', 
-    visibility: 'public', 
-    isActive: true, 
-    deletedAt: null 
+artifactSchema.statics.findByCategory = function (category) {
+  return this.find({
+    category,
+    status: 'published',
+    visibility: 'public',
+    isActive: true,
+    deletedAt: null
   });
 };
 
-artifactSchema.statics.findByPeriod = function(era) {
-  return this.find({ 
-    'period.era': era, 
-    status: 'published', 
-    visibility: 'public', 
-    isActive: true, 
-    deletedAt: null 
+artifactSchema.statics.findByPeriod = function (era) {
+  return this.find({
+    'period.era': era,
+    status: 'published',
+    visibility: 'public',
+    isActive: true,
+    deletedAt: null
   });
 };
 
-artifactSchema.statics.findAvailableForRental = function() {
-  return this.find({ 
+artifactSchema.statics.findAvailableForRental = function () {
+  return this.find({
     'availability.isAvailableForRental': true,
     status: 'published',
     visibility: 'public',
@@ -545,16 +547,16 @@ artifactSchema.statics.findAvailableForRental = function() {
   });
 };
 
-artifactSchema.statics.searchArtifacts = function(searchTerm, filters = {}) {
-  let query = { 
-    isActive: true, 
-    deletedAt: null 
+artifactSchema.statics.searchArtifacts = function (searchTerm, filters = {}) {
+  let query = {
+    isActive: true,
+    deletedAt: null
   };
-  
+
   if (searchTerm) {
     query.$text = { $search: searchTerm };
   }
-  
+
   // Apply filters
   if (filters.category) query.category = filters.category;
   if (filters.era) query['period.era'] = filters.era;
@@ -563,36 +565,36 @@ artifactSchema.statics.searchArtifacts = function(searchTerm, filters = {}) {
   if (filters.visibility) query.visibility = filters.visibility;
   if (filters.availableForRental) query['availability.isAvailableForRental'] = true;
   if (filters.verified) query['qualityControl.isVerified'] = true;
-  
+
   return this.find(query);
 };
 
 // Pre-save middleware
-artifactSchema.pre('save', function(next) {
+artifactSchema.pre('save', function (next) {
   // Generate slug if name changed
   if (this.isModified('name') || this.isModified('accessionNumber')) {
     this.generateSlug();
   }
-  
+
   // Update quality score if relevant fields changed
-  if (this.isModified('name') || this.isModified('description') || 
-      this.isModified('media') || this.isModified('period') ||
-      this.isModified('physicalProperties') || this.isModified('culturalContext')) {
+  if (this.isModified('name') || this.isModified('description') ||
+    this.isModified('media') || this.isModified('period') ||
+    this.isModified('physicalProperties') || this.isModified('culturalContext')) {
     this.updateQualityScore();
   }
-  
+
   // Ensure only one primary image
   if (this.media?.images?.length > 0) {
     let primaryCount = 0;
     let lastPrimaryIndex = -1;
-    
+
     this.media.images.forEach((image, index) => {
       if (image.isPrimary) {
         primaryCount++;
         lastPrimaryIndex = index;
       }
     });
-    
+
     if (primaryCount > 1) {
       this.media.images.forEach((image, index) => {
         image.isPrimary = index === lastPrimaryIndex;
@@ -601,17 +603,17 @@ artifactSchema.pre('save', function(next) {
       this.media.images[0].isPrimary = true;
     }
   }
-  
+
   // Update engagement timestamp
   if (this.isModified()) {
     this.engagement.lastUpdated = new Date();
   }
-  
+
   next();
 });
 
 // Pre-find middleware to exclude soft deleted
-artifactSchema.pre(/^find/, function(next) {
+artifactSchema.pre(/^find/, function (next) {
   this.where({ deletedAt: null });
   next();
 });

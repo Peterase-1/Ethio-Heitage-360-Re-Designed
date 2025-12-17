@@ -1,112 +1,79 @@
-$files = git status -u --porcelain | ForEach-Object { 
-    $line = $_.Trim()
-    # Handle the status code prefix (usually 2 chars + space = 3 chars, but Trim removes leading space if any)
-    # Porcelain format: XY Path
-    # If X or Y is ?, it's ??
-    # We want the path part.
-    # Split by space and take the rest? No, filenames can have spaces.
-    # Pattern: ^(..)\s+(.*)$
-    if ($line -match "^(..)\s+(.*)$") {
-        $Matches[2].Trim('"') # Remove quotes if present
-    }
+$ErrorActionPreference = "Stop"
+
+# Configuration
+$TargetChanges = 90
+$TotalCommits = 60
+$CommitsDay1 = 35
+$CommitsDay2 = 25
+$Date1 = Get-Date -Date "2025-12-17 09:00:00"
+$Date2 = Get-Date -Date "2025-12-18 09:00:00"
+
+# 1. Get all file paths
+Write-Host "Detecting changes..."
+git add -A
+$files = git diff --name-only --cached
+git reset
+$fileList = $files -split "`n" | Where-Object { $_ -ne "" }
+
+$count = $fileList.Count
+Write-Host "Found $count changed files."
+
+if ($count -lt $TotalCommits) {
+    Write-Warning "Not enough files ($count) for $TotalCommits commits. Each valid file will be a commit, up to available count."
+    $TotalCommits = $count
 }
 
-$totalFiles = $files.Count
-$targetCommits = 35 + 45 + 35 + 50 # 165
-$actualCommits = $targetCommits
-
-Write-Host "Total Files to commit: $totalFiles"
-Write-Host "Target Commits: $targetCommits"
-
-if ($totalFiles -eq 0) {
-    Write-Host "No files changed. Exiting."
-    Exit
+# 2. Distribute files
+# We need to distribute $count files into $TotalCommits groups
+# Implementation: simple round-robin or chunking
+$groups = @()
+for ($i = 0; $i -lt $TotalCommits; $i++) {
+    $groups += ,@() # Array of arrays
 }
 
-# Determine file distribution
-# We want to use all files across $targetCommits.
-# Some commits will have (Total / Target) rounded up, some rounded down.
-# Or simpler:
-# Commits with 2 files = Files - Commits (if simple case of 1 or 2)
-# If Files < Commits, we can't make target commits unless empty commits?
-# Assuming Files >= Commits based on user prompt (252 > 165).
-$commitsWithMore = $totalFiles - $targetCommits
-if ($commitsWithMore -lt 0) { $commitsWithMore = 0 } # Should not happen
-
-$batches = @()
-$fileIndex = 0
-
-for ($i = 0; $i -lt $targetCommits; $i++) {
-    if ($fileIndex -ge $totalFiles) { 
-        # Run out of files, stop or create empty? 
-        # User requested specific number of commits, but if we ran out of files, we stop.
-        break 
-    }
-    
-    $count = 1
-    if ($i -lt $commitsWithMore) {
-        $count = 2
-    }
-    
-    # Take files
-    $batch = @()
-    for ($j = 0; $j -lt $count; $j++) {
-        if ($fileIndex -lt $totalFiles) {
-            $batch += $files[$fileIndex]
-            $fileIndex++
-        }
-    }
-    $batches += ,$batch
+for ($i = 0; $i -lt $count; $i++) {
+    $groupIndex = $i % $TotalCommits
+    # Only if we want to limit to exactly 90 changes (files), we stop
+    if ($i -ge $TargetChanges) { break }
+    $groups[$groupIndex] += $fileList[$i]
 }
 
-Write-Host "Created $($batches.Count) batches."
+# 3. Commit Loop
+Write-Host "Starting commits..."
 
-# Define Days
-$days = @(
-    @{ date = "2025-12-13T09:00:00"; count = 35 },
-    @{ date = "2025-12-14T09:00:00"; count = 45 },
-    @{ date = "2025-12-15T09:00:00"; count = 35 },
-    @{ date = "2025-12-16T09:00:00"; count = 50 }
-)
-
-$batchIndex = 0
-
-foreach ($day in $days) {
-    $baseDate = Get-Date $day.date
-    $count = $day.count
-    
-    Write-Host "Processing $($day.date) - Planned Commits: $count"
-    
-    for ($i = 0; $i -lt $count; $i++) {
-        if ($batchIndex -ge $batches.Count) { 
-             Write-Host "  No more files to commit."
-             break 
-        }
-        
-        $filesToCommit = $batches[$batchIndex]
-        $batchIndex++
-        
-        # Add files
-        foreach ($f in $filesToCommit) {
-            # Use dot for relative path if needed, but simple string usually works
-            git add "$f"
-        }
-        
-        # Calculate time with offset
-        $minutes = $i * 15 # Spread out over the day
-        $commitDate = $baseDate.AddMinutes($minutes).ToString("yyyy-MM-dd HH:mm:ss")
-        
-        # Message
-        $msg = "Update " + ($filesToCommit[0] -replace ".*[\\/]", "") # just filename
-        if ($filesToCommit.Count -gt 1) { $msg += " and related files" }
-        
-        # Commit with date
-        $env:GIT_AUTHOR_DATE = "$commitDate"
-        $env:GIT_COMMITTER_DATE = "$commitDate"
-        
-        # Suppress output for clean log
-        git commit -m "$msg" --date "$commitDate" | Out-Null
-        
-        Write-Host "  [$($batchIndex)/$($batches.Count)] Committed on $commitDate : $msg"
+for ($i = 0; $i -lt $TotalCommits; $i++) {
+    $filesToCommit = $groups[$i]
+    if ($null -eq $filesToCommit -or $filesToCommit.Count -eq 0) {
+        continue
     }
+
+    # Determine Date
+    if ($i -lt $CommitsDay1) {
+        # Day 1
+        $commitDate = $Date1.AddMinutes($i * 5)
+    } else {
+        # Day 2
+        $offset = $i - $CommitsDay1
+        $commitDate = $Date2.AddMinutes($offset * 5)
+    }
+    
+    $dateStr = $commitDate.ToString("yyyy-MM-dd HH:mm:ss")
+    
+    # Git Add
+    foreach ($file in $filesToCommit) {
+        git add $file
+    }
+    
+    # Git Commit
+    $msg = "Update $($filesToCommit[0])"
+    if ($filesToCommit.Count -gt 1) {
+        $msg += " and $($filesToCommit.Count - 1) other files"
+    }
+    
+    $env:GIT_COMMITTER_DATE = "$dateStr"
+    git commit -m "$msg" --date "$dateStr" | Out-Null
+    
+    Write-Host "[$($i+1)/$TotalCommits] Committed on $dateStr : $msg"
 }
+
+Write-Host "Done."
