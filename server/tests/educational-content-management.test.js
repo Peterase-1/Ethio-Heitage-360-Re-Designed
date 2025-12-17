@@ -65,7 +65,11 @@ async function apiRequest(method, url, data = null) {
     const response = await axios(config);
     return response.data;
   } catch (error) {
-    throw error.response ? error.response.data : error;
+    if (error.response && error.response.data) {
+      const data = error.response.data;
+      throw new Error(data.message + (data.error ? `: ${data.error}` : ''));
+    }
+    throw error;
   }
 }
 
@@ -91,7 +95,7 @@ async function authenticate() {
     }
   } catch (error) {
     console.log('❌ Authentication failed:', error.message);
-    
+
     // Try to create admin user if login fails
     try {
       console.log('🔐 Attempting to create admin user...');
@@ -139,7 +143,7 @@ async function testCourseManagement() {
     assert(createResponse.success, 'Course creation should succeed');
     assert(createResponse.course._id, 'Course should have an ID');
     testCourseId = createResponse.course._id;
-    
+
     logTest('Create Course', true);
   } catch (error) {
     logTest('Create Course', false, error);
@@ -151,7 +155,7 @@ async function testCourseManagement() {
     assert(coursesResponse.success, 'Get courses should succeed');
     assert(Array.isArray(coursesResponse.courses), 'Should return courses array');
     assert(coursesResponse.pagination, 'Should include pagination');
-    
+
     logTest('Get All Courses', true);
   } catch (error) {
     logTest('Get All Courses', false, error);
@@ -167,7 +171,7 @@ async function testCourseManagement() {
     const updateResponse = await apiRequest('PUT', `/admin/courses/${testCourseId}`, updateData);
     assert(updateResponse.success, 'Course update should succeed');
     assert(updateResponse.course.description.includes('Updated'), 'Course description should be updated');
-    
+
     logTest('Update Course', true);
   } catch (error) {
     logTest('Update Course', false, error);
@@ -178,7 +182,7 @@ async function testCourseManagement() {
     const searchResponse = await apiRequest('GET', '/admin/courses?search=Test Ethiopian&category=history');
     assert(searchResponse.success, 'Course search should succeed');
     assert(searchResponse.courses.length > 0, 'Should find matching courses');
-    
+
     logTest('Search Courses', true);
   } catch (error) {
     logTest('Search Courses', false, error);
@@ -232,7 +236,7 @@ async function testLessonManagement() {
     assert(createResponse.success, 'Lesson creation should succeed');
     assert(createResponse.lesson._id, 'Lesson should have an ID');
     testLessonId = createResponse.lesson._id;
-    
+
     logTest('Create Lesson', true);
   } catch (error) {
     logTest('Create Lesson', false, error);
@@ -243,7 +247,7 @@ async function testLessonManagement() {
     const lessonsResponse = await apiRequest('GET', '/admin/lessons?courseId=' + testCourseId);
     assert(lessonsResponse.success, 'Get lessons should succeed');
     assert(Array.isArray(lessonsResponse.lessons), 'Should return lessons array');
-    
+
     logTest('Get All Lessons', true);
   } catch (error) {
     logTest('Get All Lessons', false, error);
@@ -255,7 +259,7 @@ async function testLessonManagement() {
     assert(lessonResponse.success, 'Get lesson details should succeed');
     assert(lessonResponse.lesson._id === testLessonId, 'Should return correct lesson');
     assert(lessonResponse.lesson.stats, 'Should include lesson statistics');
-    
+
     logTest('Get Single Lesson Details', true);
   } catch (error) {
     logTest('Get Single Lesson Details', false, error);
@@ -271,7 +275,7 @@ async function testLessonManagement() {
     const updateResponse = await apiRequest('PUT', `/admin/lessons/${testLessonId}`, updateData);
     assert(updateResponse.success, 'Lesson update should succeed');
     assert(updateResponse.lesson.estimatedDuration === 50, 'Duration should be updated');
-    
+
     logTest('Update Lesson', true);
   } catch (error) {
     logTest('Update Lesson', false, error);
@@ -290,7 +294,7 @@ async function testLessonManagement() {
 
     const reorderResponse = await apiRequest('PATCH', `/admin/courses/${testCourseId}/lessons/reorder`, reorderData);
     assert(reorderResponse.success, 'Lesson reordering should succeed');
-    
+
     logTest('Reorder Lessons', true);
   } catch (error) {
     logTest('Reorder Lessons', false, error);
@@ -308,7 +312,7 @@ async function testLessonManagement() {
 
     const bulkResponse = await apiRequest('PATCH', '/admin/lessons/bulk', bulkData);
     assert(bulkResponse.success, 'Bulk lesson operations should succeed');
-    
+
     logTest('Bulk Lesson Operations', true);
   } catch (error) {
     logTest('Bulk Lesson Operations', false, error);
@@ -331,7 +335,7 @@ async function testEnrollmentManagement() {
 
     const enrollResponse = await apiRequest('PATCH', '/admin/enrollments/bulk', enrollmentData);
     assert(enrollResponse.success, 'Test enrollment should succeed');
-    
+
     logTest('Create Test Enrollment', true);
   } catch (error) {
     logTest('Create Test Enrollment', false, error);
@@ -342,11 +346,11 @@ async function testEnrollmentManagement() {
     const enrollmentsResponse = await apiRequest('GET', '/admin/enrollments?page=1&limit=10');
     assert(enrollmentsResponse.success, 'Get enrollments should succeed');
     assert(Array.isArray(enrollmentsResponse.enrollments), 'Should return enrollments array');
-    
+
     if (enrollmentsResponse.enrollments.length > 0) {
       testEnrollmentId = enrollmentsResponse.enrollments[0].enrollmentId;
     }
-    
+
     logTest('Get All Enrollments', true);
   } catch (error) {
     logTest('Get All Enrollments', false, error);
@@ -358,7 +362,7 @@ async function testEnrollmentManagement() {
     assert(analyticsResponse.success, 'Enrollment analytics should succeed');
     assert(analyticsResponse.analytics, 'Should return analytics data');
     assert(analyticsResponse.analytics.timeRange === '30d', 'Should respect time range parameter');
-    
+
     logTest('Get Enrollment Analytics', true);
   } catch (error) {
     logTest('Get Enrollment Analytics', false, error);
@@ -369,7 +373,7 @@ async function testEnrollmentManagement() {
     const detailsResponse = await apiRequest('GET', `/admin/enrollments/${testUserId}/${testCourseId}`);
     assert(detailsResponse.success, 'Get enrollment details should succeed');
     assert(detailsResponse.enrollment, 'Should return enrollment details');
-    
+
     logTest('Get Enrollment Details', true);
   } catch (error) {
     logTest('Get Enrollment Details', false, error);
@@ -386,7 +390,7 @@ async function testEnrollmentManagement() {
 
       const statusResponse = await apiRequest('PATCH', '/admin/enrollments/bulk', statusData);
       assert(statusResponse.success, 'Bulk status change should succeed');
-      
+
       logTest('Change Enrollment Status', true);
     } else {
       logTest('Change Enrollment Status', false, 'No enrollment ID available');
@@ -405,15 +409,16 @@ async function testAchievementManagement() {
   // Test Create Achievement
   try {
     const achievementData = {
-      title: 'Test Heritage Explorer',
-      description: 'Complete 3 heritage-related test courses',
-      type: 'course_completion',
-      category: 'heritage',
+      id: `TEST-ACH-${Date.now()}`,
+      name: `Test Heritage Explorer ${Math.floor(Math.random() * 10000)}`,
+      description: 'Complete 3 culture-related test courses',
+      type: 'course_complete',
+      category: 'culture',
       difficulty: 'intermediate',
       criteria: {
-        type: 'course_completion',
-        requiredCount: 3,
-        categoryFilter: 'heritage'
+        type: 'courses_completed',
+        threshold: 3,
+        category: 'culture'
       },
       reward: {
         points: 100,
@@ -426,7 +431,7 @@ async function testAchievementManagement() {
     assert(createResponse.success, 'Achievement creation should succeed');
     assert(createResponse.achievement._id, 'Achievement should have an ID');
     testAchievementId = createResponse.achievement._id;
-    
+
     logTest('Create Achievement', true);
   } catch (error) {
     logTest('Create Achievement', false, error);
@@ -437,7 +442,7 @@ async function testAchievementManagement() {
     const achievementsResponse = await apiRequest('GET', '/admin/achievements?page=1&limit=10');
     assert(achievementsResponse.success, 'Get achievements should succeed');
     assert(Array.isArray(achievementsResponse.achievements), 'Should return achievements array');
-    
+
     logTest('Get All Achievements', true);
   } catch (error) {
     logTest('Get All Achievements', false, error);
@@ -453,7 +458,7 @@ async function testAchievementManagement() {
     const updateResponse = await apiRequest('PUT', `/admin/achievements/${testAchievementId}`, updateData);
     assert(updateResponse.success, 'Achievement update should succeed');
     assert(updateResponse.achievement.difficulty === 'advanced', 'Difficulty should be updated');
-    
+
     logTest('Update Achievement', true);
   } catch (error) {
     logTest('Update Achievement', false, error);
@@ -461,9 +466,9 @@ async function testAchievementManagement() {
 
   // Test Search Achievements
   try {
-    const searchResponse = await apiRequest('GET', '/admin/achievements?search=Test Heritage&category=heritage');
+    const searchResponse = await apiRequest('GET', '/admin/achievements?search=Test Heritage&category=culture');
     assert(searchResponse.success, 'Achievement search should succeed');
-    
+
     logTest('Search Achievements', true);
   } catch (error) {
     logTest('Search Achievements', false, error);
@@ -481,11 +486,11 @@ async function testCertificateManagement() {
     const certificatesResponse = await apiRequest('GET', '/admin/certificates?page=1&limit=10');
     assert(certificatesResponse.success, 'Get certificates should succeed');
     assert(Array.isArray(certificatesResponse.certificates), 'Should return certificates array');
-    
+
     if (certificatesResponse.certificates.length > 0) {
       testCertificateId = certificatesResponse.certificates[0]._id;
     }
-    
+
     logTest('Get All Certificates', true);
   } catch (error) {
     logTest('Get All Certificates', false, error);
@@ -495,7 +500,7 @@ async function testCertificateManagement() {
   try {
     const searchResponse = await apiRequest('GET', '/admin/certificates?search=test&status=active');
     assert(searchResponse.success, 'Certificate search should succeed');
-    
+
     logTest('Search Certificates', true);
   } catch (error) {
     logTest('Search Certificates', false, error);
@@ -511,7 +516,7 @@ async function testCertificateManagement() {
 
       const revokeResponse = await apiRequest('PATCH', `/admin/certificates/${testCertificateId}/revoke`, revokeData);
       assert(revokeResponse.success, 'Certificate revocation should succeed');
-      
+
       logTest('Revoke Certificate', true);
     } catch (error) {
       logTest('Revoke Certificate', false, error);
@@ -521,7 +526,7 @@ async function testCertificateManagement() {
     try {
       const regenerateResponse = await apiRequest('PATCH', `/admin/certificates/${testCertificateId}/regenerate`);
       assert(regenerateResponse.success, 'Certificate regeneration should succeed');
-      
+
       logTest('Regenerate Certificate', true);
     } catch (error) {
       logTest('Regenerate Certificate', false, error);
@@ -544,7 +549,7 @@ async function testCategoryManagement() {
     assert(categoriesResponse.success, 'Get categories should succeed');
     assert(categoriesResponse.categories, 'Should return categories data');
     assert(categoriesResponse.categories.courses, 'Should include course categories');
-    
+
     logTest('Get Category Management Data', true);
   } catch (error) {
     logTest('Get Category Management Data', false, error);
@@ -565,7 +570,7 @@ async function testDashboardStatistics() {
     assert(statsResponse.stats.courses, 'Should include course statistics');
     assert(statsResponse.stats.lessons, 'Should include lesson statistics');
     assert(statsResponse.stats.enrollments, 'Should include enrollment statistics');
-    
+
     logTest('Get Admin Statistics', true);
   } catch (error) {
     logTest('Get Admin Statistics', false, error);
@@ -614,7 +619,7 @@ async function cleanupTestData() {
  */
 async function runTests() {
   console.log('🚀 Starting Educational Content Management API Tests...');
-  console.log('=' .repeat(60));
+  console.log('='.repeat(60));
 
   // Authenticate first
   const authSuccess = await authenticate();
@@ -636,9 +641,9 @@ async function runTests() {
   await cleanupTestData();
 
   // Print test summary
-  console.log('\n' + '=' .repeat(60));
+  console.log('\n' + '='.repeat(60));
   console.log('📊 TEST SUMMARY');
-  console.log('=' .repeat(60));
+  console.log('='.repeat(60));
   console.log(`✅ Passed: ${testResults.passed}`);
   console.log(`❌ Failed: ${testResults.failed}`);
   console.log(`📈 Total: ${testResults.passed + testResults.failed}`);

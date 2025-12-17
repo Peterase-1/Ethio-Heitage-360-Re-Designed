@@ -1,14 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, TextField, FormControl, InputLabel, Select, MenuItem,
-  Grid, Box, Typography, Chip, FormControlLabel, Checkbox,
-  Alert, CircularProgress, Autocomplete, Paper, Divider
-} from '@mui/material';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "../ui/dialog";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Checkbox } from "../ui/checkbox";
+import { Badge } from "../ui/badge";
+import { Textarea } from "../ui/textarea";
 import {
-  Calendar, Clock, UserCheck, UserX, Save, X, Plus, Trash2
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import {
+  Calendar,
+  Clock,
+  UserCheck,
+  UserX,
+  Save,
+  X,
+  Plus,
+  Trash2,
+  Loader2
 } from 'lucide-react';
 import staffService from '../../services/staffService';
+import { toast } from 'sonner';
 
 // ======================
 // PERMISSIONS DIALOG
@@ -17,7 +40,6 @@ export const PermissionsDialog = ({ open, onClose, staff, onUpdate }) => {
   const [permissions, setPermissions] = useState([]);
   const [availablePermissions, setAvailablePermissions] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (open && staff) {
@@ -31,7 +53,7 @@ export const PermissionsDialog = ({ open, onClose, staff, onUpdate }) => {
       const response = await staffService.getRolesAndPermissions();
       setAvailablePermissions(response.data.permissions);
     } catch (err) {
-      setError('Failed to load permissions');
+      toast.error('Failed to load permissions');
     }
   };
 
@@ -46,116 +68,93 @@ export const PermissionsDialog = ({ open, onClose, staff, onUpdate }) => {
   const handleSave = async () => {
     try {
       setLoading(true);
-      console.log('PermissionsDialog - Staff object:', staff);
-      console.log('PermissionsDialog - Staff ID:', staff?._id || staff?.id);
-
       const staffId = staff?._id || staff?.id;
       if (!staffId) {
-        console.error('Staff ID is missing. Staff object:', staff);
-        console.error('Available staff properties:', Object.keys(staff || {}));
-        setError('Staff ID is missing. Cannot update permissions. Please refresh the page and try again.');
+        toast.error('Staff ID is missing. Cannot update permissions.');
         return;
       }
-
-      console.log('Using staff ID for permissions update:', staffId);
 
       await onUpdate(staffId, permissions);
       onClose();
     } catch (err) {
       console.error('PermissionsDialog - Save error:', err);
-      setError(err.message || 'Failed to update permissions');
+      toast.error(err.message || 'Failed to update permissions');
     } finally {
       setLoading(false);
     }
   };
 
-  if (!staff) {
-    console.log('PermissionsDialog - No staff object provided');
-    return null;
-  }
-
-  console.log('PermissionsDialog - Staff object received:', staff);
-  console.log('PermissionsDialog - Staff ID fields:', { _id: staff._id, id: staff.id });
+  if (!staff) return null;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        Manage Permissions - {staff.name}
-      </DialogTitle>
-      <DialogContent>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+    <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>Manage Permissions - {staff.name}</DialogTitle>
+        </DialogHeader>
 
-        <Typography variant="h6" gutterBottom>
-          Current Role: {staff.role}
-        </Typography>
+        <div className="py-4">
+          <div className="mb-4">
+            <div className="text-sm font-medium mb-1">Current Role</div>
+            <div className="text-sm text-muted-foreground">{staff.role}</div>
+          </div>
 
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Select the permissions for this staff member. Permissions control what actions they can perform in the system.
-        </Typography>
+          <div className="text-sm text-muted-foreground mb-4">
+            Select the permissions for this staff member. Permissions control what actions they can perform in the system.
+          </div>
 
-        <Grid container spacing={2}>
-          {availablePermissions.map((permission) => (
-            <Grid item xs={12} sm={6} md={4} key={permission}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={permissions.includes(permission)}
-                    onChange={() => handlePermissionToggle(permission)}
-                  />
-                }
-                label={
-                  <Typography variant="body2">
-                    {permission.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                  </Typography>
-                }
-              />
-            </Grid>
-          ))}
-        </Grid>
-
-        <Box sx={{ mt: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Selected Permissions ({permissions.length})
-          </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            {permissions.map((permission) => (
-              <Chip
-                key={permission}
-                label={permission.replace('_', ' ')}
-                onDelete={() => handlePermissionToggle(permission)}
-                size="small"
-                sx={{
-                  backgroundColor: '#8B5A3C',
-                  color: 'white',
-                  '&:hover': { backgroundColor: '#8B5A3C' }
-                }}
-              />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[300px] overflow-y-auto p-1">
+            {availablePermissions.map((permission) => (
+              <div key={permission} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`perm-${permission}`}
+                  checked={permissions.includes(permission)}
+                  onCheckedChange={() => handlePermissionToggle(permission)}
+                />
+                <Label
+                  htmlFor={`perm-${permission}`}
+                  className="text-sm font-normal cursor-pointer"
+                >
+                  {permission.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </Label>
+              </div>
             ))}
-          </Box>
-        </Box>
+          </div>
+
+          <div className="mt-6">
+            <div className="text-sm font-medium mb-2">
+              Selected Permissions ({permissions.length})
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {permissions.map((permission) => (
+                <Badge
+                  key={permission}
+                  variant="secondary"
+                  className="flex items-center gap-1 pr-1"
+                >
+                  {permission.replace('_', ' ')}
+                  <button
+                    onClick={() => handlePermissionToggle(permission)}
+                    className="ml-1 hover:text-destructive focus:outline-none"
+                  >
+                    <X size={12} />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={loading}>
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            {loading ? 'Saving...' : 'Save Permissions'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button
-          onClick={onClose}
-          startIcon={<X size={16} />}
-          sx={{ color: '#8B5A3C' }}
-        >
-          Cancel
-        </Button>
-        <Button
-          onClick={handleSave}
-          variant="contained"
-          startIcon={<Save size={16} />}
-          disabled={loading}
-          sx={{
-            backgroundColor: '#8B5A3C',
-            color: 'white',
-            '&:hover': { backgroundColor: '#8B5A3C' }
-          }}
-        >
-          {loading ? <CircularProgress size={20} /> : 'Save Permissions'}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };
@@ -174,7 +173,6 @@ export const ScheduleDialog = ({ open, onClose, staff, onUpdate }) => {
     sunday: ''
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (open && staff) {
@@ -210,10 +208,8 @@ export const ScheduleDialog = ({ open, onClose, staff, onUpdate }) => {
     try {
       setLoading(true);
       const staffId = staff?._id || staff?.id;
-      console.log('ScheduleDialog - Saving schedule:', { staffId, schedule });
-
       if (!staffId) {
-        setError('Staff ID is missing. Cannot update schedule.');
+        toast.error('Staff ID is missing. Cannot update schedule.');
         return;
       }
 
@@ -222,16 +218,14 @@ export const ScheduleDialog = ({ open, onClose, staff, onUpdate }) => {
       Object.keys(schedule).forEach(day => {
         const timeString = schedule[day];
         if (timeString && timeString.trim() !== '') {
-          // Parse time string like "8:00-18:00" into startTime and endTime
           const [startTime, endTime] = timeString.split('-');
           transformedSchedule[day] = {
             working: true,
             startTime: startTime?.trim() || '09:00',
             endTime: endTime?.trim() || '17:00',
-            breakTime: 60 // Default 1 hour break
+            breakTime: 60
           };
         } else {
-          // No schedule for this day
           transformedSchedule[day] = {
             working: false,
             startTime: '09:00',
@@ -241,12 +235,11 @@ export const ScheduleDialog = ({ open, onClose, staff, onUpdate }) => {
         }
       });
 
-      console.log('ScheduleDialog - Transformed schedule:', transformedSchedule);
       await onUpdate(staffId, transformedSchedule);
       onClose();
     } catch (err) {
       console.error('ScheduleDialog - Save error:', err);
-      setError(err.message || 'Failed to update schedule');
+      toast.error(err.message || 'Failed to update schedule');
     } finally {
       setLoading(false);
     }
@@ -266,94 +259,73 @@ export const ScheduleDialog = ({ open, onClose, staff, onUpdate }) => {
   if (!staff) return null;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        Manage Schedule - {staff.name}
-      </DialogTitle>
-      <DialogContent>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+    <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
+      <DialogContent className="sm:max-w-[800px]">
+        <DialogHeader>
+          <DialogTitle>Manage Schedule - {staff.name}</DialogTitle>
+        </DialogHeader>
 
-        <Typography variant="h6" gutterBottom>
-          Work Schedule
-        </Typography>
+        <div className="py-4">
+          <div className="text-sm text-muted-foreground mb-4">
+            Set the working hours for each day of the week. Leave empty for days off. Format: HH:MM-HH:MM (e.g., 9:00-17:00)
+          </div>
 
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Set the working hours for each day of the week. Leave empty for days off.
-        </Typography>
+          <div className="mb-6">
+            <div className="text-sm font-medium mb-2">Quick Presets</div>
+            <div className="flex flex-wrap gap-2">
+              {presetSchedules.map((preset) => (
+                <Button
+                  key={preset.name}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => applyPreset(preset)}
+                >
+                  {preset.name}
+                </Button>
+              ))}
+            </div>
+          </div>
 
-        {/* Preset Schedules */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle1" gutterBottom>
-            Quick Presets
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            {presetSchedules.map((preset) => (
-              <Button
-                key={preset.name}
-                variant="outlined"
-                size="small"
-                onClick={() => applyPreset(preset)}
-              >
-                {preset.name}
-              </Button>
-            ))}
-          </Box>
-        </Box>
-
-        <Divider sx={{ mb: 3 }} />
-
-        {/* Schedule Inputs */}
-        <Grid container spacing={2}>
-          {Object.entries(schedule).map(([day, hours]) => (
-            <Grid item xs={12} sm={6} md={4} key={day}>
-              <TextField
-                fullWidth
-                label={day.charAt(0).toUpperCase() + day.slice(1)}
-                value={hours}
-                onChange={(e) => handleScheduleChange(day, e.target.value)}
-                placeholder="e.g., 9:00-17:00"
-                helperText={hours ? `${day} schedule` : 'Day off'}
-              />
-            </Grid>
-          ))}
-        </Grid>
-
-        {/* Schedule Preview */}
-        <Box sx={{ mt: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Schedule Preview
-          </Typography>
-          <Paper sx={{ p: 2 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
             {Object.entries(schedule).map(([day, hours]) => (
-              <Box key={day} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="body2" sx={{ textTransform: 'capitalize', fontWeight: 'medium' }}>
-                  {day}:
-                </Typography>
-                <Typography variant="body2" color={hours ? 'text.primary' : 'text.secondary'}>
-                  {typeof hours === 'string' ? hours :
-                    typeof hours === 'object' && hours !== null ?
-                      (hours.start && hours.end ? `${hours.start} - ${hours.end}` :
-                        hours.working ? 'Working' : 'Day off') :
-                      hours || 'Day off'}
-                </Typography>
-              </Box>
+              <div key={day} className="space-y-1">
+                <Label htmlFor={`schedule-${day}`} className="capitalize">{day}</Label>
+                <Input
+                  id={`schedule-${day}`}
+                  value={hours}
+                  onChange={(e) => handleScheduleChange(day, e.target.value)}
+                  placeholder="e.g., 9:00-17:00"
+                />
+                <div className="text-[10px] text-muted-foreground h-4">
+                  {hours ? 'Working' : 'Day off'}
+                </div>
+              </div>
             ))}
-          </Paper>
-        </Box>
+          </div>
+
+          <div className="bg-muted p-4 rounded-md">
+            <div className="text-sm font-medium mb-3">Schedule Preview</div>
+            <div className="space-y-1">
+              {Object.entries(schedule).map(([day, hours]) => (
+                <div key={day} className="flex justify-between text-sm">
+                  <div className="capitalize font-medium text-foreground/80 w-24">{day}:</div>
+                  <div className="text-muted-foreground">{hours || 'Day off'}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={loading}>
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            {loading ? 'Saving...' : 'Save Schedule'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} startIcon={<X size={16} />}>
-          Cancel
-        </Button>
-        <Button
-          onClick={handleSave}
-          variant="contained"
-          startIcon={<Save size={16} />}
-          disabled={loading}
-        >
-          {loading ? <CircularProgress size={20} /> : 'Save Schedule'}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };
@@ -370,7 +342,6 @@ export const AttendanceDialog = ({ open, onClose, staff, onRecord }) => {
     notes: ''
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (open) {
@@ -393,19 +364,19 @@ export const AttendanceDialog = ({ open, onClose, staff, onRecord }) => {
       setLoading(true);
       const validation = staffService.validateAttendanceData(attendanceData);
       if (!validation.isValid) {
-        setError(Object.values(validation.errors).join(', '));
+        toast.error(Object.values(validation.errors).join(', '));
         return;
       }
 
       const staffId = staff?._id || staff?.id;
       if (!staffId) {
-        setError('Staff ID is missing. Cannot record attendance.');
+        toast.error('Staff ID is missing. Cannot record attendance.');
         return;
       }
       await onRecord(staffId, attendanceData);
       onClose();
     } catch (err) {
-      setError(err.message || 'Failed to record attendance');
+      toast.error(err.message || 'Failed to record attendance');
     } finally {
       setLoading(false);
     }
@@ -423,94 +394,88 @@ export const AttendanceDialog = ({ open, onClose, staff, onRecord }) => {
   if (!staff) return null;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        Record Attendance - {staff.name}
-      </DialogTitle>
-      <DialogContent>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+    <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Record Attendance - {staff.name}</DialogTitle>
+        </DialogHeader>
 
-        <Grid container spacing={3} sx={{ mt: 1 }}>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Date"
+        <div className="py-4 space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="date">Date</Label>
+            <Input
+              id="date"
               type="date"
               value={attendanceData.date}
               onChange={(e) => handleInputChange('date', e.target.value)}
-              InputLabelProps={{ shrink: true }}
               required
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12}>
-            <FormControl fullWidth required>
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={attendanceData.status}
-                label="Status"
-                onChange={(e) => handleInputChange('status', e.target.value)}
-              >
+          <div className="space-y-2">
+            <Label htmlFor="status">Status</Label>
+            <Select
+              value={attendanceData.status}
+              onValueChange={(val) => handleInputChange('status', val)}
+            >
+              <SelectTrigger id="status">
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
                 {statusOptions.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
+                  <SelectItem key={option.value} value={option.value}>
                     {option.label}
-                  </MenuItem>
+                  </SelectItem>
                 ))}
-              </Select>
-            </FormControl>
-          </Grid>
+              </SelectContent>
+            </Select>
+          </div>
 
           {attendanceData.status === 'present' && (
-            <>
-              <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  label="Check In Time"
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="checkIn">Check In</Label>
+                <Input
+                  id="checkIn"
                   type="time"
                   value={attendanceData.checkInTime}
                   onChange={(e) => handleInputChange('checkInTime', e.target.value)}
-                  InputLabelProps={{ shrink: true }}
                 />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  label="Check Out Time"
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="checkOut">Check Out</Label>
+                <Input
+                  id="checkOut"
                   type="time"
                   value={attendanceData.checkOutTime}
                   onChange={(e) => handleInputChange('checkOutTime', e.target.value)}
-                  InputLabelProps={{ shrink: true }}
                 />
-              </Grid>
-            </>
+              </div>
+            </div>
           )}
 
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Notes"
-              multiline
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notes</Label>
+            <Textarea
+              id="notes"
               rows={3}
               value={attendanceData.notes}
               onChange={(e) => handleInputChange('notes', e.target.value)}
               placeholder="Additional notes about attendance..."
             />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={loading}>
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserCheck className="mr-2 h-4 w-4" />}
+            {loading ? 'Recording...' : 'Record Attendance'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} startIcon={<X size={16} />}>
-          Cancel
-        </Button>
-        <Button
-          onClick={handleSave}
-          variant="contained"
-          startIcon={<UserCheck size={16} />}
-          disabled={loading}
-        >
-          {loading ? <CircularProgress size={20} /> : 'Record Attendance'}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };
@@ -530,7 +495,6 @@ export const LeaveRequestDialog = ({ open, onClose, staff, onSubmit }) => {
     }
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (open) {
@@ -563,19 +527,19 @@ export const LeaveRequestDialog = ({ open, onClose, staff, onSubmit }) => {
       setLoading(true);
       const validation = staffService.validateLeaveData(leaveData);
       if (!validation.isValid) {
-        setError(Object.values(validation.errors).join(', '));
+        toast.error(Object.values(validation.errors).join(', '));
         return;
       }
 
       const staffId = staff?._id || staff?.id;
       if (!staffId) {
-        setError('Staff ID is missing. Cannot submit leave request.');
+        toast.error('Staff ID is missing. Cannot submit leave request.');
         return;
       }
       await onSubmit(staffId, leaveData);
       onClose();
     } catch (err) {
-      setError(err.message || 'Failed to submit leave request');
+      toast.error(err.message || 'Failed to submit leave request');
     } finally {
       setLoading(false);
     }
@@ -594,108 +558,102 @@ export const LeaveRequestDialog = ({ open, onClose, staff, onSubmit }) => {
   if (!staff) return null;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        Submit Leave Request - {staff.name}
-      </DialogTitle>
-      <DialogContent>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+    <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
+      <DialogContent className="sm:max-w-[700px]">
+        <DialogHeader>
+          <DialogTitle>Submit Leave Request - {staff.name}</DialogTitle>
+        </DialogHeader>
 
-        <Grid container spacing={3} sx={{ mt: 1 }}>
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Start Date"
-              type="date"
-              value={leaveData.startDate}
-              onChange={(e) => handleInputChange('startDate', e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              required
-            />
-          </Grid>
+        <div className="py-4 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="startDate">Start Date</Label>
+              <Input
+                id="startDate"
+                type="date"
+                value={leaveData.startDate}
+                onChange={(e) => handleInputChange('startDate', e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="endDate">End Date</Label>
+              <Input
+                id="endDate"
+                type="date"
+                value={leaveData.endDate}
+                onChange={(e) => handleInputChange('endDate', e.target.value)}
+                required
+              />
+            </div>
+          </div>
 
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="End Date"
-              type="date"
-              value={leaveData.endDate}
-              onChange={(e) => handleInputChange('endDate', e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              required
-            />
-          </Grid>
-
-          <Grid item xs={12}>
-            <FormControl fullWidth required>
-              <InputLabel>Leave Type</InputLabel>
-              <Select
-                value={leaveData.type}
-                label="Leave Type"
-                onChange={(e) => handleInputChange('type', e.target.value)}
-              >
+          <div className="space-y-2">
+            <Label htmlFor="leaveType">Leave Type</Label>
+            <Select
+              value={leaveData.type}
+              onValueChange={(val) => handleInputChange('type', val)}
+            >
+              <SelectTrigger id="leaveType">
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
                 {leaveTypes.map((type) => (
-                  <MenuItem key={type.value} value={type.value}>
+                  <SelectItem key={type.value} value={type.value}>
                     {type.label}
-                  </MenuItem>
+                  </SelectItem>
                 ))}
-              </Select>
-            </FormControl>
-          </Grid>
+              </SelectContent>
+            </Select>
+          </div>
 
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Reason"
-              multiline
+          <div className="space-y-2">
+            <Label htmlFor="reason">Reason</Label>
+            <Textarea
+              id="reason"
               rows={4}
               value={leaveData.reason}
               onChange={(e) => handleInputChange('reason', e.target.value)}
               placeholder="Please provide a detailed reason for your leave request..."
               required
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12}>
-            <Typography variant="h6" gutterBottom>
-              Emergency Contact
-            </Typography>
-          </Grid>
+          <div className="pt-2">
+            <div className="text-base font-medium mb-3">Emergency Contact</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="contactName">Name</Label>
+                <Input
+                  id="contactName"
+                  value={leaveData.emergencyContact.name}
+                  onChange={(e) => handleEmergencyContactChange('name', e.target.value)}
+                  placeholder="Full name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contactPhone">Phone</Label>
+                <Input
+                  id="contactPhone"
+                  value={leaveData.emergencyContact.phone}
+                  onChange={(e) => handleEmergencyContactChange('phone', e.target.value)}
+                  placeholder="Phone number"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
 
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Contact Name"
-              value={leaveData.emergencyContact.name}
-              onChange={(e) => handleEmergencyContactChange('name', e.target.value)}
-              placeholder="Full name of emergency contact"
-            />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Contact Phone"
-              value={leaveData.emergencyContact.phone}
-              onChange={(e) => handleEmergencyContactChange('phone', e.target.value)}
-              placeholder="Phone number of emergency contact"
-            />
-          </Grid>
-        </Grid>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={loading}>
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Calendar className="mr-2 h-4 w-4" />}
+            {loading ? 'Submitting...' : 'Submit Request'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} startIcon={<X size={16} />}>
-          Cancel
-        </Button>
-        <Button
-          onClick={handleSave}
-          variant="contained"
-          startIcon={<Calendar size={16} />}
-          disabled={loading}
-        >
-          {loading ? <CircularProgress size={20} /> : 'Submit Request'}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };
