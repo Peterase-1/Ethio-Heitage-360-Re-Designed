@@ -142,8 +142,8 @@ const MuseumRentalManagement = () => {
     }
   ];
 
-  // Use real data if available, otherwise fallback to mock data
-  const displayRentals = rentals.length > 0 ? rentals : mockRentals;
+  // Use real data
+  const displayRentals = rentals;
 
   // Mock data for artifacts
   const artifacts = {
