@@ -45,24 +45,24 @@ const MuseumSettings = () => {
       groups: '150 ETB per person (10+ people)'
     },
     staff: [
-      { 
-        id: 1, 
-        name: 'Dr. Yohannes Haile-Selassie', 
-        role: 'Director of Antiquities', 
+      {
+        id: 1,
+        name: 'Dr. Yohannes Haile-Selassie',
+        role: 'Director of Antiquities',
         email: 'director@ethioheritage.et',
         image: 'https://i.ibb.co/0Q8XJYH/director.jpg'
       },
-      { 
-        id: 2, 
-        name: 'Aster Tsegaye', 
-        role: 'Head Curator', 
+      {
+        id: 2,
+        name: 'Aster Tsegaye',
+        role: 'Head Curator',
         email: 'curator@ethioheritage.et',
         image: 'https://i.ibb.co/0Q8XJYH/curator.jpg'
       },
-      { 
-        id: 3, 
-        name: 'Mekonnen Assefa', 
-        role: 'Conservation Specialist', 
+      {
+        id: 3,
+        name: 'Mekonnen Assefa',
+        role: 'Conservation Specialist',
         email: 'conservation@ethioheritage.et',
         image: 'https://i.ibb.co/0Q8XJYH/conservation.jpg'
       }
@@ -75,9 +75,9 @@ const MuseumSettings = () => {
       'Traditional Ethiopian Art',
       'Archaeological Discoveries'
     ],
-    notifications: { 
-      email: true, 
-      sms: false, 
+    notifications: {
+      email: true,
+      sms: false,
       push: true,
       exhibitionAlerts: true,
       eventReminders: true,
@@ -88,7 +88,7 @@ const MuseumSettings = () => {
 
   // Form state with Ethiopian heritage defaults
   const [formData, setFormData] = useState({ ...museum });
-  
+
   // Ethiopian museum types for dropdown
   const museumTypes = [
     'National Heritage Museum',
@@ -98,7 +98,7 @@ const MuseumSettings = () => {
     'Art Museum',
     'University Museum'
   ];
-  
+
   // Ethiopian historical periods for reference
   const historicalPeriods = [
     'Pre-Aksumite (before 400 BC)',
@@ -121,7 +121,7 @@ const MuseumSettings = () => {
     }));
   };
 
-  // Handle nested form changes with deep object support
+  // Handle nested form changes
   const handleNestedChange = (parent, field, value) => {
     if (parent.includes('.')) {
       const [firstLevel, secondLevel] = parent.split('.');
@@ -135,6 +135,12 @@ const MuseumSettings = () => {
           }
         }
       }));
+    } else if (value === undefined && typeof field !== 'object') {
+      // Handle case where field is actually the value (direct property update)
+      setFormData(prev => ({
+        ...prev,
+        [parent]: field
+      }));
     } else {
       setFormData(prev => ({
         ...prev,
@@ -143,11 +149,40 @@ const MuseumSettings = () => {
     }
   };
 
+  // Load settings from API
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await api.getMuseumSettings();
+        if (response.success && response.data) {
+          // Merge API data with defaults to ensure all fields exist
+          const mergedData = { ...museum, ...response.data };
+          setMuseum(mergedData);
+          setFormData(mergedData);
+        }
+      } catch (error) {
+        console.error('Error loading settings:', error);
+        showSnackbar('Failed to load settings', 'error');
+      }
+    };
+    loadSettings();
+  }, []);
+
   // Save settings
-  const saveSettings = () => {
-    setMuseum(formData);
-    setIsEditing(false);
-    showSnackbar('Settings saved successfully', 'success');
+  const saveSettings = async () => {
+    try {
+      const response = await api.updateMuseumSettings(formData);
+      if (response.success) {
+        setMuseum(formData);
+        setIsEditing(false);
+        showSnackbar('Settings saved successfully', 'success');
+      } else {
+        throw new Error(response.message || 'Failed to save settings');
+      }
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      showSnackbar(error.message || 'Failed to save settings', 'error');
+    }
   };
 
   // Show snackbar
@@ -165,13 +200,13 @@ const MuseumSettings = () => {
 
   return (
     <Card sx={{ background: 'linear-gradient(145deg, #f5f5f5 0%, #f0e6e6 100%)' }}>
-      <CardHeader 
-        title="Museum Settings" 
+      <CardHeader
+        title="Museum Settings"
         action={
           isEditing ? (
             <Box display="flex" gap={1}>
-              <Button 
-                variant="outlined" 
+              <Button
+                variant="outlined"
                 onClick={() => {
                   setFormData({ ...museum });
                   setIsEditing(false);
@@ -179,8 +214,8 @@ const MuseumSettings = () => {
               >
                 Cancel
               </Button>
-              <Button 
-                variant="contained" 
+              <Button
+                variant="contained"
                 color="primary"
                 onClick={saveSettings}
                 startIcon={<SaveIcon />}
@@ -189,8 +224,8 @@ const MuseumSettings = () => {
               </Button>
             </Box>
           ) : (
-            <Button 
-              variant="contained" 
+            <Button
+              variant="contained"
               color="primary"
               onClick={() => setIsEditing(true)}
               startIcon={<EditIcon />}
@@ -200,9 +235,9 @@ const MuseumSettings = () => {
           )
         }
       />
-      
+
       <Divider />
-      
+
       <Tabs
         value={tabValue}
         onChange={handleTabChange}
@@ -214,20 +249,20 @@ const MuseumSettings = () => {
         <Tab label="Notifications" icon={<NotificationsIcon />} />
         <Tab label="Security" icon={<LockIcon />} />
       </Tabs>
-      
+
       <CardContent>
         {tabValue === 0 && (
           <Grid container spacing={3}>
             <Grid item xs={12} md={4}>
               <Box mb={3} textAlign="center">
-                <Box 
+                <Box
                   component="img"
                   src={formData.logo}
                   alt="Ethiopian Heritage Museum Logo"
-                  sx={{ 
-                    width: 150, 
-                    height: 150, 
-                    mx: 'auto', 
+                  sx={{
+                    width: 150,
+                    height: 150,
+                    mx: 'auto',
                     mb: 2,
                     borderRadius: '8px',
                     border: '2px solid #e0e0e0',
@@ -235,8 +270,8 @@ const MuseumSettings = () => {
                   }}
                 />
                 {isEditing && (
-                  <Button 
-                    variant="outlined" 
+                  <Button
+                    variant="outlined"
                     component="label"
                     startIcon={<PhotoCameraIcon />}
                     fullWidth
@@ -260,7 +295,7 @@ const MuseumSettings = () => {
                   </Button>
                 )}
               </Box>
-              
+
               <Box mb={3}>
                 <Typography variant="subtitle2" gutterBottom>Museum Type</Typography>
                 <FormControl fullWidth size="small" disabled={!isEditing}>
@@ -275,7 +310,7 @@ const MuseumSettings = () => {
                   </Select>
                 </FormControl>
               </Box>
-              
+
               <Box mb={3}>
                 <Typography variant="subtitle2" gutterBottom>Historical Periods</Typography>
                 <FormControl fullWidth size="small" disabled={!isEditing}>
@@ -301,7 +336,7 @@ const MuseumSettings = () => {
                 </FormControl>
               </Box>
             </Grid>
-            
+
             <Grid item xs={12} md={8}>
               <Box mb={3}>
                 <Box display="flex" alignItems="center" gap={1} mb={1}>
@@ -328,7 +363,7 @@ const MuseumSettings = () => {
                   <Typography color="text.primary">{formData.name}</Typography>
                 </Breadcrumbs>
               </Box>
-              
+
               <Box mb={3}>
                 <Typography variant="subtitle2" gutterBottom>Description</Typography>
                 <TextField
@@ -340,10 +375,10 @@ const MuseumSettings = () => {
                   disabled={!isEditing}
                 />
               </Box>
-              
+
               <Box>
                 <Typography variant="h6" gutterBottom>Contact Information</Typography>
-                
+
                 <Grid container spacing={2}>
                   <Grid item xs={12}>
                     <Typography variant="subtitle2" gutterBottom>Address</Typography>
@@ -355,7 +390,7 @@ const MuseumSettings = () => {
                       size="small"
                     />
                   </Grid>
-                  
+
                   <Grid item xs={12} md={6}>
                     <Typography variant="subtitle2" gutterBottom>Phone</Typography>
                     <TextField
@@ -366,7 +401,7 @@ const MuseumSettings = () => {
                       size="small"
                     />
                   </Grid>
-                  
+
                   <Grid item xs={12} md={6}>
                     <Typography variant="subtitle2" gutterBottom>Email</Typography>
                     <TextField
@@ -383,13 +418,13 @@ const MuseumSettings = () => {
             </Grid>
           </Grid>
         )}
-        
+
         {tabValue === 1 && (
           <Box>
             <Typography variant="h5" gutterBottom sx={{ mb: 3, color: '#2E7D32', borderBottom: '2px solid #2E7D32', pb: 1, display: 'inline-block' }}>
               Our Dedicated Team
             </Typography>
-            
+
             <Grid container spacing={3}>
               {formData.staff.map((member) => (
                 <Grid item xs={12} sm={6} md={4} key={member.id}>
@@ -431,15 +466,15 @@ const MuseumSettings = () => {
                   </Card>
                 </Grid>
               ))}
-              
+
               {isEditing && (
                 <Grid item xs={12} sm={6} md={4}>
-                  <Card 
-                    sx={{ 
-                      height: '100%', 
+                  <Card
+                    sx={{
+                      height: '100%',
                       minHeight: 300,
-                      display: 'flex', 
-                      alignItems: 'center', 
+                      display: 'flex',
+                      alignItems: 'center',
                       justifyContent: 'center',
                       border: '2px dashed #9e9e9e',
                       '&:hover': {
@@ -450,7 +485,7 @@ const MuseumSettings = () => {
                       transition: 'all 0.3s ease'
                     }}
                   >
-                    <Button 
+                    <Button
                       startIcon={<AddIcon />}
                       sx={{ textTransform: 'none' }}
                     >
@@ -460,7 +495,7 @@ const MuseumSettings = () => {
                 </Grid>
               )}
             </Grid>
-            
+
             {isEditing && (
               <Box mt={2}>
                 <Button variant="outlined" startIcon={<AddIcon />}>
@@ -470,7 +505,7 @@ const MuseumSettings = () => {
             )}
           </Box>
         )}
-        
+
         {tabValue === 2 && (
           <Box>
             <Typography variant="h6" gutterBottom>Notification Preferences</Typography>
@@ -488,7 +523,7 @@ const MuseumSettings = () => {
                 label="Email Notifications"
                 sx={{ display: 'block', mb: 2 }}
               />
-              
+
               <FormControlLabel
                 control={
                   <Switch
@@ -502,7 +537,7 @@ const MuseumSettings = () => {
                 label="SMS Notifications"
                 sx={{ display: 'block', mb: 2 }}
               />
-              
+
               <FormControlLabel
                 control={
                   <Switch
@@ -518,7 +553,7 @@ const MuseumSettings = () => {
             </Paper>
           </Box>
         )}
-        
+
         {tabValue === 3 && (
           <Box>
             <Typography variant="h6" gutterBottom>Security Settings</Typography>
@@ -527,15 +562,15 @@ const MuseumSettings = () => {
               <Button variant="outlined" disabled={!isEditing}>
                 Enable 2FA
               </Button>
-              
+
               <Box mt={3}>
                 <Typography variant="subtitle1" gutterBottom>Active Sessions</Typography>
                 <Typography variant="body2" color="textSecondary">
                   Current session: {new Date().toLocaleString()}
                 </Typography>
-                <Button 
-                  variant="text" 
-                  color="primary" 
+                <Button
+                  variant="text"
+                  color="primary"
                   size="small"
                   disabled={!isEditing}
                   sx={{ mt: 1 }}
@@ -547,14 +582,14 @@ const MuseumSettings = () => {
           </Box>
         )}
       </CardContent>
-      
+
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
       >
-        <Alert 
-          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
           severity={snackbar.severity}
           sx={{ width: '100%' }}
         >

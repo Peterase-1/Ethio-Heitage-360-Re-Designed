@@ -233,6 +233,8 @@ const sampleArtifacts = [
 // Admin users data
 const adminUsers = [
   {
+    firstName: "Super",
+    lastName: "Admin",
     name: "Super Admin",
     email: "admin@ethioheritage360.com",
     password: "admin123",
@@ -241,6 +243,8 @@ const adminUsers = [
     isVerified: true
   },
   {
+    firstName: "Museum",
+    lastName: "Admin",
     name: "Museum Admin",
     email: "museum.admin@ethioheritage360.com",
     password: "museum123",
