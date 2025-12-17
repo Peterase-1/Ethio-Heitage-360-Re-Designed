@@ -610,7 +610,7 @@ staffSchema.statics.searchStaff = function (searchTerm, filters = {}) {
 
 staffSchema.statics.getPerformanceStats = async function (museumId) {
   const pipeline = [
-    { $match: { museum: mongoose.Types.ObjectId(museumId), isActive: true } },
+    { $match: { museum: new mongoose.Types.ObjectId(museumId), isActive: true } },
     {
       $group: {
         _id: null,
