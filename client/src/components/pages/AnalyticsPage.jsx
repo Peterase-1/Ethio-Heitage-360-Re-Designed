@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  Users, 
-  Calendar, 
+import { useState, useEffect } from "react";
+import {
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Users,
+  Calendar,
   MapPin,
   Download,
   Filter,
@@ -34,50 +34,82 @@ import {
 } from "recharts";
 import { useDashboard } from "../../context/DashboardContext";
 import { toast } from "sonner";
-const monthlyRevenue = [
-  { month: 'Jan', revenue: 12400, bookings: 28 },
-  { month: 'Feb', revenue: 15200, bookings: 32 },
-  { month: 'Mar', revenue: 18100, bookings: 41 },
-  { month: 'Apr', revenue: 16800, bookings: 38 },
-  { month: 'May', revenue: 21300, bookings: 47 },
-  { month: 'Jun', revenue: 25200, bookings: 56 },
-  { month: 'Jul', revenue: 28900, bookings: 63 },
-  { month: 'Aug', revenue: 31200, bookings: 68 },
-  { month: 'Sep', revenue: 29800, bookings: 65 },
-  { month: 'Oct', revenue: 32100, bookings: 71 },
-  { month: 'Nov', revenue: 34500, bookings: 76 },
-  { month: 'Dec', revenue: 38200, bookings: 84 }
-];
-
-const tourPopularity = [
-  { name: 'Lalibela Rock Churches', bookings: 45, revenue: 20250, color: '#16a34a' }, // green-600
-  { name: 'Danakil Depression', bookings: 32, revenue: 20800, color: '#15803d' }, // green-700
-  { name: 'Simien Mountains Trek', bookings: 38, revenue: 22040, color: '#166534' }, // green-800
-  { name: 'Omo Valley Cultural', bookings: 28, revenue: 20160, color: '#14532d' } // green-900
-];
-
-const customerSegments = [
-  { name: 'Returning Customers', value: 35, color: '#16a34a' },
-  { name: 'First-time Visitors', value: 45, color: '#15803d' },
-  { name: 'Group Bookings', value: 20, color: '#166534' }
-];
-
-const regionPerformance = [
-  { region: 'North America', bookings: 89, revenue: 45600, growth: 12.5 },
-  { region: 'Europe', bookings: 76, revenue: 38200, growth: 8.2 },
-  { region: 'Asia', bookings: 34, revenue: 17800, growth: 15.7 },
-  { region: 'Australia', bookings: 23, revenue: 12400, growth: -2.1 },
-  { region: 'Other', bookings: 12, revenue: 6200, growth: 5.3 }
-];
+import apiService from "../../services/api";
 
 export function AnalyticsPage() {
-  const { tourPackages, bookings } = useDashboard();
+  const { organizerId } = useDashboard();
   const [timeFilter, setTimeFilter] = useState("12months");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [analyticsData, setAnalyticsData] = useState({
+    monthlyRevenue: [],
+    tourPopularity: [],
+    customerSegments: [],
+    regionPerformance: [],
+    summary: {
+      totalRevenue: 0,
+      totalBookings: 0,
+      avgBookingValue: 0,
+      monthlyGrowth: 0,
+      customerSatisfaction: 4.8
+    }
+  });
+
+  useEffect(() => {
+    if (organizerId) {
+      fetchAnalytics();
+    }
+  }, [organizerId, timeFilter]);
+
+  const fetchAnalytics = async () => {
+    try {
+      setLoading(true);
+
+      let dateRange = {};
+      switch (timeFilter) {
+        case '7days': dateRange = { days: 7 }; break;
+        case '30days': dateRange = { days: 30 }; break;
+        case '3months': dateRange = { months: 3 }; break;
+        case '12months': dateRange = { months: 12 }; break;
+        default: dateRange = { months: 12 };
+      }
+
+      const [bookingStats, tourStats] = await Promise.all([
+        apiService.getBookingStats(organizerId, dateRange),
+        apiService.getTourPackageStats(organizerId)
+      ]);
+
+      // Map API response to component state
+      // This mapping assumes the API returns data in a structured way
+      // If the API is missing some fields, we use defaults
+      setAnalyticsData({
+        monthlyRevenue: bookingStats.monthlyRevenue || [],
+        tourPopularity: tourStats.popularity || [],
+        customerSegments: bookingStats.customerSegments || [
+          { name: 'Returning Customers', value: 35, color: '#16a34a' },
+          { name: 'First-time Visitors', value: 45, color: '#15803d' },
+          { name: 'Group Bookings', value: 20, color: '#166534' }
+        ],
+        regionPerformance: bookingStats.regionPerformance || [],
+        summary: {
+          totalRevenue: bookingStats.totalRevenue || 0,
+          totalBookings: bookingStats.totalBookings || 0,
+          avgBookingValue: bookingStats.avgBookingValue || 0,
+          monthlyGrowth: bookingStats.monthlyGrowth || 0,
+          customerSatisfaction: tourStats.averageRating || 4.8
+        }
+      });
+    } catch (error) {
+      console.error("Failed to fetch analytics:", error);
+      toast.error("Failed to load real-time analytics");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleRefreshData = async () => {
     setIsRefreshing(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await fetchAnalytics();
     setIsRefreshing(false);
     toast.success("Analytics data refreshed");
   };
@@ -86,10 +118,15 @@ export function AnalyticsPage() {
     toast.success("Analytics report exported successfully");
   };
 
-  const totalRevenue = monthlyRevenue.reduce((sum, month) => sum + month.revenue, 0);
-  const totalBookings = monthlyRevenue.reduce((sum, month) => sum + month.bookings, 0);
-  const avgBookingValue = totalRevenue / totalBookings;
-  const monthlyGrowth = ((monthlyRevenue[11].revenue - monthlyRevenue[10].revenue) / monthlyRevenue[10].revenue) * 100;
+  const { monthlyRevenue, tourPopularity, customerSegments, regionPerformance, summary } = analyticsData;
+  const { totalRevenue, totalBookings, avgBookingValue, monthlyGrowth } = summary;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -112,8 +149,8 @@ export function AnalyticsPage() {
               <SelectItem value="custom">Custom range</SelectItem>
             </SelectContent>
           </Select>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={handleRefreshData}
             disabled={isRefreshing}
             className="border-gray-300"
@@ -121,8 +158,8 @@ export function AnalyticsPage() {
             <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={handleExportReport}
             className="border-gray-300"
           >
@@ -152,7 +189,7 @@ export function AnalyticsPage() {
           </CardContent>
         </Card>
 
-       <Card>
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -229,11 +266,11 @@ export function AnalyticsPage() {
                     <XAxis dataKey="month" />
                     <YAxis />
                     <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, 'Revenue']} />
-                    <Area 
-                      type="monotone" 
-                      dataKey="revenue" 
-                      stroke="#059669" 
-                      fill="#059669" 
+                    <Area
+                      type="monotone"
+                      dataKey="revenue"
+                      stroke="#059669"
+                      fill="#059669"
                       fillOpacity={0.1}
                     />
                   </AreaChart>
@@ -254,11 +291,11 @@ export function AnalyticsPage() {
                     <YAxis yAxisId="right" orientation="right" />
                     <Tooltip />
                     <Bar yAxisId="left" dataKey="bookings" fill="#0D9488" name="Bookings" />
-                    <Line 
-                      yAxisId="right" 
-                      type="monotone" 
-                      dataKey="revenue" 
-                      stroke="#059669" 
+                    <Line
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey="revenue"
+                      stroke="#059669"
                       strokeWidth={2}
                       name="Revenue"
                     />
@@ -300,8 +337,8 @@ export function AnalyticsPage() {
                         <span className="text-sm font-medium text-stone-700">{tour.name}</span>
                         <span className="text-sm font-semibold text-stone-800">${tour.revenue.toLocaleString()}</span>
                       </div>
-                      <Progress 
-                        value={(tour.revenue / Math.max(...tourPopularity.map(t => t.revenue))) * 100} 
+                      <Progress
+                        value={(tour.revenue / Math.max(...tourPopularity.map(t => t.revenue))) * 100}
                         className="h-2"
                       />
                     </div>
@@ -425,7 +462,7 @@ export function AnalyticsPage() {
                 Simien Mountains Trek shows 23% growth this quarter. Consider increasing capacity.
               </p>
             </div>
-            
+
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
                 <Users className="w-5 h-5 text-blue-600" />
@@ -435,7 +472,7 @@ export function AnalyticsPage() {
                 North American market shows strong potential. Focus marketing efforts here.
               </p>
             </div>
-            
+
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingDown className="w-5 h-5 text-yellow-600" />
