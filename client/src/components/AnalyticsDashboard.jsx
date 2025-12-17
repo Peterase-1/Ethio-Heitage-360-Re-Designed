@@ -81,45 +81,16 @@ const AnalyticsDashboard = () => {
         console.log('✅ Analytics data loaded:', analyticsResponse.data);
         setAnalytics(analyticsResponse.data);
       } else {
-        console.log('⚠️ Using fallback data');
-        setAnalytics(getMockData());
+        console.error('⚠️ Failed to load analytics data:', analyticsResponse.message);
+        // Do not fallback to mock data
       }
     } catch (error) {
       console.error('❌ Failed to fetch analytics:', error);
-      setAnalytics(getMockData());
+      // Do not fallback to mock data
     } finally {
       setLoading(false);
     }
   };
-
-  const getMockData = () => ({
-    overview: {
-      totalUsers: 0,
-      totalMuseums: 0,
-      totalArtifacts: 0,
-      totalRevenue: 0,
-      userGrowth: 0,
-      museumGrowth: 0,
-      artifactGrowth: 0,
-      revenueGrowth: 0
-    },
-    userStats: [],
-    museumStats: [],
-    artifactStats: [],
-    revenueStats: [],
-    userEngagement: [],
-    topMuseums: [],
-    topArtifacts: [],
-    regionalStats: [],
-    rentalAnalytics: {
-      totalRentals: 0,
-      activeRentals: 0,
-      averageRentalPeriod: 0,
-      totalRevenue: 0,
-      topRentedItems: []
-    },
-    performanceMetrics: null
-  });
 
   const renderOverview = () => (
     <div className="space-y-6">
@@ -504,8 +475,8 @@ const AnalyticsDashboard = () => {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center py-2 px-1 border-b-2 font-medium text-sm ${activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
                 >
                   <Icon className="h-5 w-5 mr-2" />

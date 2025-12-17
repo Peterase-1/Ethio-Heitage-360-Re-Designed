@@ -15,11 +15,11 @@ const virtualMuseumSchema = new mongoose.Schema({
     required: true
   },
 
-  // Rental Request that led to this virtual museum entry
+  // Rental Request that led to this virtual museum entry (optional)
   rentalRequest: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'RentalRequest',
-    required: true
+    required: false
   },
 
   // Virtual Museum Display Information
