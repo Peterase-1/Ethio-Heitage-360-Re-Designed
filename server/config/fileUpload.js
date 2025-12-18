@@ -386,7 +386,7 @@ const handleUploadErrors = (error, req, res, next) => {
 
 // Utility functions
 const getFileUrl = (filename, type = 'images') => {
-  const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+  const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
   let path = '';
 
   switch (type) {
