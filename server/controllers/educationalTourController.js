@@ -51,7 +51,7 @@ const getPublishedTours = asyncHandler(async (req, res) => {
   // Pagination
   const startIndex = (page - 1) * limit;
   const total = await EducationalTour.countDocuments(query.getQuery());
-  
+
   query = query.skip(startIndex).limit(parseInt(limit));
 
   // Populate organizer info
@@ -107,11 +107,11 @@ const getTourById = asyncHandler(async (req, res) => {
 // @route   POST /api/educational-tours
 // @access  Private (Organizers only)
 const createTour = asyncHandler(async (req, res) => {
-  // Verify user is organizer
-  if (req.user.role !== 'organizer') {
+  // Verify user is organizer or superAdmin
+  if (req.user.role !== 'organizer' && req.user.role !== 'superAdmin') {
     return res.status(403).json({
       success: false,
-      message: 'Only organizers can create educational tours'
+      message: 'Only organizers or superAdmins can create educational tours'
     });
   }
 
@@ -132,7 +132,7 @@ const createTour = asyncHandler(async (req, res) => {
   }
 
   const tour = await EducationalTour.create(tourData);
-  
+
   await tour.populate('organizerId', 'firstName lastName profileImage email');
 
   res.status(201).json({
@@ -155,8 +155,8 @@ const updateTour = asyncHandler(async (req, res) => {
     });
   }
 
-  // Check if user owns this tour
-  if (tour.organizerId.toString() !== req.user._id.toString()) {
+  // Check if user owns this tour or is superAdmin
+  if (tour.organizerId.toString() !== req.user._id.toString() && req.user.role !== 'superAdmin') {
     return res.status(403).json({
       success: false,
       message: 'Not authorized to update this tour'
@@ -166,10 +166,10 @@ const updateTour = asyncHandler(async (req, res) => {
   // Don't allow updates to published tours with enrollments
   if (tour.status === 'published' && tour.enrollments.length > 0) {
     const restrictedFields = ['startDate', 'endDate', 'maxParticipants', 'pricing'];
-    const hasRestrictedChanges = restrictedFields.some(field => 
+    const hasRestrictedChanges = restrictedFields.some(field =>
       req.body[field] !== undefined
     );
-    
+
     if (hasRestrictedChanges) {
       return res.status(400).json({
         success: false,
@@ -188,7 +188,7 @@ const updateTour = asyncHandler(async (req, res) => {
 
   const updatedTour = await EducationalTour.findByIdAndUpdate(
     req.params.id,
-    { 
+    {
       ...req.body,
       updatedBy: req.user._id
     },
@@ -227,7 +227,7 @@ const deleteTour = asyncHandler(async (req, res) => {
   }
 
   // Check if there are active enrollments
-  const activeEnrollments = tour.enrollments.filter(e => 
+  const activeEnrollments = tour.enrollments.filter(e =>
     ['pending', 'confirmed'].includes(e.status)
   ).length;
 
@@ -261,12 +261,12 @@ const getOrganizerTours = asyncHandler(async (req, res) => {
   }
 
   const { status, page = 1, limit = 10 } = req.query;
-  
-  const query = { 
+
+  const query = {
     organizerId: req.user._id,
     isActive: true
   };
-  
+
   if (status) query.status = status;
 
   const startIndex = (page - 1) * limit;
@@ -388,7 +388,7 @@ const updateEnrollmentStatus = asyncHandler(async (req, res) => {
   }
 
   // Find enrollment
-  const enrollment = tour.enrollments.find(e => 
+  const enrollment = tour.enrollments.find(e =>
     e.userId.toString() === userId.toString()
   );
 
@@ -423,7 +423,7 @@ const getUserEnrolledTours = asyncHandler(async (req, res) => {
 
   // Filter and format user's enrollment data
   const toursWithProgress = enrolledTours.map(tour => {
-    const userEnrollment = tour.enrollments.find(e => 
+    const userEnrollment = tour.enrollments.find(e =>
       e.userId.toString() === req.user._id.toString()
     );
 
@@ -460,9 +460,9 @@ const updateUserProgress = asyncHandler(async (req, res) => {
 
     // Also update LearningProgress model
     await LearningProgress.findOneAndUpdate(
-      { 
-        userId: req.user._id, 
-        courseId: tourId 
+      {
+        userId: req.user._id,
+        courseId: tourId
       },
       {
         $inc: {
@@ -531,7 +531,7 @@ const submitFeedback = asyncHandler(async (req, res) => {
   }
 
   // Find user's enrollment
-  const enrollment = tour.enrollments.find(e => 
+  const enrollment = tour.enrollments.find(e =>
     e.userId.toString() === req.user._id.toString()
   );
 
