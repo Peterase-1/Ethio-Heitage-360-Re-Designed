@@ -50,11 +50,10 @@ import AnalyticsDashboard from '../components/AnalyticsDashboard';
 import PerformanceAnalytics from '../components/PerformanceAnalytics';
 import PerformanceMetricsDashboard from '../components/PerformanceMetricsDashboard';
 import SuperAdminProgressManagement from '../components/admin/SuperAdminProgressManagement';
-import EducationOverview from '../components/admin/EducationOverview';
-import CourseManagement from '../components/admin/CourseManagement';
-import EducationalTours from '../components/admin/EducationalTours';
-import SecurityCenter from '../components/admin/SecurityCenter';
+import EducationManagement from '../components/admin/EducationManagement';
 import SystemSettings from '../components/admin/SystemSettings';
+import SecurityCenter from '../components/admin/SecurityCenter';
+import SuperAdminVirtualMuseum from '../components/admin/SuperAdminVirtualMuseum';
 
 const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
   const { user, logout } = useAuth();
@@ -283,7 +282,8 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
       items: [
         { id: 'user-management', label: 'User Management', icon: Users, description: 'Create, edit, delete, approve/reject users across all roles' },
         { id: 'museum-oversight', label: 'Museum Oversight', icon: Building2, description: 'Approve or reject museum registrations and updates' },
-        { id: 'heritage-sites', label: 'Heritage Sites', icon: MapPin, description: 'Add and manage Ethiopian cultural/heritage sites' }
+        { id: 'heritage-sites', label: 'Heritage Sites', icon: MapPin, description: 'Add and manage Ethiopian cultural/heritage sites' },
+        { id: 'virtual-museum', label: 'Virtual Museum', icon: Eye, description: 'Manage 3D artifacts and virtual museum gallery' }
       ]
     },
     {
@@ -292,7 +292,7 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
         { id: 'education-overview', label: 'Education Overview', icon: GraduationCap, description: 'Educational content statistics and management' },
         { id: 'course-management', label: 'Course Management', icon: BookOpen, description: 'Manage educational courses across the platform' },
         { id: 'assignment-management', label: 'Assignment Management', icon: FileText, description: 'Oversee assignments and grading system' },
-        { id: 'student-management', label: 'Student Management', icon: Users2, description: 'Manage student enrollments and progress', link: '/super-admin/student-management' },
+        { id: 'student-management', label: 'Student Management', icon: Users2, description: 'Manage student enrollments and progress' },
         { id: 'educational-tours', label: 'Educational Tours', icon: Presentation, description: 'Manage educational tour programs' }
       ]
     },
@@ -2234,10 +2234,10 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
         );
 
       case 'education-overview':
-        return <EducationOverview />;
+        return <EducationManagement />;
 
       case 'course-management':
-        return <CourseManagement />;
+        return <EducationManagement initialTab={0} />;
 
       case 'assignment-management':
         return (
@@ -2256,12 +2256,10 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
         );
 
       case 'student-management':
-        return (
-          <SuperAdminProgressManagement />
-        );
+        return <EducationManagement initialTab={2} />;
 
       case 'educational-tours':
-        return <EducationalTours />;
+        return <EducationManagement initialTab={1} />;
 
       case 'communications':
         return (
@@ -2281,6 +2279,9 @@ const SuperAdminDashboard = ({ darkMode, toggleDarkMode }) => {
 
       case 'security':
         return <SecurityCenter />;
+
+      case 'virtual-museum':
+        return <SuperAdminVirtualMuseum />;
 
       case 'audit-logs':
         return (
