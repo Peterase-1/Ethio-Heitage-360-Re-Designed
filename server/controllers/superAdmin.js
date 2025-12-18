@@ -11,6 +11,7 @@ const EducationalTour = require('../models/EducationalTour');
 const Assignment = require('../models/Assignment');
 const Discussion = require('../models/Discussion');
 const LearningProgress = require('../models/LearningProgress');
+const VirtualMuseum = require('../models/VirtualMuseum');
 const mongoose = require('mongoose');
 
 // ======================
@@ -20,55 +21,120 @@ const mongoose = require('mongoose');
 // GET /api/super-admin/analytics
 async function getAnalytics(req, res) {
   try {
-    const { startDate, endDate, museum, type } = req.query;
+    const { timeRange = '30d' } = req.query;
 
     const now = new Date();
-    const defaultStartDate = startDate ? new Date(startDate) : new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const defaultEndDate = endDate ? new Date(endDate) : now;
+    let startDate = new Date();
 
-    const dateFilter = {
-      createdAt: {
-        $gte: defaultStartDate,
-        $lte: defaultEndDate
-      }
-    };
+    // Calculate start date based on time range
+    if (timeRange === '7d') startDate.setDate(now.getDate() - 7);
+    else if (timeRange === '90d') startDate.setDate(now.getDate() - 90);
+    else if (timeRange === '1y') startDate.setFullYear(now.getFullYear() - 1);
+    else startDate.setDate(now.getDate() - 30); // Default 30d
 
-    const [userStats, museumStats, artifactStats, rentalStats] = await Promise.all([
+    const dateFilter = { createdAt: { $gte: startDate, $lte: now } };
+
+    // Calculate previous period for growth comparison
+    const timeDiff = now.getTime() - startDate.getTime();
+    const previousStartDate = new Date(startDate.getTime() - timeDiff);
+    const previousDateFilter = { createdAt: { $gte: previousStartDate, $lt: startDate } };
+
+    // Parallel fetch of all metrics
+    const [
+      totalUsers, previousTotalUsers,
+      totalMuseums, previousTotalMuseums,
+      totalArtifacts, previousTotalArtifacts,
+      revenueResult, previousRevenueResult,
+      topArtifacts,
+      usersByRole,
+      museumsByRegion,
+      rentalAggregate
+    ] = await Promise.all([
+      User.countDocuments(dateFilter), User.countDocuments(previousDateFilter),
+      Museum.countDocuments(dateFilter), Museum.countDocuments(previousDateFilter),
+      Artifact.countDocuments(dateFilter), Artifact.countDocuments(previousDateFilter),
+      Rental.aggregate([
+        { $match: dateFilter },
+        { $group: { _id: null, total: { $sum: "$pricing.totalAmount" } } }
+      ]),
+      Rental.aggregate([
+        { $match: previousDateFilter },
+        { $group: { _id: null, total: { $sum: "$pricing.totalAmount" } } }
+      ]),
+      Artifact.find(dateFilter)
+        .sort({ views: -1 })
+        .limit(6)
+        .populate('museum', 'name')
+        .lean(),
       User.aggregate([
         { $match: dateFilter },
-        {
-          $group: {
-            _id: '$role',
-            count: { $sum: 1 }
-          }
-        }
+        { $group: { _id: "$role", count: { $sum: 1 } } }
       ]),
       Museum.aggregate([
         { $match: dateFilter },
+        { $group: { _id: "$location.city", museumCount: { $sum: 1 }, totalArtifacts: { $sum: 1 } } }
+      ]),
+      Rental.aggregate([
+        { $match: dateFilter },
         {
           $group: {
-            _id: '$status',
-            count: { $sum: 1 }
+            _id: null,
+            totalRentals: { $sum: 1 },
+            revenue: { $sum: "$pricing.totalAmount" },
+            avgDuration: { $avg: "$requestedDuration.duration" }
           }
         }
-      ]),
-      Artifact.countDocuments(dateFilter),
-      Rental.countDocuments(dateFilter)
+      ])
     ]);
 
+    const currentRevenue = revenueResult[0]?.total || 0;
+    const previousRevenue = previousRevenueResult[0]?.total || 0;
+
+    const calculateGrowth = (current, previous) => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return Math.round(((current - previous) / previous) * 100);
+    };
+
+    const overview = {
+      totalUsers,
+      totalMuseums,
+      totalArtifacts,
+      totalRevenue: currentRevenue,
+      userGrowth: calculateGrowth(totalUsers, previousTotalUsers),
+      museumGrowth: calculateGrowth(totalMuseums, previousTotalMuseums),
+      artifactGrowth: calculateGrowth(totalArtifacts, previousTotalArtifacts),
+      revenueGrowth: calculateGrowth(currentRevenue, previousRevenue)
+    };
+
+    // Format top artifacts
+    const formattedTopArtifacts = topArtifacts.map(a => ({
+      name: a.name,
+      category: a.category,
+      museum: a.museum?.name || 'Unknown Museum',
+      views: a.views || 0,
+      likes: a.likes?.length || 0
+    }));
+
+    // Construct response
     res.json({
       success: true,
       data: {
-        users: userStats,
-        museums: museumStats,
-        artifacts: artifactStats,
-        rentals: rentalStats,
-        dateRange: {
-          start: defaultStartDate,
-          end: defaultEndDate
+        overview,
+        userEngagement: usersByRole,
+        regionalStats: museumsByRegion,
+        topArtifacts: formattedTopArtifacts,
+        // Mock top museums logic for now (complex aggregation needed for real)
+        topMuseums: [],
+        rentalAnalytics: {
+          totalRentals: rentalAggregate[0]?.totalRentals || 0,
+          totalRevenue: rentalAggregate[0]?.revenue || 0,
+          activeRentals: 0,
+          averageRentalPeriod: Math.round(rentalAggregate[0]?.avgDuration || 0),
+          topRentedItems: []
         }
       }
     });
+
   } catch (error) {
     console.error('Get analytics error:', error);
     res.status(500).json({
@@ -6184,11 +6250,133 @@ async function deleteHeritageSite(req, res) {
   }
 }
 
+// ======================
+// VIRTUAL MUSEUM MANAGEMENT
+// ======================
+
+/**
+ * @route   GET /api/super-admin/virtual-museum
+ * @desc    Get all virtual artifacts with filtering and pagination
+ * @access  Super Admin only
+ */
+const getVirtualArtifacts = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, status, search } = req.query;
+    const query = {};
+
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const [artifacts, total] = await Promise.all([
+      VirtualMuseum.find(query)
+        .populate('artifact', 'name image category')
+        .populate('museum', 'name location')
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(Number(limit)),
+      VirtualMuseum.countDocuments(query)
+    ]);
+
+    res.json({
+      success: true,
+      artifacts,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to fetch virtual artifacts', error: error.message });
+  }
+};
+
+/**
+ * @route   POST /api/super-admin/virtual-museum
+ * @desc    Add a new artifact to the virtual museum
+ */
+const createVirtualArtifact = async (req, res) => {
+  try {
+    const virtualArtifact = new VirtualMuseum(req.body);
+    await virtualArtifact.save();
+
+    await virtualArtifact.populate([
+      { path: 'artifact', select: 'name image category' },
+      { path: 'museum', select: 'name' }
+    ]);
+
+    res.status(201).json({
+      success: true,
+      message: 'Virtual artifact added successfully',
+      artifact: virtualArtifact
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to add virtual artifact', error: error.message });
+  }
+};
+
+/**
+ * @route   PUT /api/super-admin/virtual-museum/:id
+ * @desc    Update a virtual artifact's information
+ */
+const updateVirtualArtifact = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const virtualArtifact = await VirtualMuseum.findByIdAndUpdate(id, req.body, { new: true, runValidators: true })
+      .populate('artifact', 'name image category')
+      .populate('museum', 'name');
+
+    if (!virtualArtifact) {
+      return res.status(404).json({ success: false, message: 'Virtual artifact not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Virtual artifact updated successfully',
+      artifact: virtualArtifact
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to update virtual artifact', error: error.message });
+  }
+};
+
+/**
+ * @route   DELETE /api/super-admin/virtual-museum/:id
+ * @desc    Remove an artifact from the virtual museum
+ */
+const deleteVirtualArtifact = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const virtualArtifact = await VirtualMuseum.findByIdAndDelete(id);
+
+    if (!virtualArtifact) {
+      return res.status(404).json({ success: false, message: 'Virtual artifact not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Virtual artifact removed from system successfully'
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to delete virtual artifact', error: error.message });
+  }
+};
+
 module.exports = {
   // Dashboard & Analytics
   getDashboard,
   getDashboardStats,
   getAnalytics,
+  getComprehensiveDashboard, // Added from the provided snippet
   // Education Overview/Tours/Courses
   getEducationOverview,
   getAllEducationalTours,
@@ -6290,5 +6478,11 @@ module.exports = {
   deleteProgress,
 
   // Performance Metrics
-  getPerformanceMetrics
+  getPerformanceMetrics,
+
+  // Virtual Museum Management
+  getVirtualArtifacts,
+  createVirtualArtifact,
+  updateVirtualArtifact,
+  deleteVirtualArtifact
 };
