@@ -1,9 +1,15 @@
-// API configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 class ApiService {
   constructor() {
-    this.baseURL = API_BASE_URL;
+    // EMERGENCY FIX: Force port 5000
+    let url = API_BASE_URL;
+    if (url.includes('5001')) {
+      url = url.replace('5001', '5000');
+      console.log('🚨 EMERGENCY: ApiService fixed port 5001 to 5000:', url);
+    }
+    this.baseURL = url;
+    console.log('🚀 ApiService initialized with baseURL:', this.baseURL);
   }
 
   // Get auth token from localStorage
@@ -16,12 +22,12 @@ class ApiService {
     const headers = {
       'Content-Type': 'application/json',
     };
-    
+
     const token = this.getAuthToken();
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
-    
+
     return headers;
   }
 
@@ -35,7 +41,7 @@ class ApiService {
 
     try {
       const response = await fetch(url, config);
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
@@ -67,6 +73,10 @@ class ApiService {
     });
   }
 
+  async getCustomers() {
+    return this.request('/organizer/customers');
+  }
+
   // Tour Package API methods
   async getTourPackages(organizerId, params = {}) {
     const queryString = new URLSearchParams({
@@ -76,7 +86,7 @@ class ApiService {
       search: params.search || '',
       ...params
     }).toString();
-    
+
     return this.request(`/tour-packages/organizer/${organizerId}?${queryString}`);
   }
 
@@ -118,7 +128,7 @@ class ApiService {
       sortOrder: params.sortOrder || 'desc',
       ...params
     }).toString();
-    
+
     return this.request(`/bookings/organizer/${organizerId}?${queryString}`);
   }
 
@@ -163,7 +173,7 @@ class ApiService {
       sortOrder: params.sortOrder || 'desc',
       ...params
     }).toString();
-    
+
     return this.request(`/messages/organizer/${organizerId}?${queryString}`);
   }
 
