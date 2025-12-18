@@ -1,6 +1,8 @@
 const Course = require('../models/Course');
 const Lesson = require('../models/Lesson');
 const LearningProgress = require('../models/LearningProgress');
+const mongoose = require('mongoose');
+const EducationalTour = require('../models/EducationalTour');
 
 // Create a new course (Admin only)
 const createCourse = async (req, res) => {
@@ -35,20 +37,30 @@ const createCourse = async (req, res) => {
       });
     }
 
-    // Create new course
+    // Map payload to schema
     const courseData = {
       title: title.trim(),
       description: description.trim(),
-      category,
-      difficulty: difficulty || 'beginner',
-      estimatedDuration: parseInt(estimatedDuration),
-      image: image || `https://picsum.photos/400/300?random=${Date.now()}`,
+      category: category.toLowerCase(), // Ensure enum match
+      level: (difficulty || 'beginner').toLowerCase(), // Map difficulty to level
+      duration: parseInt(estimatedDuration), // Map estimatedDuration to duration
+      images: [image || `https://picsum.photos/400/300?random=${Date.now()}`], // Schema expects array
       thumbnail: thumbnail || `https://picsum.photos/200/150?random=${Date.now()}`,
-      instructor: instructor || 'Heritage Expert',
+      instructor: {
+        name: typeof instructor === 'string' ? instructor : (instructor?.name || req.user.name || 'Heritage Expert'),
+        email: typeof instructor === 'object' && instructor.email ? instructor.email : (req.user.email || 'admin@heritage360.et') // Fallback email
+      },
       tags: Array.isArray(tags) ? tags.map(tag => tag.trim()) : [],
-      prerequisites: Array.isArray(prerequisites) ? prerequisites : [],
-      createdBy: req.user.id,
-      isActive: true
+      content: {
+        topics: [], // Initialize required subdocs
+        resources: []
+      },
+      pricing: {
+        amount: parseFloat(req.body.price) || 0,
+        type: (parseFloat(req.body.price) > 0) ? 'paid' : 'free'
+      },
+      createdBy: req.user._id, // Use _id
+      status: req.body.isActive !== false ? 'published' : 'draft' // Map isActive to status
     };
 
     const course = new Course(courseData);
@@ -79,13 +91,50 @@ const updateCourse = async (req, res) => {
     delete updateData.__v;
     delete updateData.createdAt;
     delete updateData.createdBy;
-    
+
     // Update timestamps
     updateData.updatedAt = new Date();
 
-    // Validate estimatedDuration if provided
+    // Map payload fields to schema fields if they exist in body
+    if (updateData.category) updateData.category = updateData.category.toLowerCase();
+
+    if (updateData.difficulty) {
+      updateData.level = updateData.difficulty.toLowerCase();
+      delete updateData.difficulty;
+    }
+
     if (updateData.estimatedDuration) {
-      updateData.estimatedDuration = parseInt(updateData.estimatedDuration);
+      updateData.duration = parseInt(updateData.estimatedDuration);
+      delete updateData.estimatedDuration;
+    }
+
+    if (updateData.image) {
+      updateData.images = [updateData.image];
+    }
+
+    if (updateData.isActive !== undefined) {
+      updateData.status = updateData.isActive ? 'published' : 'draft';
+      delete updateData.isActive;
+    }
+
+    if (updateData.price !== undefined) {
+      updateData.pricing = {
+        amount: parseFloat(updateData.price) || 0,
+        type: parseFloat(updateData.price) > 0 ? 'paid' : 'free'
+      };
+      delete updateData.price;
+    }
+
+    // Handle instructor mapping if it's a string
+    if (updateData.instructor && typeof updateData.instructor === 'string') {
+      // Fetch existing course to preserve email if possible, or use default
+      const existing = await Course.findById(courseId);
+      updateData.instructor = {
+        name: updateData.instructor,
+        email: existing?.instructor?.email || 'admin@heritage360.et'
+      };
+    } else if (updateData.instructor && typeof updateData.instructor === 'object' && !updateData.instructor.email) {
+      updateData.instructor.email = 'admin@heritage360.et';
     }
 
     // Sanitize tags if provided
@@ -172,11 +221,11 @@ const deleteCourse = async (req, res) => {
 // Get all courses with admin details
 const getAllCoursesAdmin = async (req, res) => {
   try {
-    const { 
-      category, 
-      difficulty, 
-      status, 
-      page = 1, 
+    const {
+      category,
+      difficulty,
+      status,
+      page = 1,
       limit = 20,
       search,
       sortBy = 'createdAt',
@@ -184,13 +233,13 @@ const getAllCoursesAdmin = async (req, res) => {
     } = req.query;
 
     const filter = {};
-    
+
     // Apply filters
     if (category) filter.category = category;
     if (difficulty) filter.difficulty = difficulty;
     if (status === 'active') filter.isActive = true;
     if (status === 'inactive') filter.isActive = false;
-    
+
     // Search functionality
     if (search) {
       filter.$or = [
@@ -314,7 +363,12 @@ const createLesson = async (req, res) => {
       courseId,
       order: parseInt(order),
       estimatedDuration: parseInt(estimatedDuration),
-      content: Array.isArray(content) ? content : [],
+      content: Array.isArray(content) ? content.map((item, idx) => ({
+        ...item,
+        title: item.title || `Content ${idx + 1}`,
+        order: item.order || idx + 1,
+        content: item.content || item.url || '' // Fallback to url if content is missing
+      })) : [],
       objectives: Array.isArray(objectives) ? objectives.map(obj => obj.trim()) : [],
       resources: Array.isArray(resources) ? resources : [],
       quiz: quiz || { questions: [], passingScore: 70 },
@@ -360,7 +414,7 @@ const updateLesson = async (req, res) => {
     delete updateData.createdAt;
     delete updateData.createdBy;
     delete updateData.courseId; // Don't allow moving lessons between courses
-    
+
     // Update timestamps
     updateData.updatedAt = new Date();
 
@@ -462,7 +516,9 @@ const getAdminStats = async (req, res) => {
       activeLessons,
       totalUsers,
       totalEnrollments,
-      totalCompletions
+      totalCompletions,
+      totalTours,
+      activeTours
     ] = await Promise.all([
       Course.countDocuments(),
       Course.countDocuments({ isActive: true }),
@@ -477,7 +533,9 @@ const getAdminStats = async (req, res) => {
         { $unwind: '$courses' },
         { $match: { 'courses.status': 'completed' } },
         { $count: 'total' }
-      ]).then(result => result[0]?.total || 0)
+      ]).then(result => result[0]?.total || 0),
+      EducationalTour.countDocuments(),
+      EducationalTour.countDocuments({ status: 'active' }) // Assuming status field, fallback to count all if undefined
     ]);
 
     // Get course category distribution
@@ -508,6 +566,11 @@ const getAdminStats = async (req, res) => {
           total: totalCourses,
           active: activeCourses,
           inactive: totalCourses - activeCourses
+        },
+        tours: {
+          total: totalTours,
+          active: activeTours,
+          inactive: totalTours - activeTours
         },
         lessons: {
           total: totalLessons,
@@ -541,10 +604,10 @@ const getAdminStats = async (req, res) => {
 // Get all lessons with admin details and filtering
 const getAllLessonsAdmin = async (req, res) => {
   try {
-    const { 
-      courseId, 
-      status, 
-      page = 1, 
+    const {
+      courseId,
+      status,
+      page = 1,
       limit = 20,
       search,
       sortBy = 'order',
@@ -552,12 +615,29 @@ const getAllLessonsAdmin = async (req, res) => {
     } = req.query;
 
     const filter = {};
-    
+
     // Apply filters
-    if (courseId) filter.courseId = courseId;
+    if (courseId && mongoose.Types.ObjectId.isValid(courseId)) {
+      filter.courseId = courseId;
+    } else if (courseId) {
+      // If courseId is provided but invalid, we return empty results
+      // unless we want to ignore it. Let's return empty to be safe if filtering was intended.
+      return res.json({
+        success: true,
+        lessons: [],
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          totalPages: 0,
+          totalLessons: 0,
+          hasNextPage: false,
+          hasPrevPage: false
+        }
+      });
+    }
     if (status === 'active') filter.isActive = true;
     if (status === 'inactive') filter.isActive = false;
-    
+
     // Search functionality
     if (search) {
       filter.$or = [
@@ -588,8 +668,16 @@ const getAllLessonsAdmin = async (req, res) => {
     const lessonsWithStats = await Promise.all(
       lessons.map(async (lesson) => {
         const completionCount = await LearningProgress.countDocuments({
-          'courses.lessons.lessonId': lesson._id,
-          'courses.lessons.status': 'completed'
+          courses: {
+            $elemMatch: {
+              lessons: {
+                $elemMatch: {
+                  lessonId: lesson._id,
+                  status: 'completed'
+                }
+              }
+            }
+          }
         });
 
         const attemptCount = await LearningProgress.countDocuments({
@@ -624,7 +712,8 @@ const getAllLessonsAdmin = async (req, res) => {
     console.error('Get all lessons admin error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch lessons'
+      message: 'Failed to fetch lessons',
+      error: error.message
     });
   }
 };
@@ -648,17 +737,25 @@ const getLessonAdmin = async (req, res) => {
     // Get detailed stats
     const [completionCount, attemptCount, averageScore] = await Promise.all([
       LearningProgress.countDocuments({
-        'courses.lessons.lessonId': lesson._id,
-        'courses.lessons.status': 'completed'
+        courses: {
+          $elemMatch: {
+            lessons: {
+              $elemMatch: {
+                lessonId: new mongoose.Types.ObjectId(lessonId),
+                status: 'completed'
+              }
+            }
+          }
+        }
       }),
       LearningProgress.countDocuments({
-        'courses.lessons.lessonId': lesson._id
+        'courses.lessons.lessonId': new mongoose.Types.ObjectId(lessonId)
       }),
       LearningProgress.aggregate([
         { $unwind: '$courses' },
         { $unwind: '$courses.lessons' },
-        { $match: { 'courses.lessons.lessonId': lesson._id } },
-        { $group: { _id: null, avgScore: { $avg: '$courses.lessons.quizScore' } } }
+        { $match: { 'courses.lessons.lessonId': new mongoose.Types.ObjectId(lessonId) } },
+        { $group: { _id: null, avgScore: { $avg: '$courses.lessons.score' } } }
       ])
     ]);
 
@@ -680,7 +777,8 @@ const getLessonAdmin = async (req, res) => {
     console.error('Get lesson admin error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch lesson details'
+      message: 'Failed to fetch lesson details',
+      error: error.message
     });
   }
 };
@@ -707,14 +805,14 @@ const bulkUpdateLessons = async (req, res) => {
           { $set: { isActive: true, updatedAt: new Date() } }
         );
         break;
-      
+
       case 'deactivate':
         result = await Lesson.updateMany(
           { _id: { $in: lessonIds } },
           { $set: { isActive: false, updatedAt: new Date() } }
         );
         break;
-      
+
       case 'delete':
         // Soft delete by default
         result = await Lesson.updateMany(
@@ -722,7 +820,7 @@ const bulkUpdateLessons = async (req, res) => {
           { $set: { isActive: false, updatedAt: new Date() } }
         );
         break;
-      
+
       case 'update':
         if (!updateData) {
           return res.status(400).json({
@@ -735,7 +833,7 @@ const bulkUpdateLessons = async (req, res) => {
           { $set: updateData }
         );
         break;
-      
+
       default:
         return res.status(400).json({
           success: false,
@@ -774,7 +872,7 @@ const reorderLessons = async (req, res) => {
     // Verify all lessons belong to the course
     const lessonIds = lessonOrders.map(lo => lo.lessonId);
     const lessons = await Lesson.find({ _id: { $in: lessonIds }, courseId });
-    
+
     if (lessons.length !== lessonOrders.length) {
       return res.status(400).json({
         success: false,
@@ -783,8 +881,8 @@ const reorderLessons = async (req, res) => {
     }
 
     // Update lesson orders
-    const updatePromises = lessonOrders.map(({ lessonId, newOrder }) => 
-      Lesson.findByIdAndUpdate(lessonId, { 
+    const updatePromises = lessonOrders.map(({ lessonId, newOrder }) =>
+      Lesson.findByIdAndUpdate(lessonId, {
         order: parseInt(newOrder),
         updatedAt: new Date()
       })
