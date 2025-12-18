@@ -38,6 +38,11 @@ const achievementSchema = new mongoose.Schema({
     type: String,
     enum: ['history', 'culture', 'archaeology', 'language', 'art', 'traditions', 'general']
   },
+  difficulty: {
+    type: String,
+    enum: ['beginner', 'intermediate', 'advanced'],
+    default: 'beginner'
+  },
   icon: {
     type: String,
     default: 'trophy'
@@ -74,6 +79,10 @@ const achievementSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   },
   createdAt: {
     type: Date,
