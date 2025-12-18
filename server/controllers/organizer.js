@@ -5,6 +5,8 @@ const EducationalTour = require('../models/EducationalTour');
 const User = require('../models/User');
 const Event = require('../models/Event');
 const LearningProgress = require('../models/LearningProgress');
+const Tour = require('../models/Tour');
+const Booking = require('../models/Booking');
 const { asyncHandler } = require('../middleware/asyncHandler');
 
 // ======= DASHBOARD & STATISTICS =======
@@ -12,7 +14,7 @@ const { asyncHandler } = require('../middleware/asyncHandler');
 // Get organizer dashboard data with educational content statistics
 exports.getDashboardData = asyncHandler(async (req, res) => {
   const organizerId = req.user._id;
-  
+
   // Get organizer info
   const organizer = await User.findById(organizerId).select('-password');
   if (!organizer || organizer.role !== 'organizer') {
@@ -83,11 +85,11 @@ exports.getDashboardData = asyncHandler(async (req, res) => {
 exports.getEvents = async (req, res) => {
   try {
     const organizerId = req.user?._id || req.params.organizerId;
-    
+
     const events = await Event.find({ organizerId })
       .sort({ createdAt: -1 })
       .populate('organizerId', 'firstName lastName email');
-    
+
     res.json({
       success: true,
       data: events
@@ -112,7 +114,7 @@ exports.createEvent = async (req, res) => {
       createdBy: organizerId,
       status: 'pending'
     };
-    
+
     const newEvent = await Event.create(eventData);
     await newEvent.populate('organizerId', 'firstName lastName email');
 
@@ -141,13 +143,13 @@ exports.updateEvent = async (req, res) => {
       updatedBy: organizerId,
       updatedAt: new Date()
     };
-    
+
     const updatedEvent = await Event.findOneAndUpdate(
       { _id: eventId, organizerId },
       updateData,
       { new: true, runValidators: true }
     ).populate('organizerId', 'firstName lastName email');
-    
+
     if (!updatedEvent) {
       return res.status(404).json({
         success: false,
@@ -274,10 +276,10 @@ exports.updateEducationalTour = asyncHandler(async (req, res) => {
   // Don't allow updates to published tours with enrollments
   if (tour.status === 'published' && tour.enrollments.length > 0) {
     const restrictedFields = ['startDate', 'endDate', 'maxParticipants', 'pricing'];
-    const hasRestrictedChanges = restrictedFields.some(field => 
+    const hasRestrictedChanges = restrictedFields.some(field =>
       req.body[field] !== undefined
     );
-    
+
     if (hasRestrictedChanges) {
       return res.status(400).json({
         success: false,
@@ -296,7 +298,7 @@ exports.updateEducationalTour = asyncHandler(async (req, res) => {
 
   const updatedTour = await EducationalTour.findByIdAndUpdate(
     req.params.id,
-    { 
+    {
       ...req.body,
       updatedBy: req.user._id
     },
@@ -438,6 +440,100 @@ exports.updateEnrollmentStatus = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     message: 'Enrollment status updated successfully'
+  });
+});
+
+// Get all customers for organizer
+exports.getCustomers = asyncHandler(async (req, res) => {
+  const organizerId = req.user._id;
+
+  // 1. Get all standard tours owned by this organizer
+  const tours = await Tour.find({ organizer: organizerId }).select('_id title');
+  const tourIds = tours.map(t => t._id);
+
+  // 2. Get all bookings for these tours
+  const bookings = await Booking.find({ tourPackageId: { $in: tourIds } });
+
+  // 3. Get all educational tours for this organizer
+  const educationalTours = await EducationalTour.find({ organizerId })
+    .populate('enrollments.userId', 'firstName lastName email phone avatar');
+
+  // Aggregate customers
+  const customerMap = new Map();
+
+  // Process standard bookings
+  bookings.forEach(booking => {
+    const email = booking.customerEmail?.toLowerCase();
+    if (!email) return;
+
+    if (!customerMap.has(email)) {
+      customerMap.set(email, {
+        id: email, // Use email as unique ID for frontend
+        name: booking.customerName || 'Unknown',
+        email: email,
+        phone: '',
+        location: 'Not Specified',
+        totalBookings: 0,
+        totalSpent: 0,
+        lastBooking: booking.createdAt,
+        status: 'active',
+        avatar: null,
+        joinDate: booking.createdAt
+      });
+    }
+
+    const customer = customerMap.get(email);
+    customer.totalBookings += 1;
+    customer.totalSpent += (booking.totalAmount || 0);
+    if (new Date(booking.createdAt) > new Date(customer.lastBooking)) {
+      customer.lastBooking = booking.createdAt;
+    }
+    if (new Date(booking.createdAt) < new Date(customer.joinDate)) {
+      customer.joinDate = booking.createdAt;
+    }
+  });
+
+  // Process educational tour enrollments
+  educationalTours.forEach(etour => {
+    etour.enrollments.forEach(enrollment => {
+      const user = enrollment.userId;
+      if (!user || !user.email) return;
+
+      const email = user.email.toLowerCase();
+      if (!customerMap.has(email)) {
+        customerMap.set(email, {
+          id: email,
+          name: `${user.firstName} ${user.lastName}`,
+          email: email,
+          phone: user.phone || '',
+          location: 'Not Specified',
+          totalBookings: 0,
+          totalSpent: 0,
+          lastBooking: enrollment.enrolledAt,
+          status: enrollment.status === 'cancelled' ? 'inactive' : 'active',
+          avatar: user.avatar,
+          joinDate: enrollment.enrolledAt
+        });
+      }
+
+      const customer = customerMap.get(email);
+      customer.totalBookings += 1;
+      customer.totalSpent += (etour.pricing?.price || 0);
+      if (new Date(enrollment.enrolledAt) > new Date(customer.lastBooking)) {
+        customer.lastBooking = enrollment.enrolledAt;
+      }
+      if (new Date(enrollment.enrolledAt) < new Date(customer.joinDate)) {
+        customer.joinDate = enrollment.enrolledAt;
+      }
+    });
+  });
+
+  const customersList = Array.from(customerMap.values());
+
+  res.json({
+    success: true,
+    count: customersList.length,
+    data: customersList
   });
 });
 
