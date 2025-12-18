@@ -96,8 +96,9 @@
     "postinstall": "npm run setup:env"
   },
   "dependencies": {
+    "dotenv": "^17.2.3",
     "mongodb": "^6.20.0",
-    "mongoose": "^7.8.7",
+    "mongoose": "^7.8.8",
     "node-fetch": "^3.3.2"
   },
   "devDependencies": {
