@@ -2,6 +2,7 @@ const VirtualMuseumSubmission = require('../models/VirtualMuseumSubmission');
 const Rental = require('../models/Rental');
 const Artifact = require('../models/Artifact');
 const Museum = require('../models/Museum');
+const VirtualMuseum = require('../models/VirtualMuseum');
 
 // GET /api/virtual-museum/submissions
 const getSubmissions = async (req, res) => {
@@ -295,11 +296,45 @@ const deleteSubmission = async (req, res) => {
   }
 };
 
+// GET /api/virtual-museum/active
+const getActiveVirtualArtifacts = async (req, res) => {
+  try {
+    const { category, featured } = req.query;
+    const query = { status: 'active' };
+
+    if (category) {
+      query.category = category;
+    }
+
+    if (featured === 'true') {
+      query.featured = true;
+    }
+
+    const artifacts = await VirtualMuseum.find(query)
+      .populate('artifact')
+      .populate('museum', 'name location')
+      .sort({ displayOrder: 1, createdAt: -1 });
+
+    res.json({
+      success: true,
+      artifacts
+    });
+  } catch (error) {
+    console.error('Get active virtual artifacts error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch virtual artifacts',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getSubmissions,
   getRentalArtifacts,
   createSubmission,
   approveSubmission,
   getStats,
-  deleteSubmission
+  deleteSubmission,
+  getActiveVirtualArtifacts
 };
