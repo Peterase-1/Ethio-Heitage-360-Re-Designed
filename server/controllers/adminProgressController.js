@@ -11,6 +11,20 @@ const mongoose = require('mongoose');
  */
 
 class AdminProgressController {
+  constructor() {
+    this.getAllUserProgress = this.getAllUserProgress.bind(this);
+    this.getUserProgressDetail = this.getUserProgressDetail.bind(this);
+    this.resetUserProgress = this.resetUserProgress.bind(this);
+    this.getAllAchievements = this.getAllAchievements.bind(this);
+    this.createAchievement = this.createAchievement.bind(this);
+    this.updateAchievement = this.updateAchievement.bind(this);
+    this.deleteAchievement = this.deleteAchievement.bind(this);
+    this.awardAchievementToUser = this.awardAchievementToUser.bind(this);
+    this.getProgressAnalytics = this.getProgressAnalytics.bind(this);
+    this.getProgressOverviewStats = this.getProgressOverviewStats.bind(this);
+    this.exportProgressData = this.exportProgressData.bind(this);
+  }
+
   // ===============================
   // USER PROGRESS MANAGEMENT
   // ===============================
@@ -30,7 +44,7 @@ class AdminProgressController {
 
       // Build query for users
       let userQuery = { role: { $in: ['user'] }, isActive: true };
-      
+
       if (search) {
         userQuery.$or = [
           { firstName: { $regex: search, $options: 'i' } },
@@ -60,7 +74,7 @@ class AdminProgressController {
 
       // Combine data and apply filters
       const combinedData = users.map(user => {
-        const progress = learningProgresses.find(p => 
+        const progress = learningProgresses.find(p =>
           p.userId.toString() === user._id.toString()
         ) || {
           overallStats: {
@@ -102,12 +116,12 @@ class AdminProgressController {
           filteredData = combinedData.filter(item => item.isRecentlyActive);
           break;
         case 'high_achievers':
-          filteredData = combinedData.filter(item => 
+          filteredData = combinedData.filter(item =>
             item.achievements.length >= 5 || item.userStats?.totalPoints > 1000
           );
           break;
         case 'struggling':
-          filteredData = combinedData.filter(item => 
+          filteredData = combinedData.filter(item =>
             item.overallStats.averageScore < 60 && item.overallStats.totalLessonsCompleted > 0
           );
           break;
@@ -115,7 +129,7 @@ class AdminProgressController {
 
       // Get total count for pagination
       const totalUsers = await User.countDocuments(userQuery);
-      
+
       // Get overview statistics
       const stats = await this.getProgressOverviewStats();
 
@@ -166,10 +180,10 @@ class AdminProgressController {
 
       // Get user achievements
       const userAchievements = user.gamification?.badges || [];
-      
+
       // Get activity summary by type
       const activitySummary = await VisitorActivity.aggregate([
-        { $match: { userId: mongoose.Types.ObjectId(userId) } },
+        { $match: { userId: new mongoose.Types.ObjectId(userId) } },
         {
           $group: {
             _id: '$activityType',
@@ -341,7 +355,7 @@ class AdminProgressController {
             stats: {
               earnedCount,
               totalUsers: totalActiveUsers,
-              earnedPercentage: totalActiveUsers > 0 ? 
+              earnedPercentage: totalActiveUsers > 0 ?
                 Math.round((earnedCount / totalActiveUsers) * 100) : 0
             }
           };
@@ -613,7 +627,7 @@ class AdminProgressController {
               {
                 $match: {
                   $expr: {
-                    $in: ['$$achievementId', '$gamification.badges.id']
+                    $in: ['$$achievementId', { $ifNull: ['$gamification.badges.id', []] }]
                   }
                 }
               }
@@ -693,13 +707,13 @@ class AdminProgressController {
   // Get progress overview statistics
   async getProgressOverviewStats() {
     const totalUsers = await User.countDocuments({ role: 'user', isActive: true });
-    
+
     const activeUsers = await VisitorActivity.distinct('userId', {
       timestamp: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
     });
 
     const totalAchievements = await Achievement.countDocuments({ isActive: true });
-    
+
     const completionStats = await LearningProgress.aggregate([
       {
         $group: {
@@ -716,7 +730,7 @@ class AdminProgressController {
       },
       {
         $project: {
-          badgeCount: { $size: '$gamification.badges' }
+          badgeCount: { $size: { $ifNull: ['$gamification.badges', []] } }
         }
       },
       {
@@ -763,7 +777,7 @@ class AdminProgressController {
   async exportProgressData(req, res) {
     try {
       const { format = 'json', userIds } = req.query;
-      
+
       let query = { role: 'user', isActive: true };
       if (userIds) {
         query._id = { $in: userIds.split(',') };
@@ -774,8 +788,8 @@ class AdminProgressController {
 
       const userProgressData = await Promise.all(
         users.map(async (user) => {
-          const learningProgress = await LearningProgress.findOne({ 
-            userId: user._id 
+          const learningProgress = await LearningProgress.findOne({
+            userId: user._id
           }).populate('courses.courseId', 'title');
 
           const activitySummary = await VisitorActivity.aggregate([
