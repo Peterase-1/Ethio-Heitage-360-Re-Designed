@@ -2594,6 +2594,56 @@ class MockApiClient {
       data: mockRentalArtifacts
     };
   }
+  // Educational Tours
+  async getEducationalTours(params = {}) {
+    await delay(300);
+    return {
+      success: true,
+      data: MOCK_TOURS,
+      tours: MOCK_TOURS
+    };
+  }
+
+  async getEducationalTour(id) {
+    await delay(300);
+    const tour = MOCK_TOURS.find(t => t.id === id || t._id === id);
+    if (!tour) throw new Error('Tour not found');
+    return { success: true, data: tour };
+  }
+
+  async createEducationalTour(data) {
+    await delay(500);
+    const newTour = {
+      ...data,
+      id: String(MOCK_TOURS.length + 1),
+      _id: String(MOCK_TOURS.length + 1),
+      rating: 0,
+      participants: 0,
+      createdAt: new Date().toISOString()
+    };
+    MOCK_TOURS.push(newTour);
+    return { success: true, data: newTour };
+  }
+
+  async updateEducationalTour(id, data) {
+    await delay(500);
+    const index = MOCK_TOURS.findIndex(t => t.id === id || t._id === id);
+    if (index !== -1) {
+      MOCK_TOURS[index] = { ...MOCK_TOURS[index], ...data };
+      return { success: true, data: MOCK_TOURS[index] };
+    }
+    return { success: false, message: 'Tour not found' };
+  }
+
+  async deleteEducationalTour(id) {
+    await delay(500);
+    const index = MOCK_TOURS.findIndex(t => t.id === id || t._id === id);
+    if (index !== -1) {
+      MOCK_TOURS.splice(index, 1);
+      return { success: true };
+    }
+    return { success: false, message: 'Tour not found' };
+  }
 }
 
 export const mockApi = new MockApiClient();
