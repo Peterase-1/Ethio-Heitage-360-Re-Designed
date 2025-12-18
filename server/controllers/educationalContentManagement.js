@@ -8,12 +8,12 @@ const LearningProgress = require('../models/LearningProgress');
 // Get all achievements with admin details
 const getAllAchievementsAdmin = async (req, res) => {
   try {
-    const { 
-      category, 
-      difficulty, 
+    const {
+      category,
+      difficulty,
       type,
-      status, 
-      page = 1, 
+      status,
+      page = 1,
       limit = 20,
       search,
       sortBy = 'createdAt',
@@ -21,18 +21,18 @@ const getAllAchievementsAdmin = async (req, res) => {
     } = req.query;
 
     const filter = {};
-    
+
     // Apply filters
     if (category) filter.category = category;
     if (difficulty) filter.difficulty = difficulty;
     if (type) filter.type = type;
     if (status === 'active') filter.isActive = true;
     if (status === 'inactive') filter.isActive = false;
-    
+
     // Search functionality
     if (search) {
       filter.$or = [
-        { title: { $regex: search, $options: 'i' } },
+        { name: { $regex: search, $options: 'i' } },
         { description: { $regex: search, $options: 'i' } },
         { category: { $regex: search, $options: 'i' } }
       ];
@@ -87,7 +87,8 @@ const getAllAchievementsAdmin = async (req, res) => {
     console.error('Get all achievements admin error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch achievements'
+      message: 'Failed to fetch achievements',
+      error: error.message
     });
   }
 };
@@ -97,6 +98,7 @@ const createAchievement = async (req, res) => {
   try {
     const {
       title,
+      name,
       description,
       type,
       category,
@@ -107,25 +109,28 @@ const createAchievement = async (req, res) => {
       badge
     } = req.body;
 
+    const finalName = name || title;
+
     // Validate required fields
-    if (!title || !description || !type || !criteria) {
+    if (!finalName || !description || !type || !criteria) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: title, description, type, criteria'
+        message: 'Missing required fields: name/title, description, type, criteria'
       });
     }
 
-    // Check if achievement with same title already exists
-    const existingAchievement = await Achievement.findOne({ title });
+    // Check if achievement with same name already exists
+    const existingAchievement = await Achievement.findOne({ name: finalName });
     if (existingAchievement) {
       return res.status(409).json({
         success: false,
-        message: 'Achievement with this title already exists'
+        message: 'Achievement with this name already exists'
       });
     }
 
     const achievementData = {
-      title: title.trim(),
+      id: req.body.id || `ACH-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      name: finalName.trim(),
       description: description.trim(),
       type,
       category: category || 'general',
@@ -166,7 +171,7 @@ const updateAchievement = async (req, res) => {
     delete updateData.__v;
     delete updateData.createdAt;
     delete updateData.createdBy;
-    
+
     updateData.updatedAt = new Date();
 
     const achievement = await Achievement.findByIdAndUpdate(
@@ -249,12 +254,12 @@ const deleteAchievement = async (req, res) => {
 // Get all certificates with admin details
 const getAllCertificatesAdmin = async (req, res) => {
   try {
-    const { 
+    const {
       userId,
       courseId,
       status,
       issuedDate,
-      page = 1, 
+      page = 1,
       limit = 20,
       search,
       sortBy = 'issuedAt',
@@ -269,7 +274,7 @@ const getAllCertificatesAdmin = async (req, res) => {
     if (userId) matchConditions.userId = userId;
     if (courseId) matchConditions.courseId = courseId;
     if (status) matchConditions.status = status;
-    
+
     if (issuedDate) {
       const date = new Date(issuedDate);
       const nextDay = new Date(date.getTime() + 24 * 60 * 60 * 1000);
