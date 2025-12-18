@@ -29,58 +29,38 @@ async function createRentalRequest(req, res) {
       contactEmail
     } = req.body;
 
-    console.log('🔍 Creating rental request with data:', {
-      requestType,
-      artifactId,
-      museumId: req.body.museumId,
-      userRole: req.user.role,
-      userId: req.user.id
-    });
+    console.log('🔍 Creating rental request:', { requestType, artifactId, userId: req.user.id });
 
     const requestedBy = req.user.id;
-
-    // Get museum ID - for museum_to_super requests, use user's museum
-    // For super_to_museum requests, use the museumId from request body
-    let museumId;
-    if (requestType === 'museum_to_super') {
-      museumId = req.user.museumId;
-      if (!museumId) {
-        return res.status(400).json({
-          success: false,
-          message: 'User is not associated with a museum'
-        });
-      }
-    } else if (requestType === 'super_to_museum') {
-      museumId = req.body.museumId;
-      if (!museumId) {
-        return res.status(400).json({
-          success: false,
-          message: 'Museum ID is required for super_to_museum requests'
-        });
-      }
-    } else {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid request type'
-      });
-    }
+    let museumId = req.body.museumId;
 
     // Validate artifact exists
     const artifact = await Artifact.findById(artifactId);
     if (!artifact) {
-      return res.status(404).json({
-        success: false,
-        message: 'Artifact not found'
-      });
+      return res.status(404).json({ success: false, message: 'Artifact not found' });
+    }
+
+    // Determine museumId if not provided or based on request type
+    if (requestType === 'museum_to_super') {
+      // For museum_to_super, the museum is the sender's own museum
+      museumId = req.user.museumId || artifact.museum;
+      if (!museumId) {
+        return res.status(400).json({ success: false, message: 'Source museum not identified' });
+      }
+    } else if (requestType === 'super_to_museum') {
+      // For super_to_museum, the museum is the target (owner of the artifact)
+      museumId = museumId || artifact.museum;
+      if (!museumId) {
+        return res.status(400).json({ success: false, message: 'Target museum not identified' });
+      }
+    } else {
+      return res.status(400).json({ success: false, message: 'Invalid request type' });
     }
 
     // Validate museum exists
     const museum = await Museum.findById(museumId);
     if (!museum) {
-      return res.status(404).json({
-        success: false,
-        message: 'Museum not found'
-      });
+      return res.status(404).json({ success: false, message: 'Museum not found' });
     }
 
     // Create rental request
@@ -98,31 +78,25 @@ async function createRentalRequest(req, res) {
         currency
       },
       contact: {
-        person: contactPerson,
+        person: contactPerson || req.user.name,
         phone: contactPhone,
-        email: contactEmail
+        email: contactEmail || req.user.email
       },
       description,
       specialRequirements,
       approvals: [{
         approver: requestedBy,
-        role: requestType === 'museum_to_super' ? 'museum_admin' : 'super_admin',
-        status: 'pending'
+        role: req.user.role === 'superAdmin' ? 'super_admin' : 'museum_admin',
+        status: 'approved', // Requester automatically approves their own request
+        comments: 'Request initiated',
+        approvedAt: new Date()
       }]
     });
 
     await rentalRequest.save();
 
-    console.log('✅ Rental request created successfully:', {
-      requestId: rentalRequest.requestId,
-      requestType: rentalRequest.requestType,
-      museum: rentalRequest.museum,
-      status: rentalRequest.status
-    });
-
-    // Populate the response
     await rentalRequest.populate([
-      { path: 'artifact', select: 'name description images' },
+      { path: 'artifact', select: 'name description images museum' },
       { path: 'museum', select: 'name location' },
       { path: 'requestedBy', select: 'name email role' }
     ]);
@@ -165,34 +139,35 @@ async function getAllRentalRequests(req, res) {
     if (requestType && requestType !== 'undefined' && requestType !== 'all') query.requestType = requestType;
     if (userId && userId !== 'undefined') query.requestedBy = userId;
 
-    // Museum-specific filtering: Museum Admin should only see requests involving their museum
+    // Museum-specific filtering
     if (req.user.role === 'museumAdmin' && req.user.museumId) {
-      // Museum Admin sees requests where their museum is involved (either as requester or target)
+      // Museum Admin sees requests where they are the source (requestedBy) OR the target (museum)
       query.$or = [
-        { museum: req.user.museumId }, // Requests involving their museum
-        { requestedBy: req.user.id }  // Requests they created
+        { museum: req.user.museumId },
+        { requestedBy: req.user.id }
       ];
-    } else if (museumId && museumId !== 'undefined') {
-      // For other cases, use the provided museumId
-      query.museum = museumId;
+    } else if (req.user.role === 'superAdmin') {
+      // Super Admin sees everything, but can still filter by museumId if provided
+      if (museumId && museumId !== 'undefined' && museumId !== 'all') {
+        query.museum = museumId;
+      }
+      if (userId && userId !== 'undefined') {
+        query.requestedBy = userId;
+      }
     }
 
     // Add search functionality
     if (search && search.trim()) {
+      const searchTerms = search.trim();
       const searchQuery = {
         $or: [
-          { requestId: { $regex: search, $options: 'i' } },
-          { description: { $regex: search, $options: 'i' } },
-          { specialRequirements: { $regex: search, $options: 'i' } }
+          { requestId: { $regex: searchTerms, $options: 'i' } },
+          { description: { $regex: searchTerms, $options: 'i' } }
         ]
       };
 
-      // If we already have a $or query (museum filtering), combine them with $and
       if (query.$or) {
-        query.$and = [
-          { $or: query.$or },
-          searchQuery
-        ];
+        query.$and = [{ $or: query.$or }, searchQuery];
         delete query.$or;
       } else {
         query.$or = searchQuery.$or;
